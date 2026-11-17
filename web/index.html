@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>teinum-fly – Kjevik (ENCN)</title>
+<link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="screen" tabindex="0"></canvas>
+  <div class="touch" id="touch">
+    <button data-k="ArrowLeft">◀</button><button data-k="ArrowUp">▲ ned</button><button data-k="ArrowDown">▼ opp</button><button data-k="ArrowRight">▶</button>
+    <button data-k="KeyW">Gass +</button><button data-k="KeyS">Gass −</button><button id="tCam">Kamera</button>
+  </div>
+  <div class="panel">
+    <h1>teinum-fly · fase 1 · Kjevik</h1>
+    <div><kbd>←</kbd><kbd>→</kbd> krenge · <kbd>↑</kbd> nese ned · <kbd>↓</kbd> nese opp · <kbd>W</kbd>/<kbd>S</kbd> gass · <kbd>C</kbd> kamera · <kbd>R</kbd> ny innflyging · <kbd>T</kbd> bytt bane</div>
+    <div class="muted">Du starter på innflyging til Kristiansand lufthavn, Kjevik (ENCN). Land med lav fart, vingene i vater og rolig synkerate.</div>
+    <div class="muted" id="info"></div>
+    <div class="muted" id="credits"></div>
+  </div>
+</div>
+<script type="module" src="/src/main.ts"></script>
+</body>
+</html>
