@@ -1,17 +1,39 @@
-/* Felles spilltilstand og inndata for pikselmodus og 3D-modus. */
-import type { Camera, Message } from "./hud";
+/* Spilltilstand, klokke og inndata. */
+import { startTime } from "./clock";
 import { type Keys, startApproach, update } from "./physics";
 import { newPlane, type Plane } from "./plane";
+import { type SkyState, skyState } from "./sky";
+import { sunPosition } from "./sun";
 import type { Airport, Terrain } from "./terrain";
+
+/** Utvendig kamera følger flyet bakfra; cockpit ser ut gjennom frontruta. */
+export type Camera = "external" | "cockpit";
+
+export interface Message {
+  text: string;
+  t: number;
+}
+
+export interface Environment {
+  /** Solas retning i rutenettet (radianer, 0 = rutenett-nord, med klokka) og høyde (radianer). */
+  sunAzimuth: number;
+  sunElevation: number;
+  sky: SkyState;
+}
 
 export interface Game {
   P: Plane;
   airport: Airport;
   msg: Message;
   cam: Camera;
-  /** Ett steg: fysikk, meldinger og ny innflyging når det trengs. */
+  /** Spillklokka, UTC i ms. Går i sanntid; Q/E stiller den en halvtime bakover/framover. */
+  time: number;
+  env: Environment;
+  /** Ett steg: klokke, fysikk, meldinger og ny innflyging når det trengs. */
   step(dt: number): void;
 }
+
+const TIME_STEP_MS = 30 * 60 * 1000;
 
 export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   const airport = terrain.meta.airports[0];
@@ -26,18 +48,34 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     startApproach(P, terrain, runway.ends[endIdx]);
     say(`Innflyging ${airport.icao} bane ${runway.ends[endIdx].ident}`, 3);
   };
+  const environment = (time: number): Environment => {
+    // Sola regnes for flyplassen; over 25 km er forskjellen ubetydelig
+    const sun = sunPosition(time, airport.arp.lat, airport.arp.lon);
+    return {
+      // sann asimut -> rutenett: rutenett = sann - meridiankonvergens
+      sunAzimuth: ((sun.azimuthDeg - terrain.meta.gridConvergenceDeg) * Math.PI) / 180,
+      sunElevation: (sun.elevationDeg * Math.PI) / 180,
+      sky: skyState(sun.elevationDeg),
+    };
+  };
+  const time = startTime(params, Date.now());
   const game: Game = {
-    P, airport, msg,
-    cam: params.get("cam") === "cockpit" ? "cockpit" : "chase",
+    P, airport, msg, time,
+    cam: params.get("cam") === "cockpit" ? "cockpit" : "external",
+    env: environment(time),
     step(dt) {
+      game.time += dt * 1000;
+      game.env = environment(game.time);
       if (msg.t > 0) msg.t -= dt;
       if (update(P, terrain, airport, K, dt, say)) reset();
     },
   };
-  const toggleCam = () => { game.cam = game.cam === "chase" ? "cockpit" : "chase"; };
+  const toggleCam = () => { game.cam = game.cam === "external" ? "cockpit" : "external"; };
 
   addEventListener("keydown", (e) => {
     K[e.code] = true;
+    if (e.code === "KeyQ") game.time -= TIME_STEP_MS;
+    if (e.code === "KeyE") game.time += TIME_STEP_MS;
     if (e.repeat) return;
     if (e.code === "KeyC") toggleCam();
     if (e.code === "KeyR") reset();
@@ -51,6 +89,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     for (const ev of ["pointerup", "pointerleave", "pointercancel"]) b.addEventListener(ev, () => { K[k] = false; });
   });
   document.getElementById("tCam")!.onclick = toggleCam;
+  document.getElementById("tTime")!.onclick = () => { game.time += 4 * TIME_STEP_MS; };
   focus.addEventListener("click", () => focus.focus());
 
   reset();

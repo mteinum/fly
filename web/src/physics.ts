@@ -1,10 +1,19 @@
 /* Enkel flymodell, landing og krasj. Posisjon i rutenettceller, høyde og fart i meter. */
-import { clamp } from "./colors";
 import type { Plane } from "./plane";
 import { type Airport, BRIDGE, BUILDING, type Runway, type RunwayEnd, type Terrain } from "./terrain";
 
 export const MAX_ALT = 1500;
+export const STALL_SPEED = 45; // m/s: under dette synker nesa
+export const MAX_LANDING_SPEED = 85; // m/s
+export const MAX_SPEED = 220; // m/s ved full gass i flat flyging
 const G = 9.81;
+const TURN_GAIN = 1.8; // svinger raskere enn en koordinert sving skulle tilsi (arv fra prototypen)
+const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
+
+/** Svingrate i rad/s (positiv = mot høyre). */
+export const turnRate = (P: Plane): number => ((G * Math.tan(P.roll)) / P.spd) * TURN_GAIN;
+/** Stigerate i m/s. */
+export const verticalSpeed = (P: Plane): number => P.spd * Math.sin(P.pitch);
 const APPROACH_DIST_M = 4000;
 const GLIDE_SLOPE = Math.tan((3 * Math.PI) / 180);
 
@@ -57,11 +66,11 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
   else P.pitch *= 1 - 0.5 * dt;
   if (K.KeyW) P.thr = Math.min(1, P.thr + 0.4 * dt);
   if (K.KeyS) P.thr = Math.max(0, P.thr - 0.4 * dt);
-  const target = 40 + P.thr * 180;
+  const target = 40 + P.thr * (MAX_SPEED - 40);
   P.spd += (target - P.spd) * 0.35 * dt - G * Math.sin(P.pitch) * dt;
-  if (P.spd < 45) P.pitch -= 0.5 * dt;
+  if (P.spd < STALL_SPEED) P.pitch -= 0.5 * dt;
   P.spd = Math.max(20, P.spd);
-  P.hdg += ((G * Math.tan(P.roll)) / P.spd) * dt * 1.8;
+  P.hdg += turnRate(P) * dt;
   const d = (P.spd * Math.cos(P.pitch) * dt) / t.cell;
   P.x += Math.sin(P.hdg) * d;
   P.y -= Math.cos(P.hdg) * d; // y øker mot sør, så nordover er minus
@@ -90,8 +99,8 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
     gh = t.sTop[ci];
   }
   if (P.alt <= gh + 1.5) {
-    const vs = P.spd * Math.sin(P.pitch);
-    if (onRunway(t, airport, P.x, P.y) && vs > -4 && Math.abs(P.roll) < 0.2 && P.spd < 85) {
+    const vs = verticalSpeed(P);
+    if (onRunway(t, airport, P.x, P.y) && vs > -4 && Math.abs(P.roll) < 0.2 && P.spd < MAX_LANDING_SPEED) {
       P.state = "landed"; P.t = 5; P.alt = gh + 1; P.pitch = 0; P.roll = 0;
       say(`Landet! ${(P.spd * 1.944) | 0} kt, ${vs.toFixed(1)} m/s`, 5);
     } else {

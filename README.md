@@ -1,10 +1,8 @@
 # teinum-fly
 
 Flysimulator over ekte norsk terreng: innflyging til Kristiansand lufthavn,
-Kjevik (ENCN), 25,6 x 25,6 km. To moduser på samme data:
-
-- **3D** (standard): WebGL, 10 m-celler, sann målestokk, bygninger og bruer som geometri.
-- **Piksel** (`?mode=pixel`): 320 x 200, 50 m-celler, sprite stacking og Voxel Space.
+Kjevik (ENCN), 25,6 x 25,6 km i 10 m-celler. WebGL, sann målestokk, bygninger
+og bruer som geometri, sol og mørke etter klokka, og cockpit med instrumentpanel.
 
 ## Kjøre
 
@@ -13,8 +11,8 @@ Forutsetninger: [uv](https://docs.astral.sh/uv/) og Node 22.
 ```bash
 # 1. Pipeline: hent data og skriv fliser (laster ned ca. 280 MB første gang, deretter fra cache)
 cd pipeline
-uv run flypipe build kjevik10   # 10 m-fliser til 3D-modus (40 MB, ikke i git)
-uv run flypipe build kjevik     # 50 m-fliser til pikselmodus (ligger i git)
+uv run flypipe build kjevik10   # 10 m-fliser som spillet bruker (37 MB, ikke i git)
+uv run flypipe build kjevik     # 50 m-fliser: grovt nivå, brukes av testene (ligger i git)
 uv run pytest
 
 # 2. Spill
@@ -24,15 +22,19 @@ npm run dev          # http://localhost:5173
 npm test
 ```
 
-50 m-flisene i `web/public/data/kjevik/` er sjekket inn, så pikselmodus kjører
-uten pipeline. 3D-modus krever at `kjevik10` er bygget. `data/raw/` (cache) kan slettes for å hente alt
+Spillet krever at `kjevik10` er bygget. 50 m-flisene i `web/public/data/kjevik/`
+er sjekket inn fordi testene bruker dem; spillet gjør det ikke lenger.
+`data/raw/` (cache) kan slettes for å hente alt
 på nytt. `data/processed/kjevik/*.tif` er georefererte kopier som kan åpnes
 i QGIS for kontroll mot andre kartlag.
 
-Taster: piltaster styrer, `W`/`S` gass, `C` kamera, `R` ny innflyging,
-`T` bytt bane (03/21). `?cam=cockpit&rwy=21` i URL-en velger startoppsett, og
-`?pos=øst,nord,høyde,kurs` (UTM 33, meter, sann kurs) starter et vilkårlig sted,
-f.eks. `?pos=91725,6468775,70,174` for Varoddbrua.
+Taster: piltaster styrer, `W`/`S` gass, `C` bytter mellom utvendig kamera og
+cockpit, `R` ny innflyging, `T` bytt bane (03/21), `Q`/`E` stiller klokka en
+halvtime bakover/framover.
+
+URL-parametre: `?cam=cockpit`, `?rwy=21`, `?time=22:00` og `?date=2026-06-21`
+(norsk tid; uten dem brukes klokka nå), og `?pos=øst,nord,høyde,kurs` (UTM 33,
+meter, sann kurs), f.eks. `?pos=91725,6468775,70,174` for Varoddbrua.
 
 ## Dokumentasjon
 
@@ -44,7 +46,7 @@ f.eks. `?pos=91725,6468775,70,174` for Varoddbrua.
 ## Faser
 
 1. **Kjevik: DTM, hillshade, rullebane fra flyplassdata** (ferdig)
-2. **N50-arealdekke, veier, bruer og bygninger** (ferdig) · METAR-vind og -sikt, sollys fra sunrise-API (gjenstår)
+2. **N50-arealdekke, veier, bruer og bygninger, tid på døgnet** (ferdig) · METAR-vind og -sikt (gjenstår)
 3. Fliser/LOD langs ENCN–ENGM, ruter fra Avinor
 4. AI-genererte sprite-stabler, LLM-briefing fra METAR/TAF
 

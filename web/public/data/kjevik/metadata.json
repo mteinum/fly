@@ -29,8 +29,10 @@
     "unit": "m"
   },
   "colormap": {
-    "file": "colormap.png"
+    "file": "colormap.png",
+    "hillshadeBaked": true
   },
+  "lights": null,
   "landcover": {
     "file": "landcover.bin",
     "dtype": "uint8",

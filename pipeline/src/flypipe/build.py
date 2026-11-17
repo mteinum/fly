@@ -11,7 +11,7 @@ from PIL import Image
 from rasterio.features import rasterize
 from shapely.geometry import LineString
 
-from . import airports, dtm, landcover, n50, structures, terrain
+from . import airports, dtm, landcover, lights, n50, structures, terrain
 from .areas import Area
 from .crs import UTM33, grid_convergence_deg, scale_factor
 from .grid import GridSpec
@@ -77,13 +77,18 @@ def build(area: Area) -> Path:
         items, bridge_lines, features = structures.build_structures(
             vectors, n50.rasterize_features(vectors, grid), hgt, grid, raw, ndsm
         )
-    rgb = terrain.colormap(hgt, area.cell, shade, lc, features, steep_slope=area.steep_slope)
+    flat_light = np.ones_like(shade)
+    rgb = terrain.colormap(hgt, area.cell, shade if area.bake_hillshade else flat_light, lc, features, steep_slope=area.steep_slope)
     rgb[runway_mask(airport, grid)] = terrain.RUNWAY
 
     out = TILES / area.id
     out.mkdir(parents=True, exist_ok=True)
     hgt.astype("<f4").tofile(out / "heightmap.f32")
     Image.fromarray(rgb, "RGB").save(out / "colormap.png", optimize=True)
+    has_lights = area.night_lights and lc is not None and features is not None
+    if has_lights:
+        glow = lights.night_lights(lc, features, n50.major_road_mask(vectors, grid))
+        Image.fromarray(glow, "RGB").save(out / "lights.png", optimize=True)
     if lc is None:
         lc = np.where(hgt <= terrain.SEA_LEVEL_MAX, landcover.CLASSES[1].code, landcover.UNKNOWN).astype(np.uint8)
     lc.tofile(out / "landcover.bin")
@@ -109,7 +114,8 @@ def build(area: Area) -> Path:
         "gridConvergenceDeg": round(conv, 4),
         "scaleFactor": round(scale_factor(cx, cy), 6),
         "heightmap": {"file": "heightmap.f32", "dtype": "float32", "byteOrder": "little", "unit": "m"},
-        "colormap": {"file": "colormap.png"},
+        "colormap": {"file": "colormap.png", "hillshadeBaked": area.bake_hillshade},
+        "lights": {"file": "lights.png", "placement": "syntetisk: langs veier og i bebyggelse fra N50"} if has_lights else None,
         "landcover": {
             "file": "landcover.bin",
             "dtype": "uint8",

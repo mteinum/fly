@@ -111,12 +111,23 @@ Merk: punkt-API-et svarer med dybde over sjø (`datakilde: dybdekurver`) og
 regulert vannstand over regulerte innsjøer (`innsjohoyde`). Bare punkter med
 `datakilde: dtm1` er sammenlignbare med DTM-en.
 
+## Beregnet eller syntetisk (ikke data)
+
+| Hva | Hvordan | Merknad |
+|---|---|---|
+| Solas posisjon | Regnes i `web/src/sun.ts` fra klokke og flyplassens posisjon (lavpresisjonsformler, ca. 0,01°) | Testet mot middagshøyde ved solverv og jevndøgn. Erstatter planen om MET sitt sunrise-API: lyssetting trenger asimut og høyde hvert øyeblikk, ikke bare tidspunkt for soloppgang |
+| Himmelfarger og lysstyrke | Tabell per solhøyde i `web/src/sky.ts` | Valgt for utseende. Grensene -6°/-12°/-18° er de vanlige for tussmørke |
+| Gatelys og vinduslys (`lights.png`) | `pipeline/src/flypipe/lights.py`: hver 5. veicelle nær bebyggelse og på europa-/riksvei; 2–18 % av cellene i bebygde arealklasser | Viser hvor N50 har vei og bebyggelse, ikke hvor det faktisk er lys |
+| Rullebanelys | Kantlys hver 60. m, grønne terskellys, 420 m innflygingslys med tverrbjelke | Vanlig mønster, ikke ENCNs faktiske lysanlegg (AIP er ikke slått opp) |
+| Lykter på bruer | Hver 30. m langs senterlinja, 8 m over dekket | Syntetisk |
+| Stjerner, måne | 1400 tilfeldige punkter; fast, svakt «månelys» ovenfra | Ingen stjernekatalog, ingen månefase |
+| Instrumenter | Fart, høyde og stigning fra flymodellen | Høydemåleren er alltid stilt til 1013 hPa-visning uten trykkorreksjon; kursgyroen viser sann kurs, ikke magnetisk |
+
 ## Planlagt (ikke i bruk, ikke verifisert ennå)
 
 | Fase | Kilde | Lisens / kreditering | Merknad |
 |---|---|---|---|
 | 2 | MET Norway `api.met.no` tafmetar | NLOD 2.0 og CC BY 4.0, «Data fra MET Norway» | Krever identifiserende User-Agent med kontaktinfo. Kapsles bak et grensesnitt; skal erstattes av SWIM / OGC API EDR |
-| 2 | MET Norway `api.met.no` sunrise | Som over | |
 | 3 | Avinor flydata XML (`asrv.avinor.no/XmlFeed/v1.0`, `airportNames`, `airlineNames`) | Avinors vilkår må leses og dokumenteres før bruk | Private flyplasser (Torp, Haugesund) mangler |
 
 Eksakte URL-er, parametre og vilkår for disse føres inn her når de er

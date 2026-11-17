@@ -19,6 +19,25 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     structures.py bruer (dekkhøyde fra DOM) og bygninger som egen liste
     terrain.py   blokkmiddel, hillshade, fargekart
     build.py     setter det sammen og skriver fliser + metadata.json
+web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
+  src/
+    main.ts        laster fliser, kobler sammen og kjører løkka
+    game.ts        spilltilstand, klokke, inndata
+    terrain.ts     laster fliser; heightAt, isWater, utmToGrid, sann kurs
+    physics.ts     flymodell, landing, kollisjon
+    sun.ts         solas posisjon fra tid og sted
+    sky.ts         himmelfarger og lysstyrke fra solhøyden
+    clock.ts       norsk tid <-> UTC
+    glRenderer.ts  WebGL: terrengnett med LOD, normalkart, bygninger, bruer, lys
+    hud.ts         skjermtekst og kart (utvendig kamera)
+    panel.ts       instrumentpanel (cockpit)
+data/raw/
+    airports.py  OurAirports: flyplass + rullebaner
+    n50.py       N50 Kartdata: veier, bruer, bygninger -> feature-raster
+    landcover.py N50 Arealdekke -> palettindeks per celle (flertall)
+    structures.py bruer (dekkhøyde fra DOM) og bygninger som egen liste
+    terrain.py   blokkmiddel, hillshade, fargekart
+    build.py     setter det sammen og skriver fliser + metadata.json
 web/        Vite + TypeScript, ingen spillmotor. To moduser med felles terreng, fysikk og HUD:
   src/
     main.ts           velger modus (3D er standard, ?mode=pixel for pikselmodus)
@@ -34,13 +53,15 @@ web/        Vite + TypeScript, ingen spillmotor. To moduser med felles terreng, 
 data/raw/        cache av nedlastede rådata (ikke i git)
 data/processed/  GeoTIFF-kopier for kontroll i QGIS (ikke i git)
 tests/fixtures/  fasitpunkter fra Kartverkets API-er, delt av pytest og vitest
-reference/       opprinnelig prototype (én HTML-fil), kun til oppslag
+reference/       opprinnelig piksel-prototype (én HTML-fil), kun til oppslag
 docs/            datakilder.md, resampling.md, ai-logg.md
 ```
 
 Flisformat per utsnitt (alle rad for rad fra nord):
 - `heightmap.f32`: Float32 little-endian, rent terreng (DTM)
-- `colormap.png`: RGB, bakken: arealdekke x hillshade + veier + rullebane
+- `colormap.png`: RGB, bakken: arealdekke + veier + rullebane. 10 m-flisene har ren
+  flatefarge (spillet lyssetter selv); 50 m-flisene har hillshade bakt inn
+- `lights.png`: RGB, nattlys (kun 10 m). Syntetisk plassert langs veier og i bebyggelse
 - `landcover.bin`: uint8 palettindeks (klasser i metadata.json; avgjør hva som er vann)
 - `structures.json`: `[kol, rad, type, bunn, topp, r, g, b]` for bruer og bygninger
 - `metadata.json`: bbox, CRS, cellestørrelse, min/maks høyde, konvergens,
@@ -49,8 +70,8 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 ## Kommandoer
 
 ```bash
-cd pipeline && uv run flypipe build kjevik     # 50 m-fliser (pikselmodus), i git
-cd pipeline && uv run flypipe build kjevik10   # 10 m-fliser (3D-modus), 40 MB, ikke i git
+cd pipeline && uv run flypipe build kjevik10   # 10 m-fliser som spillet bruker (37 MB, ikke i git)
+cd pipeline && uv run flypipe build kjevik     # 50 m-fliser: grovt nivå, brukes av testene (i git)
 cd pipeline && uv run pytest                   # tester (krever bygde fliser)
 cd web && npm run dev                        # spill på http://localhost:5173
 cd web && npm test && npm run typecheck
@@ -72,7 +93,7 @@ cd web && npm test && npm run typecheck
    Ved Kjevik er konvergensen -5,89° (nesten 7° vest for sentralmeridianen).
    Retninger fra kilder (rullebane, vind, sol) er sanne og må korrigeres;
    rullebaneretning regnes helst direkte fra transformerte endepunkter.
-   I 3D-modus er verden høyrehendt i meter: X = øst, Y = opp, Z = sør
+   I rendereren er verden høyrehendt i meter: X = øst, Y = opp, Z = sør
    (nord er -Z). Framover er `(sin hdg, 0, -cos hdg)`, og flyets rotasjon er
    Euler YXZ = `(pitch, -hdg, -roll)`.
 6. Målestokkfaktoren ved Kjevik er 1,0016: rutenettavstander er 0,16 % lengre
@@ -98,11 +119,16 @@ cd web && npm test && npm run typecheck
   (bruer, bygninger) går i structures.json og tegnes av renderne.
 - Høydekartet er alltid rent terreng og endres aldri av vektordata.
 - Vann avgjøres av arealdekket (`Terrain.isWater`), ikke av høyde <= 0.
-- Pikselmodus: 320x200, nearest-neighbour, teknikkene fra prototypen beholdes.
-- 3D-modus: sann målestokk, ingen vertikal overdrivelse. Hillshade er bakt inn i
-  fargekartet av pipeline, så terrenget tegnes uten lys. three.js brukes bare
-  til tegning; fysikk og terrengoppslag er de samme som i pikselmodus.
+- Sann målestokk, ingen vertikal overdrivelse. three.js brukes bare til
+  tegning; fysikk og terrengoppslag er ren TypeScript og testes uten nettleser.
+- Kameraene heter «utvendig» og «cockpit» (ikke «jakt»).
+- Tid: spillklokka er UTC i ms, vises i norsk tid. Solas asimut er sann og må
+  korrigeres med meridiankonvergensen før den brukes i rutenettet (game.ts).
+- Skill mellom ekte og syntetisk: det som er plassert etter mønster og ikke
+  etter data (nattlys, rullebanelys, stjerner, himmelfarger) skal merkes
+  som syntetisk i koden og i docs/datakilder.md.
 - Begge flissett har samme format og samme bbox. Kode som leser fliser skal
   ikke anta cellestørrelse: regn i meter og del på `terrain.cell`.
+- Skjermtekst og panel tegnes i 320 x 200 logiske enheter og skaleres opp.
 - Commit per logisk steg, uten Co-Authored-By.
 - Arbeidet går i faser (se README.md). Gjør én fase, stopp for gjennomgang.

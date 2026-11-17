@@ -14,10 +14,9 @@ export function loadTestTerrain(area = "kjevik"): Terrain {
   const meta: TerrainMeta = JSON.parse(readFileSync(DATA + "metadata.json", "utf-8"));
   const raw = readFileSync(DATA + meta.heightmap.file);
   const hgt = new Float32Array(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength));
-  // fargekartet trengs ikke i testene
   const lc = new Uint8Array(readFileSync(DATA + meta.landcover.file));
   const structures: StructureFile = JSON.parse(readFileSync(DATA + meta.structures.file, "utf-8"));
-  return new Terrain(meta, hgt, new Uint32Array(hgt.length), lc, structures);
+  return new Terrain(meta, hgt, lc, structures);
 }
 
 export interface ReferencePoints {

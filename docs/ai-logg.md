@@ -105,6 +105,13 @@ og hva som ble endret.
   10 m-flisene har målt høyde, men det er de store byggene som teller mange
   celler hver.
 
+**13. Avvik fra planen: sol fra formel, ikke fra MET sitt sunrise-API**
+- Planen for fase 2 sa «sollys fra sunrise-API». Jeg regner i stedet solas
+  posisjon lokalt. Begrunnelse: lyssetting trenger asimut og høyde
+  kontinuerlig, og en formel gir det uten nettkall og uten User-Agent-kravet.
+- Dette er et valg jeg tok uten å spørre, ikke en feil som ble rettet.
+  Sunrise-API-et kan fortsatt brukes som fasit i en test.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal
@@ -141,6 +148,14 @@ ligger rett forut på innflyging 03, Kvadraturen ligger litt til høyre for
 kurs 300° sett fra fjorden sørøst for byen (peiling 313°), og minikartet
 viser samme posisjon. Ikke kontrollert ved å svinge: at høyre piltast
 krenger flyet til høyre i bildet er bare utledet, ikke sett.
+
+**Solas asimut: sann retning og fortegn på timevinkelen.** Formelen gir
+asimut fra sann nord; i rutenettet trekkes meridiankonvergensen fra (samme
+regel som for rullebanen). Kontrollert uten å stole på formelen selv:
+middagshøyden skal være 90° − breddegrad ± 23,44° ved solverv, sola skal stå
+i sør ved kulminasjon, stå opp i øst og gå ned i vest ved jevndøgn, og gå
+med klokka i løpet av dagen. Alle testene gikk første gang. Skyggene i
+3D-bildet er ikke sjekket mot et foto eller mot Kartverkets skyggerelieff.
 
 **16-bit PNG.** Oppgaven åpnet for 16-bit PNG som høydekart. Nettleserens
 canvas leser bare 8 bit per kanal, så det ville gitt 256 høydenivåer uten

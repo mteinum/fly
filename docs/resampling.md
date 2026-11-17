@@ -103,3 +103,13 @@ sammenhengende, men bekker og småtjern under ca. 1 dekar blir borte.
   medianen innenfor hver bygningsflate. Fungerer for bygg som dekker minst
   tre celler; et enkelt hus er mindre enn en celle og kan ikke skilles fra
   trærne rundt i 10 m-data.
+
+## Skygge: fra bakt hillshade til normalkart
+
+Med tid på døgnet kan ikke skyggen ligge i fargekartet (den var regnet for
+sol i sørvest, 28° høyde). 10 m-fargekartet er derfor ren flatefarge, og
+spillet regner et normalkart fra høydekartet ved oppstart: flatenormal fra
+sentraldifferanser i samme 10 m-rutenett, med helningen overdrevet 1,5 x så
+det lave terrenget får synlig relieff. Lyset er vanlig Lambert-skygge mot
+solretningen, omregnet fra sann asimut til rutenettet med
+meridiankonvergensen. 50 m-flisene har fortsatt bakt hillshade.

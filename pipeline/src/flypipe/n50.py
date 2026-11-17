@@ -90,6 +90,15 @@ def rasterize_large_buildings(features: dict[str, gpd.GeoDataFrame], grid: GridS
     return rasterize(shapes, out_shape=(grid.height, grid.width), transform=grid.transform, dtype="uint8").astype(bool)
 
 
+def major_road_mask(features: dict[str, gpd.GeoDataFrame], grid: GridSpec) -> np.ndarray:
+    """Celler med europa- eller riksvei."""
+    roads = features["roads"]
+    shapes = [g for g in roads.geometry[roads["vegkategori"].isin(("E", "R"))] if g is not None and not g.is_empty]
+    if not shapes:
+        return np.zeros((grid.height, grid.width), dtype=bool)
+    return rasterize(shapes, out_shape=(grid.height, grid.width), transform=grid.transform, dtype="uint8").astype(bool)
+
+
 def rasterize_features(features: dict[str, gpd.GeoDataFrame], grid: GridSpec) -> np.ndarray:
     """Feature-raster (uint8) i spillrutenettet. Bru > vei > bygning."""
     areas = features["buildingAreas"].geometry
