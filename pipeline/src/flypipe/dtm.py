@@ -1,7 +1,8 @@
-"""Høydedata: Kartverket DTM (Nasjonal høydemodell) via WCS.
+"""Høydedata: Kartverket DTM og DOM (Nasjonal høydemodell) via WCS.
 
-Tjeneste: https://wcs.geonorge.no/skwms1/wcs.hoyde-dtm-nhm-25833
-Dekning:  nhm_dtm_topo_25833 (1 m, EPSG:25833, høyder i NN2000)
+DTM (terreng):   https://wcs.geonorge.no/skwms1/wcs.hoyde-dtm-nhm-25833, nhm_dtm_topo_25833
+DOM (overflate): https://wcs.geonorge.no/skwms1/wcs.hoyde-dom-nhm-25833, nhm_dom_topo_25833
+Begge: 1 m, EPSG:25833, høyder i NN2000. DOM har med bruer, bygninger og trær.
 
 Tjenesten tillater maks 3840 x 2160 piksler per kall, så utsnittet hentes
 som fliser og caches i data/raw/. Slett cachen for å hente på nytt.
@@ -20,26 +21,33 @@ from .grid import GridSpec
 
 WCS_URL = "https://wcs.geonorge.no/skwms1/wcs.hoyde-dtm-nhm-25833"
 COVERAGE = "nhm_dtm_topo_25833"
+DOM_URL = "https://wcs.geonorge.no/skwms1/wcs.hoyde-dom-nhm-25833"
+DOM_COVERAGE = "nhm_dom_topo_25833"
+MAX_COLS, MAX_ROWS = 3840, 2160
 TILE_PX = 1280
 # Målt mot blokkmiddel av 1 m-data: bilinear gir RMSE 0,25 m, standard
 # (nearest) 0,92 m. Se docs/resampling.md.
 INTERPOLATION = "bilinear"
 
 
-def _fetch_tile(path: Path, west: float, south: float, east: float, north: float, w: int, h: int) -> None:
+def _fetch_tile(
+    path: Path, west: float, south: float, east: float, north: float, w: int, h: int,
+    url: str = WCS_URL, coverage: str = COVERAGE, interpolation: str | None = INTERPOLATION,
+) -> None:
     params = {
         "SERVICE": "WCS",
         "VERSION": "1.0.0",
         "REQUEST": "GetCoverage",
-        "COVERAGE": COVERAGE,
+        "COVERAGE": coverage,
         "CRS": "EPSG:25833",
         "BBOX": f"{west},{south},{east},{north}",
         "WIDTH": w,
         "HEIGHT": h,
         "FORMAT": "GeoTIFF",
-        "INTERPOLATION": INTERPOLATION,
     }
-    r = requests.get(WCS_URL, params=params, headers={"User-Agent": USER_AGENT}, timeout=300)
+    if interpolation:
+        params["INTERPOLATION"] = interpolation
+    r = requests.get(url, params=params, headers={"User-Agent": USER_AGENT}, timeout=300)
     r.raise_for_status()
     if "tiff" not in r.headers.get("content-type", ""):
         raise RuntimeError(f"WCS svarte ikke med GeoTIFF: {r.text[:500]}")
@@ -72,3 +80,19 @@ def load_source_dtm(grid: GridSpec, res: float, raw_dir: Path) -> np.ndarray:
                 assert abs(t.a - res) < 1e-9 and abs(t.e + res) < 1e-9, t
                 out[r0 : r0 + th, c0 : c0 + tw] = src.read(1)
     return out
+
+
+def load_dom_window(west: int, south: int, east: int, north: int, raw_dir: Path) -> tuple[np.ndarray, rasterio.Affine]:
+    """DOM i full oppløsning (1 m, ingen resampling) for et lite vindu på hele meter."""
+    w, h = east - west, north - south
+    if w > MAX_COLS or h > MAX_ROWS:
+        raise ValueError(f"DOM-vindu {w} x {h} er større enn tjenesten tillater")
+    path = raw_dir / f"dom1m_{west}_{south}_{east}_{north}.tif"
+    if not path.exists():
+        _fetch_tile(path, west, south, east, north, w, h, url=DOM_URL, coverage=DOM_COVERAGE, interpolation=None)
+    with rasterio.open(path) as src:
+        assert src.crs.to_epsg() == 25833, src.crs
+        assert (src.width, src.height) == (w, h), (src.width, src.height)
+        t = src.transform
+        assert abs(t.c - west) < 1e-6 and abs(t.f - north) < 1e-6 and abs(t.a - 1) < 1e-9, t
+        return src.read(1), t

@@ -1,7 +1,7 @@
 /* Enkel flymodell, landing og krasj. Posisjon i rutenettceller, høyde og fart i meter. */
 import { clamp } from "./colors";
 import type { Plane } from "./plane";
-import type { Airport, Runway, RunwayEnd, Terrain } from "./terrain";
+import { type Airport, BRIDGE, BUILDING, type Runway, type RunwayEnd, type Terrain } from "./terrain";
 
 export const MAX_ALT = 1500;
 const G = 9.81;
@@ -73,7 +73,22 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
     say("Utenfor kartutsnittet", 2.5);
     return false;
   }
-  const terrainH = t.heightAt(P.x, P.y), gh = Math.max(0, terrainH);
+  const ci = t.cellIndex(P.x, P.y), kind = t.sKind[ci];
+  // Bru: bare dekket er solid, så det går an å fly under
+  if (kind === BRIDGE && P.alt <= t.sTop[ci] + 1.5 && P.alt >= t.sBase[ci] - 1) {
+    P.state = "crash"; P.t = 2.5;
+    say("Traff brua!", 2.5);
+    return false;
+  }
+  let gh = Math.max(0, t.heightAt(P.x, P.y));
+  if (kind === BUILDING && t.sTop[ci] > gh) {
+    if (P.alt <= t.sTop[ci] + 1.5) {
+      P.state = "crash"; P.t = 2.5; P.alt = t.sTop[ci] + 1;
+      say("Traff en bygning!", 2.5);
+      return false;
+    }
+    gh = t.sTop[ci];
+  }
   if (P.alt <= gh + 1.5) {
     const vs = P.spd * Math.sin(P.pitch);
     if (onRunway(t, airport, P.x, P.y) && vs > -4 && Math.abs(P.roll) < 0.2 && P.spd < 85) {
@@ -81,7 +96,7 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
       say(`Landet! ${(P.spd * 1.944) | 0} kt, ${vs.toFixed(1)} m/s`, 5);
     } else {
       P.state = "crash"; P.t = 2.5; P.alt = gh + 1;
-      say(t.isSea(terrainH) ? "Plask! Havet tok deg." : "Bakkekontakt!", 2.5);
+      say(t.isWater(P.x, P.y) ? "Plask!" : "Bakkekontakt!", 2.5);
     }
   }
   return false;

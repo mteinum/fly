@@ -59,10 +59,18 @@ describe("høyde i spillet mot kilden", () => {
     expect(t.heightAt(10, t.height + 1)).toBe(0);
   });
 
-  it("har sjø i Topdalsfjorden og land på Kjevik", () => {
-    expect(t.isSea(t.heightAt(...t.utmToGrid(92000, 6469000)))).toBe(true);
+  it("har sjø i Topdalsfjorden, land på Kjevik og hav utenfor utsnittet", () => {
+    expect(t.isWater(...t.utmToGrid(92000, 6469000))).toBe(true);
     const arp = t.meta.airports[0].arp;
-    expect(t.isSea(t.heightAt(arp.x, arp.y))).toBe(false);
+    expect(t.isWater(arp.x, arp.y)).toBe(false);
+    expect(t.isWater(-5, 10)).toBe(true);
+  });
+
+  it("har innsjø der Kartverket har innsjø (ikke bare der høyden er 0)", () => {
+    // punkt-API: terreng Innsjø, 59 moh.
+    const [x, y] = t.utmToGrid(99575, 6474475);
+    expect(t.isWater(x, y)).toBe(true);
+    expect(t.heightAt(x, y)).toBeGreaterThan(50);
   });
 });
 

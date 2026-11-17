@@ -11,7 +11,7 @@ from PIL import Image
 from rasterio.features import rasterize
 from shapely.geometry import LineString
 
-from . import airports, dtm, n50, terrain
+from . import airports, dtm, landcover, n50, structures, terrain
 from .areas import Area
 from .crs import UTM33, grid_convergence_deg, scale_factor
 from .grid import GridSpec
@@ -62,18 +62,29 @@ def build(area: Area) -> Path:
     conv = grid_convergence_deg(cx, cy)
     sun_grid = (SUN_AZIMUTH_TRUE - conv) % 360
     shade = terrain.hillshade(hgt, area.cell, sun_grid, SUN_ELEVATION)
-    features = None
+    features = lc = None
+    items: list[list] = []
     if area.n50_county:
-        print(f"[{area.id}] N50 {area.n50_county}: veier, bruer, bygninger")
+        print(f"[{area.id}] N50 {area.n50_county}: arealdekke, veier, bruer, bygninger")
+        lc = landcover.load_landcover(n50.gdb_path(area.n50_county, RAW), grid)
         vectors = n50.load_features(area.n50_county, grid, RAW)
-        features = n50.rasterize_features(vectors, grid)
-    rgb = terrain.colormap(hgt, area.cell, shade, features)
+        print(f"[{area.id}] DOM 1 m rundt bruene (dekkhøyde)")
+        items, features = structures.build_structures(vectors, n50.rasterize_features(vectors, grid), hgt, grid, raw)
+    rgb = terrain.colormap(hgt, area.cell, shade, lc, features)
     rgb[runway_mask(airport, grid)] = terrain.RUNWAY
 
     out = TILES / area.id
     out.mkdir(parents=True, exist_ok=True)
     hgt.astype("<f4").tofile(out / "heightmap.f32")
     Image.fromarray(rgb, "RGB").save(out / "colormap.png", optimize=True)
+    if lc is None:
+        lc = np.where(hgt <= terrain.SEA_LEVEL_MAX, landcover.CLASSES[1].code, landcover.UNKNOWN).astype(np.uint8)
+    lc.tofile(out / "landcover.bin")
+    (out / "structures.json").write_text(
+        json.dumps({"columns": ["col", "row", "kind", "base", "top", "r", "g", "b"], "kinds": structures.KINDS, "items": items}, separators=(",", ":")) + "\n",
+        encoding="utf-8",
+    )
+    n_bridge = sum(1 for it in items if it[2] == structures.BRIDGE)
 
     meta = {
         "id": area.id,
@@ -87,12 +98,25 @@ def build(area: Area) -> Path:
         "gridOrigin": "nordvest: rad 0 = nord, kolonne 0 = vest, y øker mot sør",
         "minHeight": round(float(hgt.min()), 2),
         "maxHeight": round(float(hgt.max()), 2),
-        "seaLevelMax": terrain.SEA_LEVEL_MAX,
         "seaColor": list(terrain.SEA),
         "gridConvergenceDeg": round(conv, 4),
         "scaleFactor": round(scale_factor(cx, cy), 6),
         "heightmap": {"file": "heightmap.f32", "dtype": "float32", "byteOrder": "little", "unit": "m"},
         "colormap": {"file": "colormap.png"},
+        "landcover": {
+            "file": "landcover.bin",
+            "dtype": "uint8",
+            "source": "N50 Arealdekke" if area.n50_county else "kun DTM (hav der høyde <= 0,1 m)",
+            "method": f"rasterisert til {landcover.SUBCELL:g} m, flertall per {area.cell:g} m-celle",
+            "classes": [{"code": c.code, "name": c.name, "water": c.water} for c in landcover.CLASSES],
+        },
+        "structures": {
+            "file": "structures.json",
+            "bridgeCells": n_bridge,
+            "buildingCells": len(items) - n_bridge,
+            "bridgeHeights": "DOM 1 m (nhm_dom_topo_25833), median langs senterlinja per celle",
+            "buildingHeights": f"nominell: {structures.HEIGHT_HOUSE:g} m (punkt), {structures.HEIGHT_LARGE:g} m (flate)",
+        },
         "resampling": {
             "source": f"{dtm.COVERAGE} (1 m) via WCS, {dtm.INTERPOLATION} til {area.source_res:g} m",
             "method": f"blokkmiddel {factor}x{factor} til {area.cell:g} m",
@@ -106,15 +130,13 @@ def build(area: Area) -> Path:
             "source": f"N50 Kartdata, {area.n50_county} (FGDB)",
             "roadCategories": list(n50.ROAD_CATEGORIES),
             "roadCells": int((features == n50.ROAD).sum()),
-            "bridgeCells": int((features == n50.BRIDGE).sum()),
-            "buildingCells": int((features == n50.BUILDING).sum()),
             "roadKm": round(float(vectors["roads"].length.sum()) / 1000, 1),
             "bridgeKm": round(float(vectors["bridges"].length.sum()) / 1000, 1),
             "buildings": int(len(vectors["buildingPoints"]) + len(vectors["buildingAreas"])),
         },
         "airports": [airport],
         "attribution": [
-            "Høydedata, veier og bygninger (N50): © Kartverket (CC BY 4.0)",
+            "Høydedata (DTM, DOM) og N50 Kartdata: © Kartverket (CC BY 4.0)",
             "Flyplassdata: OurAirports (public domain)",
         ],
     }
@@ -125,5 +147,6 @@ def build(area: Area) -> Path:
     _write_geotiff(PROCESSED / area.id / "colormap.tif", rgb, grid)
     if features is not None:
         _write_geotiff(PROCESSED / area.id / "features.tif", features, grid)
+    _write_geotiff(PROCESSED / area.id / "landcover.tif", lc, grid)
     print(f"[{area.id}] skrev {out.relative_to(REPO)} (høyde {meta['minHeight']}-{meta['maxHeight']} m, konvergens {conv:.2f}°)")
     return out

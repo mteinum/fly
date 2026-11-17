@@ -2,7 +2,7 @@
 import { clamp, css, mixC, rgb } from "./colors";
 import type { Plane } from "./plane";
 import { H, W } from "./screen";
-import type { Terrain } from "./terrain";
+import { BRIDGE, BUILDING, type Terrain } from "./terrain";
 
 const SKY: [number, number, number, number][] = [[0, 255, 176, 102], [0.15, 240, 120, 110], [0.45, 120, 70, 130], [1, 25, 22, 55]];
 const FOG: [number, number, number] = [255, 176, 102];
@@ -25,6 +25,10 @@ export class VoxelRenderer {
   private img: ImageData;
   private buf: Uint32Array;
   private ybuf = new Int32Array(W);
+  // Brudekker tegnes uten å flytte y-bufferen (det er luft under). Masken hindrer
+  // at terreng lenger bak tegner over dem.
+  private deck = new Uint8Array(W * H);
+  private deckCol = new Uint8Array(W);
 
   constructor() {
     this.oc.width = W;
@@ -35,7 +39,9 @@ export class VoxelRenderer {
   }
 
   render(g: CanvasRenderingContext2D, t: Terrain, P: Plane): void {
-    const { buf, ybuf } = this, { hgt, col, width: N, height: M, cell } = t;
+    const { buf, ybuf, deck, deckCol } = this, { hgt, col, sKind, sBase, sTop, sCol, width: N, height: M, cell } = t;
+    deck.fill(0);
+    deckCol.fill(0);
     const hor = HORIZON + P.pitch * FOCAL, fogC = rgb(...FOG);
     for (let y = 0; y < H; y++) buf.fill(y < hor ? skyAt((hor - y) / 120) : fogC, y * W, y * W + W);
     ybuf.fill(H);
@@ -49,19 +55,33 @@ export class VoxelRenderer {
       for (let i = 0; i < W; i++, lx += dx, ly += dy) {
         let h = 0, c = t.seaColor;
         if (lx >= 0 && ly >= 0 && lx < N && ly < M) {
-          c = col[(ly | 0) * N + (lx | 0)];
+          const ci = (ly | 0) * N + (lx | 0);
+          c = col[ci];
           // bilineær høyde mellom cellesentre, ellers blir 50 m-cellene trappetrinn på nært hold
           const gx = lx - 0.5, gy = ly - 0.5;
           const x0 = gx < 0 ? 0 : gx > N - 2 ? N - 2 : gx | 0, y0 = gy < 0 ? 0 : gy > M - 2 ? M - 2 : gy | 0;
           const u = clamp(gx - x0, 0, 1), v = clamp(gy - y0, 0, 1), k = y0 * N + x0;
           const top = hgt[k] + (hgt[k + 1] - hgt[k]) * u, bot = hgt[k + N] + (hgt[k + N + 1] - hgt[k + N]) * u;
           h = Math.max(0, top + (bot - top) * v);
+          if (sKind[ci] === BUILDING) {
+            h = sTop[ci];
+            c = sCol[ci];
+          } else if (sKind[ci] === BRIDGE) {
+            const y0d = Math.max(0, (((camH - sTop[ci]) / zm) * FOCAL + hor) | 0);
+            const y1d = Math.min(ybuf[i], Math.max(y0d + 1, (((camH - sBase[ci]) / zm) * FOCAL + hor) | 0));
+            if (y0d < y1d) {
+              const dc = mixC(sCol[ci], FOG[0], FOG[1], FOG[2], fog);
+              for (let y = y0d; y < y1d; y++) if (!deck[y * W + i]) { buf[y * W + i] = dc; deck[y * W + i] = 1; }
+              deckCol[i] = 1;
+            }
+          }
         }
         let sy = (((camH - h) / zm) * FOCAL + hor) | 0;
         if (sy < ybuf[i]) {
           if (sy < 0) sy = 0;
           const cc = mixC(c, FOG[0], FOG[1], FOG[2], fog);
-          for (let y = sy; y < ybuf[i]; y++) buf[y * W + i] = cc;
+          if (deckCol[i]) { for (let y = sy; y < ybuf[i]; y++) if (!deck[y * W + i]) buf[y * W + i] = cc; }
+          else for (let y = sy; y < ybuf[i]; y++) buf[y * W + i] = cc;
           ybuf[i] = sy;
         }
       }

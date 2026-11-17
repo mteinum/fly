@@ -26,7 +26,9 @@ på nytt. `data/processed/kjevik/*.tif` er georefererte kopier som kan åpnes
 i QGIS for kontroll mot andre kartlag.
 
 Taster: piltaster styrer, `W`/`S` gass, `C` kamera, `R` ny innflyging,
-`T` bytt bane (03/21). `?cam=cockpit&rwy=21` i URL-en velger startoppsett.
+`T` bytt bane (03/21). `?cam=cockpit&rwy=21` i URL-en velger startoppsett, og
+`?pos=øst,nord,høyde,kurs` (UTM 33, meter, sann kurs) starter et vilkårlig sted,
+f.eks. `?pos=91725,6468775,70,174` for Varoddbrua.
 
 ## Dokumentasjon
 
@@ -37,12 +39,12 @@ Taster: piltaster styrer, `W`/`S` gass, `C` kamera, `R` ny innflyging,
 
 ## Faser
 
-1. **Kjevik: DTM, hillshade, høydebånd, rullebane fra flyplassdata** (ferdig)
-2. N50-arealdekke i fargekartet, METAR-vind og -sikt, sollys fra sunrise-API
+1. **Kjevik: DTM, hillshade, rullebane fra flyplassdata** (ferdig)
+2. **N50-arealdekke, veier, bruer og bygninger** (ferdig) · METAR-vind og -sikt, sollys fra sunrise-API (gjenstår)
 3. Fliser/LOD langs ENCN–ENGM, ruter fra Avinor
 4. AI-genererte sprite-stabler, LLM-briefing fra METAR/TAF
 
 ## Kreditering
 
-Høydedata, N50 Kartdata (veier, bruer, bygninger) og stedsnavn: © Kartverket (CC BY 4.0). Flyplassdata: OurAirports
+Høydedata (DTM og DOM), N50 Kartdata og stedsnavn: © Kartverket (CC BY 4.0). Flyplassdata: OurAirports
 (public domain).

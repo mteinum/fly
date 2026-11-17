@@ -64,3 +64,26 @@ avvike mer enn 5 m fra et enkeltpunkt, uten at noe er feil.
 i nettleseren leser bilder som 8 bit per kanal, så en 16-bit PNG ville krevd
 egen PNG-dekoder. Float32 leses direkte med `new Float32Array(buffer)` og
 beholder desimalene.
+
+## Arealdekke: vektor -> 50 m (flertall)
+
+Arealdekke er kategorisk, så middelverdi gir ikke mening (middelet av «skog»
+og «innsjø» er ikke «myr»). Polygonene fra N50 rasteriseres først til 10 m
+(celle = klassen i cellesenteret), og hver 50 m-celle får klassen som dekker
+flest av de 25 delcellene (`landcover.majority`). Ved likt antall vinner
+laveste kode.
+
+Alternativet, å ta klassen i sentrum av 50 m-cella, er nearest neighbour og
+gir samme aliasing som for høyde: en smal elv treffes eller bommes tilfeldig.
+
+Ulempen med flertall er at smale objekter kan forsvinne når de aldri dekker
+flest delceller. I Kjevik-utsnittet holder Topdalselva og Otra seg
+sammenhengende, men bekker og småtjern under ca. 1 dekar blir borte.
+
+## Vektor -> rutenett for veier, bruer og bygninger
+
+- Veier: linjer brennes som sammenhengende 1-celle-streker. En 50 m-celle er
+  mye bredere enn veien, så veinettet er sterkt overdrevet i bredde.
+- Bygninger: én celle per bygningspunkt. Flere bygninger i samme celle blir
+  én.
+- Bruer: cellene senterlinja går gjennom, med høyde fra DOM.

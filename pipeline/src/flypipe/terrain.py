@@ -62,18 +62,8 @@ STEEP = (128, 124, 118)
 STEEP_SLOPE = 0.6  # stigningstall (dz/dxy) på 50 m-rutenettet
 
 
-def colormap(hgt: np.ndarray, cell: float, shade: np.ndarray, features: np.ndarray | None = None, seed: int = 7) -> np.ndarray:
-    """RGB-fargekart (uint8, h x w x 3): høydebånd + helning + hillshade.
-
-    `features` er feature-rasteret fra n50.rasterize_features (bygning/vei/bru)
-    og legges oppå terrengfargene, også over sjø (bruer, naust).
-    """
-    from .n50 import BRIDGE as F_BRIDGE, BUILDING as F_BUILDING, ROAD as F_ROAD
-
-    dz_east, dz_south = gradients(hgt, cell)
-    slope = np.hypot(dz_east, dz_south)
-    noise = np.random.default_rng(seed).random(hgt.shape) > 0.5
-
+def band_colors(hgt: np.ndarray, noise: np.ndarray) -> np.ndarray:
+    """Farge fra høydebånd alene. Reserve der arealdekke mangler."""
     rgb = np.zeros(hgt.shape + (3,), dtype=np.float64)
     lower = -math.inf
     for upper, a, b in BANDS:
@@ -81,15 +71,49 @@ def colormap(hgt: np.ndarray, cell: float, shade: np.ndarray, features: np.ndarr
         rgb[band & noise] = a
         rgb[band & ~noise] = b
         lower = upper
-    rgb[(slope > STEEP_SLOPE) & (hgt > BANDS[0][0])] = STEEP
-    sea = hgt <= SEA_LEVEL_MAX
+    return rgb
+
+
+def colormap(
+    hgt: np.ndarray,
+    cell: float,
+    shade: np.ndarray,
+    landcover: np.ndarray | None = None,
+    features: np.ndarray | None = None,
+    seed: int = 7,
+) -> np.ndarray:
+    """RGB-fargekart for BAKKEN (uint8, h x w x 3).
+
+    Arealdekke (palettindeks fra landcover.py) gir grunnfargen, ganget med
+    hillshade. Uten arealdekke, og i celler med klasse Ukjent, brukes
+    høydebånd. Veier fra feature-rasteret legges oppå. Bruer og bygninger er
+    strukturer med høyde og tegnes av renderne, ikke her.
+    """
+    from .landcover import CLASSES, UNKNOWN
+    from .n50 import ROAD as F_ROAD
+
+    dz_east, dz_south = gradients(hgt, cell)
+    steep = np.hypot(dz_east, dz_south) > STEEP_SLOPE
+    noise = np.random.default_rng(seed).random(hgt.shape) > 0.5
+    if landcover is None:
+        landcover = np.full(hgt.shape, UNKNOWN, dtype=np.uint8)
+
+    rgb = band_colors(hgt, noise)
+    unknown = landcover == UNKNOWN
+    rgb[unknown & steep & (hgt > BANDS[0][0])] = STEEP
+    flat = unknown & (hgt <= SEA_LEVEL_MAX)  # uskyggede celler
+    rgb[flat] = SEA
+    for c in CLASSES[1:]:
+        m = landcover == c.code
+        rgb[m & noise] = c.colors[0]
+        rgb[m & ~noise] = c.colors[1]
+        if c.rock_when_steep:
+            rgb[m & steep] = STEEP
+        if not c.shaded:
+            flat |= m
     if features is not None:
-        rgb[(features == F_BUILDING) & noise] = ROOFS[0]
-        rgb[(features == F_BUILDING) & ~noise] = ROOFS[1]
-        rgb[features == F_ROAD] = ROAD
-        sea = sea & (features == 0)
-    rgb = np.minimum(255, np.floor(rgb * shade[..., None]))
-    rgb[sea] = SEA
-    if features is not None:
-        rgb[features == F_BRIDGE] = BRIDGE  # uskygget: skal synes mot både vann og skog
-    return rgb.astype(np.uint8)
+        road = features == F_ROAD
+        rgb[road] = ROAD
+        flat &= ~road
+    shaded = np.minimum(255, np.floor(rgb * shade[..., None]))
+    return np.where(flat[..., None], rgb, shaded).astype(np.uint8)

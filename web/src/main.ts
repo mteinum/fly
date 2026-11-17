@@ -57,6 +57,14 @@ async function main(): Promise<void> {
   scr.addEventListener("click", () => scr.focus());
 
   reset();
+  // ?pos=øst,nord,høyde,sannKurs (UTM 33, m, grader): start et vilkårlig sted, til feilsøking
+  const pos = params.get("pos")?.split(",").map(Number);
+  if (pos?.length === 4 && pos.every(Number.isFinite)) {
+    [P.x, P.y] = terrain.utmToGrid(pos[0], pos[1]);
+    P.alt = pos[2];
+    P.hdg = ((pos[3] - terrain.meta.gridConvergenceDeg) * Math.PI) / 180;
+    P.pitch = 0;
+  }
   scr.focus();
   let last = performance.now();
   const frame = (now: number) => {

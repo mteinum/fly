@@ -45,13 +45,22 @@ export interface TerrainMeta {
   bbox: { west: number; south: number; east: number; north: number };
   minHeight: number;
   maxHeight: number;
-  seaLevelMax: number;
   seaColor: [number, number, number];
   gridConvergenceDeg: number;
   heightmap: { file: string };
   colormap: { file: string };
+  landcover: { file: string; classes: { code: number; name: string; water: boolean }[] };
+  structures: { file: string };
   airports: Airport[];
   attribution: string[];
+}
+
+export const BUILDING = 1;
+export const BRIDGE = 2;
+
+/** structures.json: [kol, rad, type, bunn, topp, r, g, b], høyder i m (NN2000). */
+export interface StructureFile {
+  items: [number, number, number, number, number, number, number, number][];
 }
 
 export class Terrain {
@@ -59,17 +68,39 @@ export class Terrain {
   readonly height: number;
   readonly cell: number;
   readonly seaColor: number;
+  /** Strukturer oppå terrenget, per celle. sKind 0 = ingen. Høydekartet er rent terreng. */
+  readonly sKind: Uint8Array;
+  readonly sBase: Float32Array;
+  readonly sTop: Float32Array;
+  readonly sCol: Uint32Array;
+  private readonly waterCodes: Uint8Array;
 
   constructor(
     readonly meta: TerrainMeta,
     readonly hgt: Float32Array,
     readonly col: Uint32Array,
+    readonly landcover: Uint8Array,
+    structures: StructureFile,
   ) {
     this.width = meta.width;
     this.height = meta.height;
     this.cell = meta.cellSize;
     this.seaColor = rgb(...meta.seaColor);
-    if (hgt.length !== this.width * this.height) throw new Error("heightmap har feil størrelse");
+    const n = this.width * this.height;
+    if (hgt.length !== n || landcover.length !== n) throw new Error("flis har feil størrelse");
+    this.waterCodes = new Uint8Array(256);
+    for (const c of meta.landcover.classes) if (c.water) this.waterCodes[c.code] = 1;
+    this.sKind = new Uint8Array(n);
+    this.sBase = new Float32Array(n);
+    this.sTop = new Float32Array(n);
+    this.sCol = new Uint32Array(n);
+    for (const [col, row, kind, base, top, r, g, b] of structures.items) {
+      const i = row * this.width + col;
+      this.sKind[i] = kind;
+      this.sBase[i] = base;
+      this.sTop[i] = top;
+      this.sCol[i] = rgb(r, g, b);
+    }
   }
 
   utmToGrid(east: number, north: number): [number, number] {
@@ -96,8 +127,15 @@ export class Terrain {
     return top + (bot - top) * fy;
   }
 
-  isSea(h: number): boolean {
-    return h <= this.meta.seaLevelMax;
+  /** Celleindeks, eller -1 utenfor utsnittet. */
+  cellIndex(x: number, y: number): number {
+    return this.inBounds(x, y) ? (y | 0) * this.width + (x | 0) : -1;
+  }
+
+  /** Vann ifølge arealdekket (hav, innsjø, elv). Utenfor utsnittet er alt hav. */
+  isWater(x: number, y: number): boolean {
+    const i = this.cellIndex(x, y);
+    return i < 0 || this.waterCodes[this.landcover[i]] === 1;
   }
 
   /** Sann kurs (grader) fra rutenettkurs (radianer). */
@@ -109,9 +147,11 @@ export class Terrain {
 
 export async function loadTerrain(baseUrl: string): Promise<Terrain> {
   const meta: TerrainMeta = await (await fetch(`${baseUrl}/metadata.json`)).json();
-  const [hgtBuf, img] = await Promise.all([
+  const [hgtBuf, img, lcBuf, structures] = await Promise.all([
     fetch(`${baseUrl}/${meta.heightmap.file}`).then((r) => r.arrayBuffer()),
     loadImage(`${baseUrl}/${meta.colormap.file}`),
+    fetch(`${baseUrl}/${meta.landcover.file}`).then((r) => r.arrayBuffer()),
+    fetch(`${baseUrl}/${meta.structures.file}`).then((r) => r.json() as Promise<StructureFile>),
   ]);
   // heightmap.f32 er little-endian, som alle plattformer nettlesere kjører på
   const hgt = new Float32Array(hgtBuf);
@@ -121,7 +161,7 @@ export async function loadTerrain(baseUrl: string): Promise<Terrain> {
   const cx = cv.getContext("2d", { willReadFrequently: true })!;
   cx.drawImage(img, 0, 0);
   const col = new Uint32Array(cx.getImageData(0, 0, meta.width, meta.height).data.buffer);
-  return new Terrain(meta, hgt, col);
+  return new Terrain(meta, hgt, col, new Uint8Array(lcBuf), structures);
 }
 
 function loadImage(url: string): Promise<HTMLImageElement> {

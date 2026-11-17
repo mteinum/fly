@@ -77,7 +77,7 @@ export function drawHud(g: CanvasRenderingContext2D, t: Terrain, stack: LayerSta
   // minikart: nord opp
   const m = 56, mx = W - m - 3, my = 3, k = m / t.width;
   g.fillStyle = "#000"; g.fillRect(mx - 1, my - 1, m + 2, m + 2);
-  g.drawImage(stack.layers[0].cv, mx, my, m, m);
+  g.drawImage(stack.minimap, mx, my, m, m);
   g.strokeStyle = "#fff"; g.lineWidth = 1;
   for (const rw of airport.runways) {
     g.beginPath();

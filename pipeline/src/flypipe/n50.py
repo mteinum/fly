@@ -78,6 +78,15 @@ def load_features(county: str, grid: GridSpec, raw_dir: Path) -> dict[str, gpd.G
     }
 
 
+def rasterize_large_buildings(features: dict[str, gpd.GeoDataFrame], grid: GridSpec) -> np.ndarray:
+    """Celler med en bygning som er stor nok til å være flate i N50."""
+    areas = features["buildingAreas"].geometry
+    shapes = [g for geoms in (areas, areas.representative_point()) for g in geoms if g is not None and not g.is_empty]
+    if not shapes:
+        return np.zeros((grid.height, grid.width), dtype=bool)
+    return rasterize(shapes, out_shape=(grid.height, grid.width), transform=grid.transform, dtype="uint8").astype(bool)
+
+
 def rasterize_features(features: dict[str, gpd.GeoDataFrame], grid: GridSpec) -> np.ndarray:
     """Feature-raster (uint8) i spillrutenettet. Bru > vei > bygning."""
     areas = features["buildingAreas"].geometry

@@ -15,7 +15,6 @@
   "gridOrigin": "nordvest: rad 0 = nord, kolonne 0 = vest, y øker mot sør",
   "minHeight": -0.33,
   "maxHeight": 329.36,
-  "seaLevelMax": 0.1,
   "seaColor": [
     45,
     110,
@@ -31,6 +30,101 @@
   },
   "colormap": {
     "file": "colormap.png"
+  },
+  "landcover": {
+    "file": "landcover.bin",
+    "dtype": "uint8",
+    "source": "N50 Arealdekke",
+    "method": "rasterisert til 10 m, flertall per 50 m-celle",
+    "classes": [
+      {
+        "code": 0,
+        "name": "Ukjent",
+        "water": false
+      },
+      {
+        "code": 1,
+        "name": "Havflate",
+        "water": true
+      },
+      {
+        "code": 2,
+        "name": "Innsjø",
+        "water": true
+      },
+      {
+        "code": 3,
+        "name": "Elv",
+        "water": true
+      },
+      {
+        "code": 4,
+        "name": "Skog",
+        "water": false
+      },
+      {
+        "code": 5,
+        "name": "Åpent område",
+        "water": false
+      },
+      {
+        "code": 6,
+        "name": "Myr",
+        "water": false
+      },
+      {
+        "code": 7,
+        "name": "Dyrket mark",
+        "water": false
+      },
+      {
+        "code": 8,
+        "name": "Tettbebyggelse",
+        "water": false
+      },
+      {
+        "code": 9,
+        "name": "Bymessig bebyggelse",
+        "water": false
+      },
+      {
+        "code": 10,
+        "name": "Industriområde",
+        "water": false
+      },
+      {
+        "code": 11,
+        "name": "Lufthavn",
+        "water": false
+      },
+      {
+        "code": 12,
+        "name": "Gress og anlegg",
+        "water": false
+      },
+      {
+        "code": 13,
+        "name": "Steinbrudd",
+        "water": false
+      },
+      {
+        "code": 14,
+        "name": "Snø og isbre",
+        "water": false
+      },
+      {
+        "code": 15,
+        "name": "Rullebane og oppstilling",
+        "water": false
+      }
+    ]
+  },
+  "structures": {
+    "file": "structures.json",
+    "bridgeCells": 143,
+    "buildingCells": 7265,
+    "bridgeHeights": "DOM 1 m (nhm_dom_topo_25833), median langs senterlinja per celle",
+    "buildingHeights": "nominell: 7 m (punkt), 12 m (flate)"
   },
   "resampling": {
     "source": "nhm_dtm_topo_25833 (1 m) via WCS, bilinear til 10 m",
@@ -48,9 +142,7 @@
       "R",
       "F"
     ],
-    "roadCells": 6138,
-    "bridgeCells": 212,
-    "buildingCells": 7265,
+    "roadCells": 6234,
     "roadKm": 329.3,
     "bridgeKm": 7.5,
     "buildings": 8098
@@ -107,7 +199,7 @@
     }
   ],
   "attribution": [
-    "Høydedata, veier og bygninger (N50): © Kartverket (CC BY 4.0)",
+    "Høydedata (DTM, DOM) og N50 Kartdata: © Kartverket (CC BY 4.0)",
     "Flyplassdata: OurAirports (public domain)"
   ]
 }

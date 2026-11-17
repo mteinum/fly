@@ -21,7 +21,22 @@ Tjenesten er en ArcGIS ImageServer bak Geonorge. Den resampler selv når man
 ber om grovere oppløsning enn 1 m; se [resampling.md](resampling.md).
 Over sjø er verdien 0 (svakt negativ nær land). Det finnes ingen nodata-verdi.
 
-### Veier, bruer og bygninger: N50 Kartdata – Kartverket
+### Brudekkhøyde: Nasjonal høydemodell, DOM 1 m – Kartverket
+
+| | |
+|---|---|
+| Tjeneste | WCS, `https://wcs.geonorge.no/skwms1/wcs.hoyde-dom-nhm-25833` |
+| Dekning | `nhm_dom_topo_25833` (overflatemodell: terreng + bruer, bygninger, trær) |
+| Lisens | CC BY 4.0, © Kartverket |
+| Brukt til | Høyden på brudekker. Hentes i 1 m uten resampling, bare i vinduer rundt bruene (58 vinduer, 1,7 km² for Kjevik) |
+| Verifisert | Ja. Varoddbrua: dekket stiger fra 14 til 37 m over Topdalsfjorden |
+
+DTM har ikke bruer (der er det sjø under Varoddbrua), DOM har. Per celle brua
+går gjennom tas medianen av DOM langs senterlinja (prøve hver 5. m, median av
+5 x 5 m rundt hver prøve for å se bort fra biler og rekkverk). «Bruer» med
+mindre enn 3 m klaring til terrenget tegnes som vanlig vei.
+
+### Arealdekke, veier, bruer og bygninger: N50 Kartdata – Kartverket
 
 | | |
 |---|---|
@@ -35,6 +50,7 @@ Lag og filtre som brukes (`pipeline/src/flypipe/n50.py`):
 
 | Hva | Lag | Filter |
 |---|---|---|
+| Arealdekke | `N50_Arealdekke_omrade` | alle; `objtype` -> 15 klasser, se `landcover.py` |
 | Veier | `N50_Samferdsel_senterlinje` | `objtype = Veglenke`, `typeveg = enkelBilveg`, `medium = T`, `vegkategori` E/R/F |
 | Bruer | samme | `medium = L` (i lufta), `vegkategori` E/R/F/K/P |
 | Bygninger | `N50_BygningerOgAnlegg_posisjon` og `_omrade` | `objtype = Bygning` |
@@ -47,8 +63,8 @@ N50 er generalisert for 1:50 000: bygninger er punkter (store bygg er flater),
 og ikke alle hus er med. Antallet i `metadata.json` er N50-objekter, ikke
 faktiske bygninger.
 
-Arealdekke-laget (`N50_Arealdekke_omrade`: skog, myr, innsjø, tettbebyggelse
-osv.) ligger i samme fil og er ikke tatt i bruk ennå.
+N50 har ikke bygningshøyde. Bygninger får nominell høyde: 7 m for punkter,
+12 m for bygninger som er store nok til å være flater.
 
 ### Flyplasser og rullebaner: OurAirports
 
@@ -96,7 +112,6 @@ regulert vannstand over regulerte innsjøer (`innsjohoyde`). Bare punkter med
 
 | Fase | Kilde | Lisens / kreditering | Merknad |
 |---|---|---|---|
-| 2 | N50 Arealdekke (samme fil som veier/bygninger over) | CC BY 4.0, © Kartverket | Fila er verifisert; laget er ikke rasterisert ennå |
 | 2 | MET Norway `api.met.no` tafmetar | NLOD 2.0 og CC BY 4.0, «Data fra MET Norway» | Krever identifiserende User-Agent med kontaktinfo. Kapsles bak et grensesnitt; skal erstattes av SWIM / OGC API EDR |
 | 2 | MET Norway `api.met.no` sunrise | Som over | |
 | 3 | Avinor flydata XML (`asrv.avinor.no/XmlFeed/v1.0`, `airportNames`, `airlineNames`) | Avinors vilkår må leses og dokumenteres før bruk | Private flyplasser (Torp, Haugesund) mangler |

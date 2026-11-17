@@ -81,6 +81,21 @@ og hva som ble endret.
 - Rettet: testen ser på hele brua innen 500 m og krever at minst 6 celler
   ligger over sjø.
 
+**10. Antok arealdekke ut fra hva stedet «er»**
+- Antatt: Kristiansand domkirke ligger i klassen bymessig bebyggelse eller
+  tettbebyggelse.
+- Riktig: N50 har Torvet rundt kirken som `ÅpentOmråde`. Kartverkets punkt-API
+  hadde sagt det samme (`terreng: ÅpentOmråde`) da høydefasiten ble hentet.
+- Oppdaget: testen feilet.
+- Rettet: testen forventer det kilden sier. Lærdom: jeg skrev fasiten fra
+  egen forestilling, selv om svaret alt lå i en tidligere API-respons.
+
+**11. Feilsøkingsposisjoner inne i terreng og bygninger**
+- For å ta skjermbilde av Varoddbrua fra cockpit gjettet jeg posisjoner «over
+  fjorden sør for brua». Begge lå på land (én inne i en bygning), og flyet
+  krasjet i første bilde. Åpent vann ligger nord for brua.
+- Rettet: slo opp vannceller i landcover-flisen i stedet for å gjette.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal
@@ -115,9 +130,16 @@ canvas leser bare 8 bit per kanal, så det ville gitt 256 høydenivåer uten
 feilmelding. Valgte Float32.
 
 **Bruer finnes ikke i terrengmodellen.** En DTM er bakken uten bruer, så
-høyden under Varoddbrua er 0 (sjø). Brua er bare farge i fargekartet og
-ligger flatt på vannet. Verken skiver eller Voxel Space kan vise noe med
-luft under, så en bru i riktig høyde krever en egen tegnemåte.
+høyden under Varoddbrua er 0 (sjø). Første versjon tegnet derfor brua flatt
+på vannet. Dekkhøyden hentes nå fra overflatemodellen (DOM), og brua er en
+egen struktur: i skivestabelen ligger den bare i skiven i dekkhøyde, og i
+Voxel Space tegnes dekket uten å flytte y-bufferen, så terrenget bak synes
+under.
+
+**Min egen påstand om at skiver ikke kan vise luft under en bru var feil.**
+Jeg skrev det i oppsummeringen etter første N50-runde. Sprite stacking kan
+det helt fint: en celle kan være med i én skive uten å være med i dem under.
+Det er Voxel Space som trenger et unntak.
 
 ### Åpne spørsmål / ikke kontrollert
 

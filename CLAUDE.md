@@ -15,6 +15,8 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     dtm.py       Kartverket DTM via WCS, cache i data/raw/
     airports.py  OurAirports: flyplass + rullebaner
     n50.py       N50 Kartdata: veier, bruer, bygninger -> feature-raster
+    landcover.py N50 Arealdekke -> palettindeks per celle (flertall)
+    structures.py bruer (dekkhøyde fra DOM) og bygninger som egen liste
     terrain.py   blokkmiddel, hillshade, fargekart
     build.py     setter det sammen og skriver fliser + metadata.json
 web/        Vite + TypeScript, Canvas 2D, ingen spillmotor
@@ -31,9 +33,13 @@ reference/       opprinnelig prototype (én HTML-fil), kun til oppslag
 docs/            datakilder.md, resampling.md, ai-logg.md
 ```
 
-Flisformat per utsnitt: `heightmap.f32` (Float32 little-endian, rad for rad fra
-nord), `colormap.png` (RGB), `metadata.json` (bbox, CRS, cellestørrelse,
-min/maks høyde, konvergens, flyplasser med rullebaner).
+Flisformat per utsnitt (alle rad for rad fra nord):
+- `heightmap.f32`: Float32 little-endian, rent terreng (DTM)
+- `colormap.png`: RGB, bakken: arealdekke x hillshade + veier + rullebane
+- `landcover.bin`: uint8 palettindeks (klasser i metadata.json; avgjør hva som er vann)
+- `structures.json`: `[kol, rad, type, bunn, topp, r, g, b]` for bruer og bygninger
+- `metadata.json`: bbox, CRS, cellestørrelse, min/maks høyde, konvergens,
+  flyplasser med rullebaner, klasseliste
 
 ## Kommandoer
 
@@ -78,9 +84,11 @@ cd web && npm test && npm run typecheck
   `attribution` i metadata.json (vises i spillet).
 - Hver gang noe viser seg å være feil og må rettes (særlig akseretning,
   fortegn, CRS): før det i docs/ai-logg.md.
-- Vektordata rasteriseres til spillrutenettet i pipeline og bakes inn i
-  fargekartet. Prioritet: rullebane > bru > vei > bygning > terreng.
-  Høydekartet endres aldri av vektordata (bruer ligger derfor på vannflata).
+- Vektordata rasteriseres til spillrutenettet i pipeline. Bakken (arealdekke,
+  veier, rullebane) bakes inn i fargekartet. Alt med høyde over terrenget
+  (bruer, bygninger) går i structures.json og tegnes av renderne.
+- Høydekartet er alltid rent terreng og endres aldri av vektordata.
+- Vann avgjøres av arealdekket (`Terrain.isWater`), ikke av høyde <= 0.
 - Uttrykket: 320x200, nearest-neighbour, teknikkene fra prototypen beholdes.
 - Commit per logisk steg, uten Co-Authored-By.
 - Arbeidet går i faser (se README.md). Gjør én fase, stopp for gjennomgang.
