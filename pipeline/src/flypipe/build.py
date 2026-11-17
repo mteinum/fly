@@ -11,7 +11,7 @@ from PIL import Image
 from rasterio.features import rasterize
 from shapely.geometry import LineString
 
-from . import airports, dtm, terrain
+from . import airports, dtm, n50, terrain
 from .areas import Area
 from .crs import UTM33, grid_convergence_deg, scale_factor
 from .grid import GridSpec
@@ -62,7 +62,12 @@ def build(area: Area) -> Path:
     conv = grid_convergence_deg(cx, cy)
     sun_grid = (SUN_AZIMUTH_TRUE - conv) % 360
     shade = terrain.hillshade(hgt, area.cell, sun_grid, SUN_ELEVATION)
-    rgb = terrain.colormap(hgt, area.cell, shade)
+    features = None
+    if area.n50_county:
+        print(f"[{area.id}] N50 {area.n50_county}: veier, bruer, bygninger")
+        vectors = n50.load_features(area.n50_county, grid, RAW)
+        features = n50.rasterize_features(vectors, grid)
+    rgb = terrain.colormap(hgt, area.cell, shade, features)
     rgb[runway_mask(airport, grid)] = terrain.RUNWAY
 
     out = TILES / area.id
@@ -97,9 +102,19 @@ def build(area: Area) -> Path:
             "sunAzimuthGridDeg": round(sun_grid, 2),
             "sunElevationDeg": SUN_ELEVATION,
         },
+        "features": None if features is None else {
+            "source": f"N50 Kartdata, {area.n50_county} (FGDB)",
+            "roadCategories": list(n50.ROAD_CATEGORIES),
+            "roadCells": int((features == n50.ROAD).sum()),
+            "bridgeCells": int((features == n50.BRIDGE).sum()),
+            "buildingCells": int((features == n50.BUILDING).sum()),
+            "roadKm": round(float(vectors["roads"].length.sum()) / 1000, 1),
+            "bridgeKm": round(float(vectors["bridges"].length.sum()) / 1000, 1),
+            "buildings": int(len(vectors["buildingPoints"]) + len(vectors["buildingAreas"])),
+        },
         "airports": [airport],
         "attribution": [
-            "Høydedata: © Kartverket (CC BY 4.0)",
+            "Høydedata, veier og bygninger (N50): © Kartverket (CC BY 4.0)",
             "Flyplassdata: OurAirports (public domain)",
         ],
     }
@@ -108,5 +123,7 @@ def build(area: Area) -> Path:
     # Georefererte kopier for kontroll i QGIS
     _write_geotiff(PROCESSED / area.id / f"dtm{area.cell:g}m.tif", hgt, grid)
     _write_geotiff(PROCESSED / area.id / "colormap.tif", rgb, grid)
+    if features is not None:
+        _write_geotiff(PROCESSED / area.id / "features.tif", features, grid)
     print(f"[{area.id}] skrev {out.relative_to(REPO)} (høyde {meta['minHeight']}-{meta['maxHeight']} m, konvergens {conv:.2f}°)")
     return out

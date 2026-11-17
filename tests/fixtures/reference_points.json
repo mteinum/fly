@@ -26,6 +26,12 @@
       }
     ]
   },
+  "landmarks": {
+    "source": "https://ws.geonorge.no/stedsnavn/v1/navn?utkoordsys=25833 (Sentralt stedsnavnregister)",
+    "points": [
+      { "name": "Varoddbrua", "type": "Bru", "stedsnummer": 813385, "east": 91491.04, "north": 6467882.70 }
+    ]
+  },
   "heights": {
     "source": "https://ws.geonorge.no/hoydedata/v1/punkt?koordsys=25833 (datakilde dtm1, NN2000)",
     "toleranceM": 5.0,

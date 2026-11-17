@@ -21,6 +21,35 @@ Tjenesten er en ArcGIS ImageServer bak Geonorge. Den resampler selv når man
 ber om grovere oppløsning enn 1 m; se [resampling.md](resampling.md).
 Over sjø er verdien 0 (svakt negativ nær land). Det finnes ingen nodata-verdi.
 
+### Veier, bruer og bygninger: N50 Kartdata – Kartverket
+
+| | |
+|---|---|
+| Fil | `https://nedlasting.geonorge.no/geonorge/Basisdata/N50Kartdata/FGDB/Basisdata_42_Agder_25833_N50Kartdata_FGDB.zip` (256 MB) |
+| Format | Esri filgeodatabase, EPSG:25833. Leses med geopandas/pyogrio (GDAL OpenFileGDB) |
+| Lisens | Creative Commons BY 4.0 |
+| Kreditering | © Kartverket |
+| Verifisert | Ja. Fylkesfil og kommunefil (`Basisdata_4204_Kristiansand_...`) finnes; GML finnes bare per kommune |
+
+Lag og filtre som brukes (`pipeline/src/flypipe/n50.py`):
+
+| Hva | Lag | Filter |
+|---|---|---|
+| Veier | `N50_Samferdsel_senterlinje` | `objtype = Veglenke`, `typeveg = enkelBilveg`, `medium = T`, `vegkategori` E/R/F |
+| Bruer | samme | `medium = L` (i lufta), `vegkategori` E/R/F/K/P |
+| Bygninger | `N50_BygningerOgAnlegg_posisjon` og `_omrade` | `objtype = Bygning` |
+
+Tunneler (`medium = U`), stier, traktorveier, gang- og sykkelveier og jernbane
+tegnes ikke. Kommunale og private veier (1050 km i utsnittet) er utelatt fordi
+de ville fylt nesten hver celle i tettbygde strøk på 50 m-rutenett.
+
+N50 er generalisert for 1:50 000: bygninger er punkter (store bygg er flater),
+og ikke alle hus er med. Antallet i `metadata.json` er N50-objekter, ikke
+faktiske bygninger.
+
+Arealdekke-laget (`N50_Arealdekke_omrade`: skog, myr, innsjø, tettbebyggelse
+osv.) ligger i samme fil og er ikke tatt i bruk ennå.
+
 ### Flyplasser og rullebaner: OurAirports
 
 | | |
@@ -67,7 +96,7 @@ regulert vannstand over regulerte innsjøer (`innsjohoyde`). Bare punkter med
 
 | Fase | Kilde | Lisens / kreditering | Merknad |
 |---|---|---|---|
-| 2 | N50 Kartdata (arealdekke), Kartverket via Geonorge | CC BY 4.0, © Kartverket | Nedlastingsmåte (Geonorge nedlastings-API eller manuell) må avklares |
+| 2 | N50 Arealdekke (samme fil som veier/bygninger over) | CC BY 4.0, © Kartverket | Fila er verifisert; laget er ikke rasterisert ennå |
 | 2 | MET Norway `api.met.no` tafmetar | NLOD 2.0 og CC BY 4.0, «Data fra MET Norway» | Krever identifiserende User-Agent med kontaktinfo. Kapsles bak et grensesnitt; skal erstattes av SWIM / OGC API EDR |
 | 2 | MET Norway `api.met.no` sunrise | Som over | |
 | 3 | Avinor flydata XML (`asrv.avinor.no/XmlFeed/v1.0`, `airportNames`, `airlineNames`) | Avinors vilkår må leses og dokumenteres før bruk | Private flyplasser (Torp, Haugesund) mangler |

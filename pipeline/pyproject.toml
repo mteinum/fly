@@ -10,6 +10,8 @@ dependencies = [
     "shapely>=2.0",
     "pillow>=11.0",
     "requests>=2.32",
+    "geopandas>=1.2.0",
+    "pyogrio>=0.13.0",
 ]
 
 [project.scripts]

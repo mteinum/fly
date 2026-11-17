@@ -60,6 +60,27 @@ og hva som ble endret.
   installert mens `src/flypipe/` var tom. Løst med
   `uv sync --reinstall-package flypipe`. Ikke GIS-relatert.
 
+**7. Antok objekttypenavn i N50 (veier, bruer og bygninger lagt til etter fase 1)**
+- Antatt: veier har `objtype = VegSenterlinje` (navnet fra SOSI-standarden).
+- Riktig: i N50-filgeodatabasen heter det `Veglenke`.
+- Oppdaget: filteret ga 0 veier og 0 bruer, uten feilmelding.
+- Rettet: listet faktiske verdier (`groupby objtype, medium`) før filteret ble
+  skrevet. Lærdom: et filter på en gjettet attributtverdi feiler stille.
+
+**8. Bygningsflater mindre enn en celle**
+- Antatt: bygningsflater kunne rasteriseres som polygoner.
+- Riktig: medianflaten er 1700 m², en celle er 2500 m². Rasterisering tar
+  bare celler med sentrum innenfor polygonet, så de fleste ville forsvunnet.
+- Oppdaget: ved å se på arealfordelingen før koden ble kjørt.
+- Rettet: hver flate brennes også inn som et punkt (`representative_point`).
+
+**9. Antok at navnepunktet for en bru ligger midt på brua**
+- Antatt: testen krevde sjø i DTM-en innen 100 m av SSR-punktet for Varoddbrua.
+- Riktig: punktet ligger ved landkaret; cellene rundt er 0,3–11,5 m.
+- Oppdaget: testen feilet. Brua selv lå riktig.
+- Rettet: testen ser på hele brua innen 500 m og krever at minst 6 celler
+  ligger over sjø.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal
@@ -92,6 +113,11 @@ sol i sør, vestvendt med sol i vest.
 **16-bit PNG.** Oppgaven åpnet for 16-bit PNG som høydekart. Nettleserens
 canvas leser bare 8 bit per kanal, så det ville gitt 256 høydenivåer uten
 feilmelding. Valgte Float32.
+
+**Bruer finnes ikke i terrengmodellen.** En DTM er bakken uten bruer, så
+høyden under Varoddbrua er 0 (sjø). Brua er bare farge i fargekartet og
+ligger flatt på vannet. Verken skiver eller Voxel Space kan vise noe med
+luft under, så en bru i riktig høyde krever en egen tegnemåte.
 
 ### Åpne spørsmål / ikke kontrollert
 

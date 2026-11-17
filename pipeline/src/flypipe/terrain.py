@@ -11,6 +11,9 @@ SEA_LEVEL_MAX = 0.1
 
 SEA = (45, 110, 150)
 RUNWAY = (68, 70, 78)
+ROAD = (104, 104, 110)
+BRIDGE = (218, 212, 198)
+ROOFS = ((172, 86, 66), (184, 178, 164))  # teglrødt og lys grått, veksles med støy
 
 
 def block_mean(src: np.ndarray, factor: int) -> np.ndarray:
@@ -59,8 +62,14 @@ STEEP = (128, 124, 118)
 STEEP_SLOPE = 0.6  # stigningstall (dz/dxy) på 50 m-rutenettet
 
 
-def colormap(hgt: np.ndarray, cell: float, shade: np.ndarray, seed: int = 7) -> np.ndarray:
-    """RGB-fargekart (uint8, h x w x 3): høydebånd + helning + hillshade."""
+def colormap(hgt: np.ndarray, cell: float, shade: np.ndarray, features: np.ndarray | None = None, seed: int = 7) -> np.ndarray:
+    """RGB-fargekart (uint8, h x w x 3): høydebånd + helning + hillshade.
+
+    `features` er feature-rasteret fra n50.rasterize_features (bygning/vei/bru)
+    og legges oppå terrengfargene, også over sjø (bruer, naust).
+    """
+    from .n50 import BRIDGE as F_BRIDGE, BUILDING as F_BUILDING, ROAD as F_ROAD
+
     dz_east, dz_south = gradients(hgt, cell)
     slope = np.hypot(dz_east, dz_south)
     noise = np.random.default_rng(seed).random(hgt.shape) > 0.5
@@ -73,6 +82,14 @@ def colormap(hgt: np.ndarray, cell: float, shade: np.ndarray, seed: int = 7) -> 
         rgb[band & ~noise] = b
         lower = upper
     rgb[(slope > STEEP_SLOPE) & (hgt > BANDS[0][0])] = STEEP
+    sea = hgt <= SEA_LEVEL_MAX
+    if features is not None:
+        rgb[(features == F_BUILDING) & noise] = ROOFS[0]
+        rgb[(features == F_BUILDING) & ~noise] = ROOFS[1]
+        rgb[features == F_ROAD] = ROAD
+        sea = sea & (features == 0)
     rgb = np.minimum(255, np.floor(rgb * shade[..., None]))
-    rgb[hgt <= SEA_LEVEL_MAX] = SEA
+    rgb[sea] = SEA
+    if features is not None:
+        rgb[features == F_BRIDGE] = BRIDGE  # uskygget: skal synes mot både vann og skog
     return rgb.astype(np.uint8)

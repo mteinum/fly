@@ -8,7 +8,7 @@ Kristiansand lufthavn, Kjevik (ENCN), 25,6 x 25,6 km i 50 m-celler.
 Forutsetninger: [uv](https://docs.astral.sh/uv/) og Node 22.
 
 ```bash
-# 1. Pipeline: hent data og skriv fliser (ca. 30 s første gang, deretter fra cache)
+# 1. Pipeline: hent data og skriv fliser (laster ned ca. 280 MB første gang, deretter fra cache)
 cd pipeline
 uv run flypipe build kjevik
 uv run pytest
@@ -44,5 +44,5 @@ Taster: piltaster styrer, `W`/`S` gass, `C` kamera, `R` ny innflyging,
 
 ## Kreditering
 
-Høydedata og stedsnavn: © Kartverket (CC BY 4.0). Flyplassdata: OurAirports
+Høydedata, N50 Kartdata (veier, bruer, bygninger) og stedsnavn: © Kartverket (CC BY 4.0). Flyplassdata: OurAirports
 (public domain).

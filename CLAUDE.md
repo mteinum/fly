@@ -14,6 +14,7 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     areas.py     definisjon av utsnitt (kjevik)
     dtm.py       Kartverket DTM via WCS, cache i data/raw/
     airports.py  OurAirports: flyplass + rullebaner
+    n50.py       N50 Kartdata: veier, bruer, bygninger -> feature-raster
     terrain.py   blokkmiddel, hillshade, fargekart
     build.py     setter det sammen og skriver fliser + metadata.json
 web/        Vite + TypeScript, Canvas 2D, ingen spillmotor
@@ -77,6 +78,9 @@ cd web && npm test && npm run typecheck
   `attribution` i metadata.json (vises i spillet).
 - Hver gang noe viser seg å være feil og må rettes (særlig akseretning,
   fortegn, CRS): før det i docs/ai-logg.md.
+- Vektordata rasteriseres til spillrutenettet i pipeline og bakes inn i
+  fargekartet. Prioritet: rullebane > bru > vei > bygning > terreng.
+  Høydekartet endres aldri av vektordata (bruer ligger derfor på vannflata).
 - Uttrykket: 320x200, nearest-neighbour, teknikkene fra prototypen beholdes.
 - Commit per logisk steg, uten Co-Authored-By.
 - Arbeidet går i faser (se README.md). Gjør én fase, stopp for gjennomgang.
