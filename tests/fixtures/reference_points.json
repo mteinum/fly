@@ -1,0 +1,40 @@
+{
+  "about": "Fasitpunkter hentet fra Kartverkets API-er 2026-11-17. Brukes av både pipeline/tests og web/src/*.test.ts. Verdiene er uavhengige av pyproj og av vår egen pipeline.",
+  "transform": {
+    "source": "https://ws.geonorge.no/transformering/v1/transformer?fra=4258&til=25833 (lon/lat inn, øst/nord ut)",
+    "toleranceM": 0.01,
+    "points": [
+      {
+        "name": "ENCN baneende 03",
+        "origin": "OurAirports runways.csv (le_longitude_deg, le_latitude_deg)",
+        "lon": 8.07541, "lat": 58.196701,
+        "east": 93381.88058, "north": 6471531.74799
+      },
+      {
+        "name": "Kristiansand domkirke",
+        "origin": "Sentralt stedsnavnregister (SSR), stedsnummer 228995, utkoordsys=4258",
+        "lon": 7.99413, "lat": 58.1461,
+        "east": 88033.39745, "north": 6466411.28806,
+        "ssrEast": 88033.6252, "ssrNorth": 6466411.57588
+      },
+      {
+        "name": "Moseidvarden",
+        "origin": "Sentralt stedsnavnregister (SSR), stedsnummer 850871 (navneobjekttype Ås), utkoordsys=4258",
+        "lon": 7.91064, "lat": 58.26782,
+        "east": 84562.70209, "north": 6480431.11626,
+        "ssrEast": 84562.92282, "ssrNorth": 6480430.71893
+      }
+    ]
+  },
+  "heights": {
+    "source": "https://ws.geonorge.no/hoydedata/v1/punkt?koordsys=25833 (datakilde dtm1, NN2000)",
+    "toleranceM": 5.0,
+    "points": [
+      { "name": "ENCN referansepunkt (ARP)", "east": 94051.25, "north": 6472303.86, "z": 13.66 },
+      { "name": "ENCN bane 03, 200 m inn", "east": 93515.38, "north": 6471686.21, "z": 12.6 },
+      { "name": "ENCN bane 21, 200 m inn", "east": 94583.36, "north": 6472921.87, "z": 16.52 },
+      { "name": "Kristiansand domkirke", "east": 88033.63, "north": 6466411.58, "z": 8.31 },
+      { "name": "Moseidvarden", "east": 84562.92, "north": 6480430.72, "z": 315.2 }
+    ]
+  }
+}
