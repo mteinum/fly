@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pixel-Norge – sprite-stack flysim (iterasjon 1)</title>
+<style>
+  html,body{margin:0;background:#0b0b14;color:#e8e2d0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  #wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px}
+  canvas#screen{image-rendering:pixelated;image-rendering:crisp-edges;width:min(96vw,960px);aspect-ratio:320/200;background:#000;border:2px solid #2c2c3a;border-radius:4px;outline:none}
+  .panel{width:min(96vw,960px);font-size:12.5px;line-height:1.55}
+  .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:6px 0}
+  button,input{font:inherit;background:#1b1b29;color:#e8e2d0;border:1px solid #444458;padding:4px 8px;border-radius:3px}
+  button{cursor:pointer} button:hover{background:#26263a}
+  input[type=number]{width:70px}
+  kbd{background:#22223a;border:1px solid #444;border-radius:3px;padding:0 4px}
+  h1{font-size:15px;margin:0 0 4px;color:#ffb366}
+  details{margin-top:6px} summary{cursor:pointer;color:#9fd0ff}
+  .muted{opacity:.75}
+  .touch{display:none;gap:6px;flex-wrap:wrap}
+  @media (pointer:coarse){.touch{display:flex}}
+  .touch button{padding:10px 14px;font-size:16px}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="screen" tabindex="0"></canvas>
+  <div class="touch" id="touch">
+    <button data-k="ArrowLeft">◀</button><button data-k="ArrowUp">▲ ned</button><button data-k="ArrowDown">▼ opp</button><button data-k="ArrowRight">▶</button>
+    <button data-k="KeyW">Gass +</button><button data-k="KeyS">Gass −</button><button id="tCam">Kamera</button>
+  </div>
+  <div class="panel">
+    <h1>Pixel-Norge · iterasjon 1</h1>
+    <div><kbd>←</kbd><kbd>→</kbd> krenge · <kbd>↑</kbd> nese ned · <kbd>↓</kbd> nese opp · <kbd>W</kbd>/<kbd>S</kbd> gass · <kbd>C</kbd> kamera · <kbd>R</kbd> ny innflyging</div>
+    <div class="muted">Du starter på innflyging til en syntetisk flyplass (ENXX). Land med lav fart, vingene i vater og rolig synkerate.</div>
+    <div class="row">
+      <button id="newSynth">Nytt syntetisk landskap</button>
+      <span>|</span>
+      <label>Last høydekart (PNG gråtone): <input type="file" id="file" accept="image/png,image/jpeg"></label>
+    </div>
+    <div class="row">
+      <label>Maks høyde (m) <input type="number" id="maxh" value="420" min="50" max="2500"></label>
+      <label>Cellestørrelse (m) <input type="number" id="cell" value="20" min="5" max="200"></label>
+      <label>Havnivå (gråverdi 0–254) <input type="number" id="sea" value="0" min="0" max="254"></label>
+      <span class="muted" id="eqd"></span>
+    </div>
+    <details>
+      <summary>Hva du ser – GIS-koblingen</summary>
+      <p><b>Jaktkamera (sprite stacking):</b> terrenget er en stabel av 56 flate bilder. Skive <i>k</i> inneholder alle celler med høyde ≥ <i>k</i>·ekvidistanse, altså flaten innenfor høydekurven. Stabelen roteres med flyets kurs og forskyves loddrett. Ingen polygoner.</p>
+      <p><b>Cockpit (Voxel Space):</b> det samme høydekartet og fargekartet, rendret kolonne for kolonne som loddrette striper med y-buffer. To teknikker, ett datagrunnlag.</p>
+      <p><b>Fargekart:</b> høydebånd (sand/skog/lynghei/fjell/snø) + slope + forhåndsberegnet hillshade med sol i sørvest (azimut 225°, 28° høyde), posterisert til få toner. I neste iterasjon byttes høydebåndene ut med N50-arealdekke.</p>
+      <p><b>Ekte data:</b> eksporter et DTM-utsnitt fra hoydedata.no i QGIS som 8-bit gråtone-PNG (skaler 0–maks høyde, sett sjø til 0). Bildet resamples til 512×512; sett cellestørrelse = utsnittsbredde/512 (f.eks. 25,6 km → 50 m).</p>
+    </details>
+  </div>
+</div>
+<script>
+"use strict";
+const W=320,H=200,N=512,LAYERS=56;
+let CELL=20,MAXH=420;const VEX=0.7;
+const scr=document.getElementById('screen');scr.width=W;scr.height=H;
+const g=scr.getContext('2d');g.imageSmoothingEnabled=false;
+const hgt=new Float32Array(N*N),col=new Uint32Array(N*N);
+let layers=[],runway=null,seed=7,cam='chase';
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+
+/* ---------- farger ---------- */
+const rgb=(r,gg,b)=>((255<<24)|(b<<16)|(gg<<8)|r)>>>0;
+function shadeC(c,f){return rgb(Math.min(255,(c&255)*f|0),Math.min(255,((c>>>8)&255)*f|0),Math.min(255,((c>>>16)&255)*f|0));}
+function mixC(c,r2,g2,b2,t){const r=c&255,gg=(c>>>8)&255,b=(c>>>16)&255;return rgb(r+(r2-r)*t|0,gg+(g2-gg)*t|0,b+(b2-b)*t|0);}
+const css=c=>`rgb(${c&255},${(c>>>8)&255},${(c>>>16)&255})`;
+
+/* ---------- støy ---------- */
+function hash(x,y){let h=(Math.imul(x|0,374761393)+Math.imul(y|0,668265263)+Math.imul(seed,1442695041))|0;h=Math.imul(h^(h>>>13),1274126177);return((h^(h>>>16))>>>0)/4294967296;}
+function vnoise(x,y){const xi=Math.floor(x),yi=Math.floor(y),xf=x-xi,yf=y-yi,u=xf*xf*(3-2*xf),v=yf*yf*(3-2*yf);
+  const a=hash(xi,yi),b=hash(xi+1,yi),c=hash(xi,yi+1),d=hash(xi+1,yi+1);return a+(b-a)*u+(c-a)*v+(a-b-c+d)*u*v;}
+function fbm(x,y){let v=0,a=.5,f=1;for(let i=0;i<6;i++){v+=a*vnoise(x*f,y*f);f*=2;a*=.5;}return v/0.984;}
+
+/* ---------- syntetisk sørlandskyst: land i nord, skjærgård i sør, en fjord ---------- */
+function genSynthetic(){
+  const E=new Float32Array(N*N);let mx=0;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    let e=fbm(x/70,y/70)*1.15+(1-y/N)*0.75-0.78;
+    const cx=N*0.46+Math.sin(y/55)*28+Math.sin(y/23)*8,d=Math.abs(x-cx);
+    if(d<10)e-=(1-d/10)*0.5*Math.min(1,(N-y)/N+0.3);
+    const edge=Math.min(x,y,N-1-x,N-1-y)/40;if(edge<1)e=e*edge-(1-edge)*0.2;
+    E[y*N+x]=e;if(e>mx)mx=e;
+  }
+  for(let i=0;i<N*N;i++){const e=E[i];hgt[i]=e>0?Math.pow(e/mx,1.35)*MAXH:e*200;}
+}
+
+/* ---------- flyplass: finn flatt, lavt område (øst-vest bane, 60 celler) ---------- */
+function findRunway(){
+  let best=null;
+  for(let y=40;y<N-40;y+=6)for(let x=40;x<N-110;x+=6){
+    let mn=1e9,mx=-1e9,sum=0,ok=true;
+    for(let j=-2;j<=2&&ok;j++)for(let i=0;i<60;i++){const h=hgt[(y+j)*N+x+i];if(h<3){ok=false;break;}if(h<mn)mn=h;if(h>mx)mx=h;sum+=h;}
+    if(!ok)continue;const mean=sum/300;if(mean>120)continue;
+    const score=(mx-mn)+mean*0.05;if(!best||score<best.score)best={x,y,score,mean};
+  }
+  if(!best)best={x:N/2-30,y:Math.floor(N*0.3),mean:20};
+  runway={x0:best.x,y:best.y,len:60,h:Math.max(4,Math.round(best.mean))};
+  for(let j=-5;j<=5;j++)for(let i=-6;i<66;i++)hgt[(runway.y+j)*N+runway.x0+i]=runway.h;
+}
+function isRunway(x,y){return runway&&Math.abs(y-runway.y)<=2.5&&x>=runway.x0&&x<runway.x0+runway.len;}
+function paintRunway(){
+  const r=runway;
+  for(let j=-5;j<=5;j++)for(let i=-6;i<66;i++){
+    const idx=(r.y+j)*N+r.x0+i;let c;
+    if(Math.abs(j)<=1&&i>=0&&i<60){c=rgb(68,70,78);
+      if(j===0&&i%6<3&&i>4&&i<55)c=rgb(235,235,225);
+      if((i<3||i>56)&&j!==0)c=rgb(235,235,225);}
+    else if(Math.abs(j)<=2&&i>=-2&&i<62)c=rgb(112,116,104);
+    else c=rgb(86,128,70);
+    col[idx]=c;
+  }
+}
+
+/* ---------- fargekart: høydebånd + slope + hillshade ---------- */
+function buildColors(){
+  const az=225*Math.PI/180,el=28*Math.PI/180;
+  const lx=Math.sin(az)*Math.cos(el),ly=-Math.cos(az)*Math.cos(el),lz=Math.sin(el);
+  const H_=(x,y)=>Math.max(0,hgt[clamp(y,0,N-1)*N+clamp(x,0,N-1)]);
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){
+    const i=y*N+x,h=hgt[i];
+    if(h<=0){const t=Math.min(1,-h/60);col[i]=rgb(61+(29-61)*t|0,143+(79-143)*t|0,176+(120-176)*t|0);continue;}
+    const dzx=(H_(x+1,y)-H_(x-1,y))/(2*CELL),dzy=(H_(x,y+1)-H_(x,y-1))/(2*CELL);
+    let nx=-dzx*2,ny=-dzy*2,nz=1;const nl=Math.hypot(nx,ny,nz);nx/=nl;ny/=nl;nz/=nl;
+    let sh=0.45+0.75*Math.max(0,nx*lx+ny*ly+nz*lz);sh=Math.round(sh*6)/6;
+    const slope=Math.hypot(dzx,dzy),n=hash(x*3,y*7),snow=360+n*30;
+    let c;
+    if(h<5)c=rgb(216,197,138);
+    else if(slope>0.9)c=rgb(128,124,118);
+    else if(h<140)c=n>0.5?rgb(52,110,58):rgb(40,92,50);
+    else if(h<260)c=n>0.5?rgb(122,132,74):rgb(104,118,66);
+    else if(h<snow)c=rgb(140,134,126);
+    else c=rgb(236,238,242);
+    col[i]=shadeC(c,sh);
+  }
+}
+
+/* ---------- skiver (høydekurver → sprites) ---------- */
+function buildLayers(){
+  layers=[];const dh=MAXH/LAYERS;
+  for(let k=0;k<LAYERS;k++){
+    const hk=k*dh;let x0=0,y0=0,x1=N-1,y1=N-1;
+    if(k>0){x0=N;y0=N;x1=-1;y1=-1;
+      for(let y=0;y<N;y++)for(let x=0;x<N;x++)if(hgt[y*N+x]>=hk){if(x<x0)x0=x;if(x>x1)x1=x;if(y<y0)y0=y;if(y>y1)y1=y;}
+      if(x1<0)break;}
+    const w=x1-x0+1,hh=y1-y0+1,cv=document.createElement('canvas');cv.width=w;cv.height=hh;
+    const cx=cv.getContext('2d'),id=cx.createImageData(w,hh),u=new Uint32Array(id.data.buffer);
+    for(let y=0;y<hh;y++)for(let x=0;x<w;x++){
+      const i=(y+y0)*N+x+x0,h=hgt[i];
+      if(k===0||h>=hk){let c=col[i];if(h>=hk+dh)c=shadeC(c,0.6);u[y*w+x]=c;}
+    }
+    cx.putImageData(id,0,0);layers.push({cv,x0,y0,hk});
+  }
+  document.getElementById('eqd').textContent=`→ ${layers.length} skiver, ekvidistanse ${(MAXH/LAYERS).toFixed(1)} m · kart ${(N*CELL/1000).toFixed(1)} km`;
+}
+
+/* ---------- fly som sprite-stack ---------- */
+const planeLayers=(()=>{
+  const defs=[
+    [[9,3,2,14,'#5d626c']],
+    [[8,2,4,15,'#9aa0aa'],[2,8,16,3,'#8a909a']],
+    [[8,2,4,15,'#c9ced6'],[1,8,18,3,'#c9ced6'],[1,8,2,3,'#d23b3b'],[17,8,2,3,'#d23b3b'],[5,16,10,2,'#b9bec6'],[9,1,2,1,'#c9ced6']],
+    [[9,3,2,13,'#dde2e8'],[9,4,2,3,'#3fb7e8']],
+    [[9,4,2,3,'#9fe8ff'],[9,14,1,4,'#c9ced6']],
+    [[9,15,1,3,'#c9ced6']],
+    [[9,16,1,2,'#d23b3b']]
+  ];
+  return defs.map(d=>{const c=document.createElement('canvas');c.width=c.height=20;const x=c.getContext('2d');for(const[a,b,w,h,f]of d){x.fillStyle=f;x.fillRect(a,b,w,h);}return c;});
+})();
+
+/* ---------- fysikk ---------- */
+const P={};let msg='',msgT=0;
+function say(m,t=3){msg=m;msgT=t;}
+function groundAt(x,y){return hgt[((y|0)&(N-1))*N+((x|0)&(N-1))];}
+function resetPlane(){Object.assign(P,{x:runway.x0-70,y:runway.y+0.5,alt:runway.h+140,hdg:Math.PI/2,spd:72,pitch:-0.05,roll:0,thr:0.15,state:'fly',t:0});say('Innflyging ENXX bane 09',3);}
+const K={};
+function update(dt){
+  if(msgT>0)msgT-=dt;
+  if(P.state!=='fly'){P.t-=dt;if(P.state==='landed')P.spd=Math.max(0,P.spd-25*dt),P.x+=P.spd*dt/CELL;if(P.t<=0)resetPlane();return;}
+  const rollT=(K.ArrowRight?0.75:0)-(K.ArrowLeft?0.75:0);P.roll+=(rollT-P.roll)*Math.min(1,3*dt);
+  const pin=(K.ArrowDown?1:0)-(K.ArrowUp?1:0);
+  if(pin)P.pitch=clamp(P.pitch+pin*0.6*dt,-0.5,0.5);else P.pitch*=1-0.5*dt;
+  if(K.KeyW)P.thr=Math.min(1,P.thr+0.4*dt);if(K.KeyS)P.thr=Math.max(0,P.thr-0.4*dt);
+  const target=40+P.thr*180;
+  P.spd+=(target-P.spd)*0.35*dt-9.81*Math.sin(P.pitch)*dt;
+  if(P.spd<45)P.pitch-=0.5*dt;
+  P.spd=Math.max(20,P.spd);
+  P.hdg+=9.81*Math.tan(P.roll)/P.spd*dt*1.8;
+  const d=P.spd*Math.cos(P.pitch)*dt/CELL;
+  P.x=(P.x+Math.sin(P.hdg)*d+N)%N;P.y=(P.y-Math.cos(P.hdg)*d+N)%N;
+  P.alt=Math.min(1500,P.alt+P.spd*Math.sin(P.pitch)*dt);
+  const gh=Math.max(0,groundAt(P.x,P.y));
+  if(P.alt<=gh+1.5){
+    const vs=P.spd*Math.sin(P.pitch);
+    if(isRunway(P.x,P.y)&&vs>-4&&Math.abs(P.roll)<0.2&&P.spd<85){P.state='landed';P.t=5;P.alt=gh+1;P.pitch=0;P.roll=0;say(`Landet! ${(P.spd*1.944|0)} kt, ${vs.toFixed(1)} m/s`,5);}
+    else{P.state='crash';P.t=2.5;P.alt=gh+1;say(gh<=0?'Plask! Havet tok deg.':'Bakkekontakt!',2.5);}
+  }
+}
+
+/* ---------- jaktkamera: sprite stacking ---------- */
+function drawPlane(y,tilt){
+  const sp=1.5,sx=sp*(0.5+0.5*Math.cos(P.roll)),sy=sp*tilt*(1-P.pitch*0.6);
+  planeLayers.forEach((c,i)=>{g.setTransform(1,0,0,1,0,0);g.translate(W/2+Math.sin(P.roll)*i*1.2,y-i*1.1);g.scale(sx,sy);g.drawImage(c,-10,-10);});
+  g.setTransform(1,0,0,1,0,0);
+}
+function renderChase(){
+  const s=clamp(5-(P.alt-30)/100,1.6,5),tilt=0.6,pxPerM=s/CELL*VEX;
+  const planeY=H*0.74,groundY=planeY+P.alt*pxPerM;
+  g.setTransform(1,0,0,1,0,0);g.fillStyle='#1d4f78';g.fillRect(0,0,W,H);
+  const gh=Math.max(0,groundAt(P.x,P.y));let pd=false,sd=false;
+  const shadow=()=>{g.setTransform(1,0,0,1,0,0);g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.ellipse(W/2,planeY+(P.alt-gh)*pxPerM,14,4,0,0,7);g.fill();sd=true;};
+  for(const L of layers){
+    if(!sd&&L.hk>gh)shadow();
+    if(!pd&&L.hk>P.alt){drawPlane(planeY,tilt);pd=true;}
+    g.setTransform(1,0,0,1,0,0);g.translate(W/2,groundY-L.hk*pxPerM);g.scale(s,s*tilt);g.rotate(-P.hdg);g.translate(L.x0-P.x,L.y0-P.y);
+    g.drawImage(L.cv,0,0);
+  }
+  if(!sd)shadow();if(!pd)drawPlane(planeY,tilt);
+  g.setTransform(1,0,0,1,0,0);
+}
+
+/* ---------- cockpit: Voxel Space (striper per kolonne) ---------- */
+const oc=document.createElement('canvas');oc.width=W;oc.height=H;const ox=oc.getContext('2d');
+const img=ox.createImageData(W,H),buf=new Uint32Array(img.data.buffer),ybuf=new Int32Array(W);
+const SKY=[[0,255,176,102],[0.15,240,120,110],[0.45,120,70,130],[1,25,22,55]];
+function skyAt(t){t=clamp(t,0,1);for(let i=1;i<SKY.length;i++)if(t<=SKY[i][0]){const a=SKY[i-1],b=SKY[i],u=(t-a[0])/(b[0]-a[0]);return rgb(a[1]+(b[1]-a[1])*u|0,a[2]+(b[2]-a[2])*u|0,a[3]+(b[3]-a[3])*u|0);}return rgb(25,22,55);}
+const FOG=[255,176,102],DIST=400,FOCAL=160;
+function renderCockpit(){
+  const hor=H*0.45+P.pitch*FOCAL;
+  for(let y=0;y<H;y++){const c=y<hor?skyAt((hor-y)/120):rgb(...FOG);buf.fill(c,y*W,y*W+W);}
+  ybuf.fill(H);
+  const sa=Math.sin(P.hdg),ca=Math.cos(P.hdg),camH=P.alt+3;
+  let z=1,dz=0.5;
+  while(z<DIST){
+    const half=z*(W/2)/FOCAL,fx=P.x+sa*z,fy=P.y-ca*z;
+    let lx=fx-ca*half,ly=fy-sa*half;const dx=ca*2*half/W,dy=sa*2*half/W;
+    const zm=z*CELL,fog=Math.pow(z/DIST,1.4);
+    for(let i=0;i<W;i++){
+      const idx=((ly|0)&(N-1))*N+((lx|0)&(N-1));const h=Math.max(0,hgt[idx]);
+      let sy=((camH-h)/zm*FOCAL+hor)|0;
+      if(sy<ybuf[i]){if(sy<0)sy=0;const c=mixC(col[idx],FOG[0],FOG[1],FOG[2],fog);for(let y=sy;y<ybuf[i];y++)buf[y*W+i]=c;ybuf[i]=sy;}
+      lx+=dx;ly+=dy;
+    }
+    z+=dz;dz+=0.012;
+  }
+  ox.putImageData(img,0,0);
+  g.setTransform(1,0,0,1,0,0);g.fillStyle=css(skyAt(0.3));g.fillRect(0,0,W,H);
+  g.save();g.translate(W/2,H*0.45);g.rotate(-P.roll);g.scale(1.45,1.45);g.drawImage(oc,-W/2,-H*0.45);g.restore();
+  drawCockpitFrame();
+}
+function gauge(cx,cy,r,v,label){
+  g.fillStyle='#0e1015';g.beginPath();g.arc(cx,cy,r,0,7);g.fill();g.strokeStyle='#59606c';g.lineWidth=1;g.stroke();
+  const a=-Math.PI*1.25+clamp(v,0,1)*Math.PI*1.5;g.strokeStyle='#ffd27a';g.beginPath();g.moveTo(cx,cy);g.lineTo(cx+Math.cos(a)*(r-2),cy+Math.sin(a)*(r-2));g.stroke();
+  g.fillStyle='#8c93a0';g.font='6px monospace';g.textAlign='center';g.fillText(label,cx,cy+r+6);
+}
+function drawCockpitFrame(){
+  g.setTransform(1,0,0,1,0,0);g.fillStyle='#1b1f27';
+  g.beginPath();g.moveTo(0,0);g.lineTo(12,0);g.lineTo(34,H-44);g.lineTo(0,H-44);g.fill();
+  g.beginPath();g.moveTo(W,0);g.lineTo(W-12,0);g.lineTo(W-34,H-44);g.lineTo(W,H-44);g.fill();
+  g.fillRect(0,0,W,5);
+  g.fillStyle='#2b313b';g.fillRect(0,H-44,W,44);g.fillStyle='#3b4250';g.fillRect(0,H-44,W,2);
+  gauge(70,H-24,13,P.spd/220,'FART');gauge(250,H-24,13,P.alt/1500,'HØYDE');gauge(282,H-24,10,P.thr,'GASS');
+  // kunstig horisont
+  const cx=W/2,cy=H-24,r=15;g.save();g.beginPath();g.arc(cx,cy,r,0,7);g.clip();
+  g.translate(cx,cy);g.rotate(-P.roll);g.fillStyle='#4a8fd0';g.fillRect(-30,-30,60,30+P.pitch*40);g.fillStyle='#8a5a32';g.fillRect(-30,P.pitch*40,60,40);
+  g.restore();g.strokeStyle='#59606c';g.beginPath();g.arc(cx,cy,r,0,7);g.stroke();
+  g.strokeStyle='#ffd27a';g.beginPath();g.moveTo(cx-9,cy);g.lineTo(cx-3,cy);g.moveTo(cx+3,cy);g.lineTo(cx+9,cy);g.stroke();
+  // kompass
+  g.fillStyle='#0e1015';g.fillRect(100,H-34,36,12);g.fillStyle='#9fffa0';g.font='8px monospace';g.textAlign='center';
+  g.fillText(String(Math.round(((P.hdg*180/Math.PI)%360+360)%360)).padStart(3,'0'),118,H-25);
+  g.fillStyle='#8c93a0';g.font='6px monospace';g.fillText('KURS',118,H-14);
+  // HUD-sikte
+  g.strokeStyle='rgba(140,255,160,.8)';g.beginPath();g.arc(W/2,H*0.45,3,0,7);g.moveTo(W/2-10,H*0.45);g.lineTo(W/2-4,H*0.45);g.moveTo(W/2+4,H*0.45);g.lineTo(W/2+10,H*0.45);g.stroke();
+}
+
+/* ---------- HUD + minikart ---------- */
+function hud(){
+  g.setTransform(1,0,0,1,0,0);g.textAlign='left';g.font='8px monospace';
+  const gh=Math.max(0,groundAt(P.x,P.y)),rx=runway.x0-P.x,ry=runway.y-P.y,dist=Math.hypot(rx,ry)*CELL/1000;
+  const lines=[`ALT ${Math.round(P.alt)} m  AGL ${Math.round(P.alt-gh)}`,`FART ${Math.round(P.spd*1.944)} kt  GASS ${Math.round(P.thr*100)}%`,`ENXX ${dist.toFixed(1)} km`];
+  g.fillStyle='rgba(0,0,0,.45)';g.fillRect(2,2,118,32);
+  g.fillStyle='#ffe9b0';lines.forEach((l,i)=>g.fillText(l,5,11+i*10));
+  const m=56,mx=W-m-3,my=3;g.fillStyle='#000';g.fillRect(mx-1,my-1,m+2,m+2);g.drawImage(layers[0].cv,mx,my,m,m);
+  g.fillStyle='#fff';g.fillRect(mx+runway.x0/N*m,my+runway.y/N*m,Math.max(2,60/N*m),1);
+  g.fillStyle='#ff3b3b';g.fillRect(mx+P.x/N*m-1,my+P.y/N*m-1,3,3);
+  g.fillStyle='#9fd0ff';g.font='7px monospace';g.fillText(cam==='chase'?'JAKT · sprite stack':'COCKPIT · voxel space',4,H-(cam==='chase'?4:47));
+  if(msgT>0){g.font='bold 9px monospace';g.textAlign='center';g.fillStyle='rgba(0,0,0,.6)';const w=g.measureText(msg).width+12;g.fillRect(W/2-w/2,H*0.22-9,w,13);g.fillStyle='#ffd27a';g.fillText(msg,W/2,H*0.22);g.textAlign='left';}
+}
+
+/* ---------- oppsett ---------- */
+function rebuild(){findRunway();buildColors();paintRunway();buildLayers();resetPlane();}
+function readParams(){MAXH=+document.getElementById('maxh').value||420;CELL=+document.getElementById('cell').value||20;}
+document.getElementById('newSynth').onclick=()=>{seed++;readParams();genSynthetic();rebuild();scr.focus();};
+document.getElementById('file').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;const url=URL.createObjectURL(f),im=new Image();
+  im.onload=()=>{readParams();const sea=clamp(+document.getElementById('sea').value||0,0,254);
+    const c=document.createElement('canvas');c.width=c.height=N;const x=c.getContext('2d');x.drawImage(im,0,0,N,N);
+    const d=x.getImageData(0,0,N,N).data;
+    for(let i=0;i<N*N;i++){const v=d[i*4];hgt[i]=v<=sea?-(sea-v+1)*2:(v-sea)/(255-sea)*MAXH;}
+    URL.revokeObjectURL(url);rebuild();say('Høydekart lastet',3);scr.focus();};
+  im.src=url;
+};
+addEventListener('keydown',e=>{
+  if(e.target.tagName==='INPUT')return;
+  K[e.code]=true;
+  if(e.code==='KeyC')cam=cam==='chase'?'cockpit':'chase';
+  if(e.code==='KeyR')resetPlane();
+  if(e.code.startsWith('Arrow')||e.code==='Space')e.preventDefault();
+});
+addEventListener('keyup',e=>{K[e.code]=false;});
+document.querySelectorAll('#touch button[data-k]').forEach(b=>{
+  const k=b.dataset.k;b.addEventListener('pointerdown',e=>{e.preventDefault();K[k]=true;});
+  ['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>{K[k]=false;}));
+});
+document.getElementById('tCam').onclick=()=>{cam=cam==='chase'?'cockpit':'chase';};
+scr.addEventListener('click',()=>scr.focus());
+
+genSynthetic();rebuild();scr.focus();
+let last=performance.now();
+function frame(t){const dt=Math.min(0.05,(t-last)/1000);last=t;update(dt);cam==='chase'?renderChase():renderCockpit();hud();requestAnimationFrame(frame);}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
