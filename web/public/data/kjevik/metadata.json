@@ -1,0 +1,99 @@
+{
+  "id": "kjevik",
+  "name": "Kristiansand lufthavn, Kjevik",
+  "crs": "EPSG:25833",
+  "verticalDatum": "NN2000",
+  "cellSize": 50.0,
+  "width": 512,
+  "height": 512,
+  "bbox": {
+    "west": 81250.0,
+    "south": 6459500.0,
+    "east": 106850.0,
+    "north": 6485100.0
+  },
+  "gridOrigin": "nordvest: rad 0 = nord, kolonne 0 = vest, y øker mot sør",
+  "minHeight": -0.33,
+  "maxHeight": 329.36,
+  "seaLevelMax": 0.1,
+  "seaColor": [
+    45,
+    110,
+    150
+  ],
+  "gridConvergenceDeg": -5.8852,
+  "scaleFactor": 1.001616,
+  "heightmap": {
+    "file": "heightmap.f32",
+    "dtype": "float32",
+    "byteOrder": "little",
+    "unit": "m"
+  },
+  "colormap": {
+    "file": "colormap.png"
+  },
+  "resampling": {
+    "source": "nhm_dtm_topo_25833 (1 m) via WCS, bilinear til 10 m",
+    "method": "blokkmiddel 5x5 til 50 m"
+  },
+  "hillshade": {
+    "sunAzimuthTrueDeg": 225.0,
+    "sunAzimuthGridDeg": 230.89,
+    "sunElevationDeg": 28.0
+  },
+  "airports": [
+    {
+      "icao": "ENCN",
+      "name": "Kristiansand Airport",
+      "elevationM": 17.4,
+      "arp": {
+        "lon": 8.08537,
+        "lat": 58.204201,
+        "east": 94051.25,
+        "north": 6472303.86,
+        "x": 256.025,
+        "y": 255.9228
+      },
+      "runways": [
+        {
+          "ident": "03/21",
+          "lengthM": 2035.1,
+          "widthM": 45.1,
+          "surface": "ASP",
+          "ends": [
+            {
+              "lon": 8.07541,
+              "lat": 58.196701,
+              "east": 93381.88,
+              "north": 6471531.75,
+              "x": 242.6376,
+              "y": 271.365,
+              "ident": "03",
+              "elevationM": 12.5,
+              "headingTrueDeg": 35.0,
+              "displacedThresholdM": 120.1,
+              "headingGridDeg": 40.84
+            },
+            {
+              "lon": 8.09527,
+              "lat": 58.2117,
+              "east": 94716.86,
+              "north": 6473076.33,
+              "x": 269.3372,
+              "y": 240.4735,
+              "ident": "21",
+              "elevationM": 15.8,
+              "headingTrueDeg": 215.0,
+              "displacedThresholdM": 189.9,
+              "headingGridDeg": 220.84
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "attribution": [
+    "Høydedata: © Kartverket (CC BY 4.0)",
+    "Flyplassdata: OurAirports (public domain)"
+  ]
+}
