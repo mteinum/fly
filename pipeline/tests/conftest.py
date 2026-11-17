@@ -15,16 +15,27 @@ def reference():
     return json.loads((REPO / "tests" / "fixtures" / "reference_points.json").read_text(encoding="utf-8"))
 
 
-@pytest.fixture(scope="session")
-def tiles():
-    """Ferdige fliser slik spillet leser dem. Kjør `uv run flypipe build` først."""
-    if not (TILES / "metadata.json").exists():
-        pytest.skip("fliser mangler - kjør `uv run flypipe build kjevik`")
-    meta = json.loads((TILES / "metadata.json").read_text(encoding="utf-8"))
-    hgt = np.fromfile(TILES / meta["heightmap"]["file"], dtype="<f4").reshape(meta["height"], meta["width"])
+def _load_tiles(area_id: str):
+    d = TILES.parent / area_id
+    if not (d / "metadata.json").exists():
+        pytest.skip(f"fliser mangler - kjør `uv run flypipe build {area_id}`")
+    meta = json.loads((d / "metadata.json").read_text(encoding="utf-8"))
+    hgt = np.fromfile(d / meta["heightmap"]["file"], dtype="<f4").reshape(meta["height"], meta["width"])
     b = meta["bbox"]
     grid = GridSpec(b["west"], b["north"], meta["cellSize"], meta["width"], meta["height"])
     return meta, hgt, grid
+
+
+@pytest.fixture(scope="session")
+def tiles():
+    """50 m-flisene (pikselmodus) slik spillet leser dem."""
+    return _load_tiles("kjevik")
+
+
+@pytest.fixture(scope="session", params=["kjevik", "kjevik10"])
+def any_tiles(request):
+    """Hvert flissett etter tur: 50 m (pikselmodus) og 10 m (3D-modus)."""
+    return _load_tiles(request.param)
 
 
 def sample_bilinear(hgt: np.ndarray, x: float, y: float) -> float:

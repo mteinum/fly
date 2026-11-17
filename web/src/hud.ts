@@ -1,6 +1,5 @@
 /* HUD, minikart og cockpitramme med instrumenter. */
 import { clamp } from "./colors";
-import type { LayerStack } from "./layers";
 import { MAX_ALT } from "./physics";
 import type { Plane } from "./plane";
 import { H, W } from "./screen";
@@ -8,6 +7,11 @@ import type { Airport, Terrain } from "./terrain";
 import { HORIZON } from "./voxelRenderer";
 
 export type Camera = "chase" | "cockpit";
+
+/* HUD-en tegnes i 320 x 200 logiske piksler. Pikselmodus bruker skala 1;
+ * 3D-modus tegner den samme HUD-en skarpt i høyere oppløsning. */
+let scale = 1;
+export const setHudScale = (s: number): void => { scale = s; };
 
 export interface Message {
   text: string;
@@ -28,7 +32,7 @@ function gauge(g: CanvasRenderingContext2D, cx: number, cy: number, r: number, v
 }
 
 export function drawCockpitFrame(g: CanvasRenderingContext2D, t: Terrain, P: Plane): void {
-  g.setTransform(1, 0, 0, 1, 0, 0);
+  g.setTransform(scale, 0, 0, scale, 0, 0);
   g.fillStyle = "#1b1f27";
   g.beginPath(); g.moveTo(0, 0); g.lineTo(12, 0); g.lineTo(34, H - 44); g.lineTo(0, H - 44); g.fill();
   g.beginPath(); g.moveTo(W, 0); g.lineTo(W - 12, 0); g.lineTo(W - 34, H - 44); g.lineTo(W, H - 44); g.fill();
@@ -61,8 +65,11 @@ export function drawCockpitFrame(g: CanvasRenderingContext2D, t: Terrain, P: Pla
   g.stroke();
 }
 
-export function drawHud(g: CanvasRenderingContext2D, t: Terrain, stack: LayerStack, airport: Airport, P: Plane, cam: Camera, msg: Message): void {
-  g.setTransform(1, 0, 0, 1, 0, 0);
+export function drawHud(
+  g: CanvasRenderingContext2D, t: Terrain, minimap: CanvasImageSource, airport: Airport, P: Plane, cam: Camera, msg: Message,
+  label = cam === "chase" ? "JAKT · sprite stack" : "COCKPIT · voxel space",
+): void {
+  g.setTransform(scale, 0, 0, scale, 0, 0);
   g.textAlign = "left"; g.font = "8px monospace";
   const gh = Math.max(0, t.heightAt(P.x, P.y));
   const dist = (Math.hypot(airport.arp.x - P.x, airport.arp.y - P.y) * t.cell) / 1000;
@@ -77,7 +84,7 @@ export function drawHud(g: CanvasRenderingContext2D, t: Terrain, stack: LayerSta
   // minikart: nord opp
   const m = 56, mx = W - m - 3, my = 3, k = m / t.width;
   g.fillStyle = "#000"; g.fillRect(mx - 1, my - 1, m + 2, m + 2);
-  g.drawImage(stack.minimap, mx, my, m, m);
+  g.drawImage(minimap, mx, my, m, m);
   g.strokeStyle = "#fff"; g.lineWidth = 1;
   for (const rw of airport.runways) {
     g.beginPath();
@@ -87,7 +94,7 @@ export function drawHud(g: CanvasRenderingContext2D, t: Terrain, stack: LayerSta
   }
   g.fillStyle = "#ff3b3b"; g.fillRect(mx + P.x * k - 1, my + P.y * k - 1, 3, 3);
   g.fillStyle = "#9fd0ff"; g.font = "7px monospace";
-  g.fillText(cam === "chase" ? "JAKT · sprite stack" : "COCKPIT · voxel space", 4, H - (cam === "chase" ? 4 : 47));
+  g.fillText(label, 4, H - (cam === "chase" ? 4 : 47));
   if (msg.t > 0) {
     g.font = "bold 9px monospace"; g.textAlign = "center";
     const w = g.measureText(msg.text).width + 12;

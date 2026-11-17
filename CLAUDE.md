@@ -19,13 +19,18 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     structures.py bruer (dekkhøyde fra DOM) og bygninger som egen liste
     terrain.py   blokkmiddel, hillshade, fargekart
     build.py     setter det sammen og skriver fliser + metadata.json
-web/        Vite + TypeScript, Canvas 2D, ingen spillmotor
+web/        Vite + TypeScript, ingen spillmotor. To moduser med felles terreng, fysikk og HUD:
   src/
-    terrain.ts        laster fliser; heightAt, utmToGrid, sann kurs
-    layers.ts         skiver for sprite stacking
-    chaseRenderer.ts  jaktkamera (sprite stack)
-    voxelRenderer.ts  cockpit (Voxel Space)
-    plane.ts physics.ts hud.ts main.ts
+    main.ts           velger modus (3D er standard, ?mode=pixel for pikselmodus)
+    game.ts           felles tilstand, inndata og spilløkke
+    terrain.ts        laster fliser; heightAt, isWater, utmToGrid, sann kurs
+    physics.ts plane.ts hud.ts
+    glMain.ts         3D-modus: 10 m-fliser (kjevik10)
+    glRenderer.ts       WebGL via three.js: terrengnett med LOD, bygninger, bruer
+    pixelMain.ts      pikselmodus: 50 m-fliser (kjevik), Canvas 2D, 320x200
+    layers.ts           skiver for sprite stacking
+    chaseRenderer.ts    jaktkamera (sprite stack)
+    voxelRenderer.ts    cockpit (Voxel Space)
 data/raw/        cache av nedlastede rådata (ikke i git)
 data/processed/  GeoTIFF-kopier for kontroll i QGIS (ikke i git)
 tests/fixtures/  fasitpunkter fra Kartverkets API-er, delt av pytest og vitest
@@ -44,8 +49,9 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 ## Kommandoer
 
 ```bash
-cd pipeline && uv run flypipe build kjevik   # hent data, skriv fliser
-cd pipeline && uv run pytest                 # tester (krever bygde fliser)
+cd pipeline && uv run flypipe build kjevik     # 50 m-fliser (pikselmodus), i git
+cd pipeline && uv run flypipe build kjevik10   # 10 m-fliser (3D-modus), 40 MB, ikke i git
+cd pipeline && uv run pytest                   # tester (krever bygde fliser)
 cd web && npm run dev                        # spill på http://localhost:5173
 cd web && npm test && npm run typecheck
 ```
@@ -66,6 +72,9 @@ cd web && npm test && npm run typecheck
    Ved Kjevik er konvergensen -5,89° (nesten 7° vest for sentralmeridianen).
    Retninger fra kilder (rullebane, vind, sol) er sanne og må korrigeres;
    rullebaneretning regnes helst direkte fra transformerte endepunkter.
+   I 3D-modus er verden høyrehendt i meter: X = øst, Y = opp, Z = sør
+   (nord er -Z). Framover er `(sin hdg, 0, -cos hdg)`, og flyets rotasjon er
+   Euler YXZ = `(pitch, -hdg, -roll)`.
 6. Målestokkfaktoren ved Kjevik er 1,0016: rutenettavstander er 0,16 % lengre
    enn i terrenget. Ignoreres i flymodellen, men ikke anta eksakt likhet i tester.
 7. Høyder er NN2000 (meter). Flyplasshøyder fra OurAirports er i fot (MSL).
@@ -89,6 +98,11 @@ cd web && npm test && npm run typecheck
   (bruer, bygninger) går i structures.json og tegnes av renderne.
 - Høydekartet er alltid rent terreng og endres aldri av vektordata.
 - Vann avgjøres av arealdekket (`Terrain.isWater`), ikke av høyde <= 0.
-- Uttrykket: 320x200, nearest-neighbour, teknikkene fra prototypen beholdes.
+- Pikselmodus: 320x200, nearest-neighbour, teknikkene fra prototypen beholdes.
+- 3D-modus: sann målestokk, ingen vertikal overdrivelse. Hillshade er bakt inn i
+  fargekartet av pipeline, så terrenget tegnes uten lys. three.js brukes bare
+  til tegning; fysikk og terrengoppslag er de samme som i pikselmodus.
+- Begge flissett har samme format og samme bbox. Kode som leser fliser skal
+  ikke anta cellestørrelse: regn i meter og del på `terrain.cell`.
 - Commit per logisk steg, uten Co-Authored-By.
 - Arbeidet går i faser (se README.md). Gjør én fase, stopp for gjennomgang.

@@ -47,7 +47,7 @@ def _write_geotiff(path: Path, data: np.ndarray, grid: GridSpec) -> None:
 
 
 def build(area: Area) -> Path:
-    raw = RAW / area.id
+    raw = RAW / area.raw_id
     print(f"[{area.id}] flyplass {area.icao} (OurAirports)")
     arp = airports.load_airport(area.icao, RAW)["arp"]
     grid = GridSpec.centered(arp["east"], arp["north"], area.cell, area.size)
@@ -64,13 +64,20 @@ def build(area: Area) -> Path:
     shade = terrain.hillshade(hgt, area.cell, sun_grid, SUN_ELEVATION)
     features = lc = None
     items: list[list] = []
+    bridge_lines: list[dict] = []
     if area.n50_county:
         print(f"[{area.id}] N50 {area.n50_county}: arealdekke, veier, bruer, bygninger")
         lc = landcover.load_landcover(n50.gdb_path(area.n50_county, RAW), grid)
-        vectors = n50.load_features(area.n50_county, grid, RAW)
+        vectors = n50.load_features(area.n50_county, grid, RAW, area.road_categories)
+        ndsm = None
+        if area.dom_building_heights:
+            print(f"[{area.id}] DOM {area.source_res:g} m (bygningshøyder)")
+            ndsm = terrain.block_mean(dtm.load_source_dom(grid, area.source_res, raw), factor) - hgt
         print(f"[{area.id}] DOM 1 m rundt bruene (dekkhøyde)")
-        items, features = structures.build_structures(vectors, n50.rasterize_features(vectors, grid), hgt, grid, raw)
-    rgb = terrain.colormap(hgt, area.cell, shade, lc, features)
+        items, bridge_lines, features = structures.build_structures(
+            vectors, n50.rasterize_features(vectors, grid), hgt, grid, raw, ndsm
+        )
+    rgb = terrain.colormap(hgt, area.cell, shade, lc, features, steep_slope=area.steep_slope)
     rgb[runway_mask(airport, grid)] = terrain.RUNWAY
 
     out = TILES / area.id
@@ -81,7 +88,7 @@ def build(area: Area) -> Path:
         lc = np.where(hgt <= terrain.SEA_LEVEL_MAX, landcover.CLASSES[1].code, landcover.UNKNOWN).astype(np.uint8)
     lc.tofile(out / "landcover.bin")
     (out / "structures.json").write_text(
-        json.dumps({"columns": ["col", "row", "kind", "base", "top", "r", "g", "b"], "kinds": structures.KINDS, "items": items}, separators=(",", ":")) + "\n",
+        json.dumps({"columns": ["col", "row", "kind", "base", "top", "r", "g", "b"], "kinds": structures.KINDS, "items": items, "bridges": bridge_lines}, separators=(",", ":")) + "\n",
         encoding="utf-8",
     )
     n_bridge = sum(1 for it in items if it[2] == structures.BRIDGE)
@@ -115,11 +122,15 @@ def build(area: Area) -> Path:
             "bridgeCells": n_bridge,
             "buildingCells": len(items) - n_bridge,
             "bridgeHeights": "DOM 1 m (nhm_dom_topo_25833), median langs senterlinja per celle",
-            "buildingHeights": f"nominell: {structures.HEIGHT_HOUSE:g} m (punkt), {structures.HEIGHT_LARGE:g} m (flate)",
+            "bridgeLines": len(bridge_lines),
+            "buildingHeights": (
+                f"punkt: nominell {structures.HEIGHT_HOUSE:g} m; flate: "
+                + ("median av DOM - DTM innenfor flaten" if area.dom_building_heights else f"nominell {structures.HEIGHT_LARGE:g} m")
+            ),
         },
         "resampling": {
             "source": f"{dtm.COVERAGE} (1 m) via WCS, {dtm.INTERPOLATION} til {area.source_res:g} m",
-            "method": f"blokkmiddel {factor}x{factor} til {area.cell:g} m",
+            "method": f"blokkmiddel {factor}x{factor} til {area.cell:g} m" if factor > 1 else "ingen videre resampling (tjenestens rutenett brukes direkte)",
         },
         "hillshade": {
             "sunAzimuthTrueDeg": SUN_AZIMUTH_TRUE,
@@ -128,7 +139,7 @@ def build(area: Area) -> Path:
         },
         "features": None if features is None else {
             "source": f"N50 Kartdata, {area.n50_county} (FGDB)",
-            "roadCategories": list(n50.ROAD_CATEGORIES),
+            "roadCategories": list(area.road_categories),
             "roadCells": int((features == n50.ROAD).sum()),
             "roadKm": round(float(vectors["roads"].length.sum()) / 1000, 1),
             "bridgeKm": round(float(vectors["bridges"].length.sum()) / 1000, 1),

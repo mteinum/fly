@@ -1,12 +1,16 @@
 /* Laster de ekte flisene fra disk for tester (Node, ikke nettleser). */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { type StructureFile, Terrain, type TerrainMeta } from "./terrain";
 
-const DATA = fileURLToPath(new URL("../public/data/kjevik/", import.meta.url));
+const dataDir = (area: string): string => fileURLToPath(new URL(`../public/data/${area}/`, import.meta.url));
+
+/** 10 m-flisene er ikke i git; tester som trenger dem hoppes over når de ikke er bygget. */
+export const hasTiles = (area: string): boolean => existsSync(dataDir(area) + "metadata.json");
 const FIXTURES = fileURLToPath(new URL("../../tests/fixtures/reference_points.json", import.meta.url));
 
-export function loadTestTerrain(): Terrain {
+export function loadTestTerrain(area = "kjevik"): Terrain {
+  const DATA = dataDir(area);
   const meta: TerrainMeta = JSON.parse(readFileSync(DATA + "metadata.json", "utf-8"));
   const raw = readFileSync(DATA + meta.heightmap.file);
   const hgt = new Float32Array(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength));

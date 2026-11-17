@@ -121,10 +121,11 @@
   },
   "structures": {
     "file": "structures.json",
-    "bridgeCells": 143,
+    "bridgeCells": 141,
     "buildingCells": 7265,
     "bridgeHeights": "DOM 1 m (nhm_dom_topo_25833), median langs senterlinja per celle",
-    "buildingHeights": "nominell: 7 m (punkt), 12 m (flate)"
+    "bridgeLines": 64,
+    "buildingHeights": "punkt: nominell 7 m; flate: nominell 12 m"
   },
   "resampling": {
     "source": "nhm_dtm_topo_25833 (1 m) via WCS, bilinear til 10 m",
@@ -142,7 +143,7 @@
       "R",
       "F"
     ],
-    "roadCells": 6234,
+    "roadCells": 6235,
     "roadKm": 329.3,
     "bridgeKm": 7.5,
     "buildings": 8098

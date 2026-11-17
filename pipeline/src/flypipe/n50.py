@@ -32,6 +32,7 @@ NONE, BUILDING, ROAD, BRIDGE = 0, 1, 2, 3
 ROAD_CATEGORIES = ("E", "R", "F")
 # Bruer tas med for alle bilveier, også kommunale og private.
 BRIDGE_CATEGORIES = ("E", "R", "F", "K", "P")
+MAJOR_ROAD_HALF_WIDTH = 7.0  # m
 
 
 def gdb_path(county: str, raw_dir: Path) -> Path:
@@ -60,13 +61,15 @@ def _read(gdb: Path, layer: str, grid: GridSpec) -> gpd.GeoDataFrame:
     return gdf
 
 
-def load_features(county: str, grid: GridSpec, raw_dir: Path) -> dict[str, gpd.GeoDataFrame]:
+def load_features(
+    county: str, grid: GridSpec, raw_dir: Path, road_categories: tuple[str, ...] = ROAD_CATEGORIES
+) -> dict[str, gpd.GeoDataFrame]:
     """Veier, bruer og bygninger innenfor rutenettet, i UTM 33."""
     gdb = gdb_path(county, raw_dir)
     lines = _read(gdb, "N50_Samferdsel_senterlinje", grid)
     cars = lines[(lines["objtype"] == "Veglenke") & (lines["typeveg"] == "enkelBilveg")]
     # medium: T = på terrenget, L = i lufta (bru), U = under terrenget (tunnel, tegnes ikke)
-    roads = cars[(cars["medium"] == "T") & cars["vegkategori"].isin(ROAD_CATEGORIES)]
+    roads = cars[(cars["medium"] == "T") & cars["vegkategori"].isin(road_categories)]
     bridges = cars[(cars["medium"] == "L") & cars["vegkategori"].isin(BRIDGE_CATEGORIES)]
     points = _read(gdb, "N50_BygningerOgAnlegg_posisjon", grid)
     areas = _read(gdb, "N50_BygningerOgAnlegg_omrade", grid)
@@ -90,12 +93,17 @@ def rasterize_large_buildings(features: dict[str, gpd.GeoDataFrame], grid: GridS
 def rasterize_features(features: dict[str, gpd.GeoDataFrame], grid: GridSpec) -> np.ndarray:
     """Feature-raster (uint8) i spillrutenettet. Bru > vei > bygning."""
     areas = features["buildingAreas"].geometry
+    roads = features["roads"]
+    if grid.cell <= MAJOR_ROAD_HALF_WIDTH * 2 and len(roads):
+        # fine celler: europa- og riksveier får bredde, resten er 1-celle-streker
+        major = roads["vegkategori"].isin(("E", "R"))
+        roads = gpd.GeoDataFrame(geometry=roads.geometry.where(~major, roads.geometry.buffer(MAJOR_ROAD_HALF_WIDTH, cap_style="flat")))
     order = [
         (features["buildingAreas"], BUILDING),
         # de fleste bygningsflater er mindre enn en celle og ville falt mellom cellesentrene
         (gpd.GeoDataFrame(geometry=areas.representative_point()), BUILDING),
         (features["buildingPoints"], BUILDING),
-        (features["roads"], ROAD),
+        (roads, ROAD),
         (features["bridges"], BRIDGE),
     ]
     shapes = [(geom, value) for gdf, value in order for geom in gdf.geometry if geom is not None and not geom.is_empty]

@@ -55,7 +55,14 @@ def _fetch_tile(
     path.write_bytes(r.content)
 
 
-def load_source_dtm(grid: GridSpec, res: float, raw_dir: Path) -> np.ndarray:
+def load_source_dom(grid: GridSpec, res: float, raw_dir: Path) -> np.ndarray:
+    """Som load_source_dtm, men overflatemodellen (med bygninger og trær)."""
+    return load_source_dtm(grid, res, raw_dir, url=DOM_URL, coverage=DOM_COVERAGE, prefix="dom")
+
+
+def load_source_dtm(
+    grid: GridSpec, res: float, raw_dir: Path, url: str = WCS_URL, coverage: str = COVERAGE, prefix: str = "dtm"
+) -> np.ndarray:
     """Hent DTM for rutenettets utstrekning med oppløsning `res` (m). Rad 0 = nord."""
     factor = grid.cell / res
     if factor != int(factor):
@@ -67,10 +74,10 @@ def load_source_dtm(grid: GridSpec, res: float, raw_dir: Path) -> np.ndarray:
             th, tw = min(TILE_PX, h - r0), min(TILE_PX, w - c0)
             t_west = grid.west + c0 * res
             t_north = grid.north - r0 * res
-            path = raw_dir / f"dtm{res:g}m_r{r0}_c{c0}.tif"
+            path = raw_dir / f"{prefix}{res:g}m_r{r0}_c{c0}.tif"
             if not path.exists():
                 print(f"  WCS: {path.name}")
-                _fetch_tile(path, t_west, t_north - th * res, t_west + tw * res, t_north, tw, th)
+                _fetch_tile(path, t_west, t_north - th * res, t_west + tw * res, t_north, tw, th, url=url, coverage=coverage)
             with rasterio.open(path) as src:
                 # Stol ikke på at tjenesten leverte det vi ba om
                 assert src.crs.to_epsg() == 25833, src.crs

@@ -96,6 +96,15 @@ og hva som ble endret.
   krasjet i første bilde. Åpent vann ligger nord for brua.
 - Rettet: slo opp vannceller i landcover-flisen i stedet for å gjette.
 
+**12. Lovet mer enn dataene holder: bygningshøyder fra DOM**
+- Påstått (i forslaget til 3D-modus): «DOM minus DTM gir ekte bygningshøyder».
+- Riktig: det holder bare for bygg som er store nok til å være flater i N50
+  (758 av ca. 8100). Et bygningspunkt er mindre enn én 10 m-celle, og
+  cella blander tak og trær. De har fortsatt nominell høyde 7 m.
+- Oppdaget: da metoden skulle skrives. 71 % av bygningscellene i
+  10 m-flisene har målt høyde, men det er de store byggene som teller mange
+  celler hver.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal
@@ -125,6 +134,14 @@ og minkende y.
 230,9° i rutenettet. Syntetiske skråplan tester at sørvendt li er lysest med
 sol i sør, vestvendt med sol i vest.
 
+**Akser i 3D.** WebGL-verdenen er X = øst, Y = opp, Z = sør. Det er
+høyrehendt (øst x opp = sør), så kartet blir ikke speilvendt, og kurs med
+klokka blir negativ rotasjon om Y. Kontrollert i skjermbilder: rullebanen
+ligger rett forut på innflyging 03, Kvadraturen ligger litt til høyre for
+kurs 300° sett fra fjorden sørøst for byen (peiling 313°), og minikartet
+viser samme posisjon. Ikke kontrollert ved å svinge: at høyre piltast
+krenger flyet til høyre i bildet er bare utledet, ikke sett.
+
 **16-bit PNG.** Oppgaven åpnet for 16-bit PNG som høydekart. Nettleserens
 canvas leser bare 8 bit per kanal, så det ville gitt 256 høydenivåer uten
 feilmelding. Valgte Float32.
@@ -145,6 +162,6 @@ Det er Voxel Space som trenger et unntak.
 
 - OurAirports er ikke sjekket mot gjeldende AIP Norge, bare mot DTM og
   intern konsistens.
-- Det visuelle er kontrollert med to skjermbilder (ett per kamera) i
-  hodeløs Chrome, ikke ved faktisk spilling. Flyfølelse, landing og
-  kameraskala er ikke prøvd for hånd.
+- Det visuelle er kontrollert med stillbilder i hodeløs Chrome, ikke ved
+  faktisk spilling. Flyfølelse, landing, kameraskala og bildefrekvens i
+  3D-modus er ikke prøvd for hånd.

@@ -1,7 +1,13 @@
 html,body{margin:0;background:#0b0b14;color:#e8e2d0;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 #wrap{display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px}
-canvas#screen{image-rendering:pixelated;image-rendering:crisp-edges;width:min(96vw,960px);aspect-ratio:320/200;background:#000;border:2px solid #2c2c3a;border-radius:4px;outline:none}
-.panel{width:min(96vw,960px);font-size:12.5px;line-height:1.55}
+#stage{position:relative;aspect-ratio:320/200;background:#000;border:2px solid #2c2c3a;border-radius:4px;overflow:hidden}
+#stage canvas{position:absolute;inset:0;width:100%;height:100%;outline:none}
+.pixel #stage,.pixel .panel{width:min(96vw,960px)}
+.pixel #gl{display:none}
+.pixel canvas#screen{image-rendering:pixelated;image-rendering:crisp-edges}
+.gl #stage,.gl .panel{width:min(96vw,calc((100vh - 170px)*1.6),1600px)}
+h1 a{font-size:12px;font-weight:normal;color:#9fd0ff;margin-left:10px}
+.panel{font-size:12.5px;line-height:1.55}
 button{font:inherit;background:#1b1b29;color:#e8e2d0;border:1px solid #444458;padding:4px 8px;border-radius:3px;cursor:pointer}
 button:hover{background:#26263a}
 kbd{background:#22223a;border:1px solid #444;border-radius:3px;padding:0 4px}

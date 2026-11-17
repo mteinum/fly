@@ -28,7 +28,7 @@ Over sjø er verdien 0 (svakt negativ nær land). Det finnes ingen nodata-verdi.
 | Tjeneste | WCS, `https://wcs.geonorge.no/skwms1/wcs.hoyde-dom-nhm-25833` |
 | Dekning | `nhm_dom_topo_25833` (overflatemodell: terreng + bruer, bygninger, trær) |
 | Lisens | CC BY 4.0, © Kartverket |
-| Brukt til | Høyden på brudekker. Hentes i 1 m uten resampling, bare i vinduer rundt bruene (58 vinduer, 1,7 km² for Kjevik) |
+| Brukt til | Høyden på brudekker: 1 m uten resampling, bare i vinduer rundt bruene (58 vinduer, 1,7 km² for Kjevik). Høyden på store bygg (kun 10 m-flisene): 10 m over hele utsnittet |
 | Verifisert | Ja. Varoddbrua: dekket stiger fra 14 til 37 m over Topdalsfjorden |
 
 DTM har ikke bruer (der er det sjø under Varoddbrua), DOM har. Per celle brua
@@ -63,8 +63,11 @@ N50 er generalisert for 1:50 000: bygninger er punkter (store bygg er flater),
 og ikke alle hus er med. Antallet i `metadata.json` er N50-objekter, ikke
 faktiske bygninger.
 
-N50 har ikke bygningshøyde. Bygninger får nominell høyde: 7 m for punkter,
-12 m for bygninger som er store nok til å være flater.
+N50 har ikke bygningshøyde. I 50 m-flisene er høyden nominell: 7 m for
+bygningspunkter og 12 m for bygninger som er flater i N50. I 10 m-flisene får
+flatene høyde fra DOM minus DTM (median innenfor flaten, begrenset til
+4–80 m, flatt tak); punktene er fortsatt 7 m. 10 m-flisene tar også med
+kommunale og private bilveier (1384 km mot 329 km).
 
 ### Flyplasser og rullebaner: OurAirports
 

@@ -87,3 +87,19 @@ sammenhengende, men bekker og småtjern under ca. 1 dekar blir borte.
 - Bygninger: én celle per bygningspunkt. Flere bygninger i samme celle blir
   én.
 - Bruer: cellene senterlinja går gjennom, med høyde fra DOM.
+
+## 10 m-flisene (3D-modus)
+
+- **Høyde:** tjenestens 10 m-rutenett (`bilinear`) brukes direkte, uten eget
+  blokkmiddel. Det er samme rådata som 50 m-flisene bygger på, så de to
+  flissettene er konsistente: 50 m-flisen er nøyaktig blokkmiddelet av
+  10 m-flisen. Avviket mot Kartverkets punkt-API er under 2 m i alle fem
+  fasitpunktene. Prisen er at hele resamplingen fra 1 m er tjenestens (målt
+  RMSE 0,25 m mot blokkmiddel, se over).
+- **Arealdekke:** rasteriseres direkte til 10 m (klassen i cellesenteret).
+  Flertall fra et finere rutenett ville ikke gitt mer: N50 er generalisert
+  for 1:50 000 og er grovere enn 10 m i utgangspunktet.
+- **Bygningshøyde:** DOM og DTM i 10 m, differansen tatt per celle og
+  medianen innenfor hver bygningsflate. Fungerer for bygg som dekker minst
+  tre celler; et enkelt hus er mindre enn en celle og kan ikke skilles fra
+  trærne rundt i 10 m-data.

@@ -12,50 +12,51 @@ from flypipe.crs import wgs84_to_utm33
 from conftest import TILES, sample_bilinear
 
 
-def test_metadata_is_consistent(tiles):
-    meta, hgt, grid = tiles
+def test_metadata_is_consistent(any_tiles):
+    meta, hgt, grid = any_tiles
     b = meta["bbox"]
     assert meta["crs"] == "EPSG:25833"
     assert b["east"] - b["west"] == meta["width"] * meta["cellSize"]
     assert b["north"] - b["south"] == meta["height"] * meta["cellSize"]
     assert meta["maxHeight"] == pytest.approx(float(hgt.max()), abs=0.01)
-    assert (TILES / meta["heightmap"]["file"]).stat().st_size == meta["width"] * meta["height"] * 4
+    assert (TILES.parent / meta["id"] / meta["heightmap"]["file"]).stat().st_size == meta["width"] * meta["height"] * 4
 
 
-def test_game_height_matches_kartverket_points(tiles, reference):
+def test_game_height_matches_kartverket_points(any_tiles, reference):
     """Høyden spillet bruker (bilineært i 50 m-rutenettet) mot Kartverkets punkt-API (DTM 1 m)."""
-    _, hgt, grid = tiles
+    _, hgt, grid = any_tiles
     tol = reference["heights"]["toleranceM"]
     for p in reference["heights"]["points"]:
         x, y = grid.utm_to_grid(p["east"], p["north"])
         assert abs(sample_bilinear(hgt, x, y) - p["z"]) <= tol, p["name"]
 
 
-def test_heightmap_equals_block_mean_of_source(tiles):
+def test_heightmap_equals_block_mean_of_source(any_tiles):
     """Hele flisen mot rådata: fanger feil i mosaikk, radrekkefølge og byte-rekkefølge."""
-    _, hgt, grid = tiles
-    area = AREAS["kjevik"]
-    if not (RAW / area.id).exists():
+    _, hgt, grid = any_tiles
+    area = AREAS[any_tiles[0]["id"]]
+    if not (RAW / area.raw_id).exists():
         pytest.skip("rådata-cache mangler")
-    src = dtm.load_source_dtm(grid, area.source_res, RAW / area.id)
+    src = dtm.load_source_dtm(grid, area.source_res, RAW / area.raw_id)
     assert np.abs(hgt - terrain.block_mean(src, int(area.cell / area.source_res))).max() < 1e-3
 
 
-def test_summit_is_where_the_map_says(tiles, reference):
+def test_summit_is_where_the_map_says(any_tiles, reference):
     """Akseretning: Moseidvarden (315 m) skal være en topp i rutenettet, ikke speilvendt."""
-    _, hgt, grid = tiles
+    _, hgt, grid = any_tiles
     p = next(p for p in reference["transform"]["points"] if p["name"] == "Moseidvarden")
     x, y = grid.utm_to_grid(*wgs84_to_utm33(p["lon"], p["lat"]))
     col, row = int(x), int(y)
-    around = hgt[row - 10 : row + 11, col - 10 : col + 11]
+    k = int(500 / grid.cell)  # høyeste punkt innen 500 m skal ligge innen 75 m av navnepunktet
+    around = hgt[row - k : row + k + 1, col - k : col + k + 1]
     r, c = np.unravel_index(np.argmax(around), around.shape)
-    assert abs(r - 10) <= 1 and abs(c - 10) <= 1
+    assert np.hypot(r - k, c - k) * grid.cell <= 75
     assert hgt[row, col] > 300
 
 
-def test_runway_is_painted_between_the_thresholds(tiles):
-    meta, hgt, grid = tiles
-    rgb = np.asarray(Image.open(TILES / meta["colormap"]["file"]).convert("RGB"))
+def test_runway_is_painted_between_the_thresholds(any_tiles):
+    meta, hgt, grid = any_tiles
+    rgb = np.asarray(Image.open(TILES.parent / meta["id"] / meta["colormap"]["file"]).convert("RGB"))
     (rw,) = meta["airports"][0]["runways"]
     le, he = rw["ends"]
     for t in (0.02, 0.25, 0.5, 0.75, 0.98):

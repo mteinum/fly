@@ -1,7 +1,10 @@
 # teinum-fly
 
-Pixel-art flysimulator over ekte norsk terreng. Fase 1: innflyging til
-Kristiansand lufthavn, Kjevik (ENCN), 25,6 x 25,6 km i 50 m-celler.
+Flysimulator over ekte norsk terreng: innflyging til Kristiansand lufthavn,
+Kjevik (ENCN), 25,6 x 25,6 km. To moduser på samme data:
+
+- **3D** (standard): WebGL, 10 m-celler, sann målestokk, bygninger og bruer som geometri.
+- **Piksel** (`?mode=pixel`): 320 x 200, 50 m-celler, sprite stacking og Voxel Space.
 
 ## Kjøre
 
@@ -10,7 +13,8 @@ Forutsetninger: [uv](https://docs.astral.sh/uv/) og Node 22.
 ```bash
 # 1. Pipeline: hent data og skriv fliser (laster ned ca. 280 MB første gang, deretter fra cache)
 cd pipeline
-uv run flypipe build kjevik
+uv run flypipe build kjevik10   # 10 m-fliser til 3D-modus (40 MB, ikke i git)
+uv run flypipe build kjevik     # 50 m-fliser til pikselmodus (ligger i git)
 uv run pytest
 
 # 2. Spill
@@ -20,8 +24,8 @@ npm run dev          # http://localhost:5173
 npm test
 ```
 
-Flisene i `web/public/data/kjevik/` er sjekket inn, så spillet kjører også
-uten å kjøre pipeline først. `data/raw/` (cache) kan slettes for å hente alt
+50 m-flisene i `web/public/data/kjevik/` er sjekket inn, så pikselmodus kjører
+uten pipeline. 3D-modus krever at `kjevik10` er bygget. `data/raw/` (cache) kan slettes for å hente alt
 på nytt. `data/processed/kjevik/*.tif` er georefererte kopier som kan åpnes
 i QGIS for kontroll mot andre kartlag.
 

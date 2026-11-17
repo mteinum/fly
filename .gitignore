@@ -10,3 +10,5 @@ __pycache__/
 node_modules/
 dist/
 .DS_Store
+# 10 m-fliser for 3D-modus (40 MB): bygges med `uv run flypipe build kjevik10`
+web/public/data/kjevik10/

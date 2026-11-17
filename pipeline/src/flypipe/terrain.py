@@ -81,6 +81,7 @@ def colormap(
     landcover: np.ndarray | None = None,
     features: np.ndarray | None = None,
     seed: int = 7,
+    steep_slope: float = STEEP_SLOPE,
 ) -> np.ndarray:
     """RGB-fargekart for BAKKEN (uint8, h x w x 3).
 
@@ -93,7 +94,7 @@ def colormap(
     from .n50 import ROAD as F_ROAD
 
     dz_east, dz_south = gradients(hgt, cell)
-    steep = np.hypot(dz_east, dz_south) > STEEP_SLOPE
+    steep = np.hypot(dz_east, dz_south) > steep_slope
     noise = np.random.default_rng(seed).random(hgt.shape) > 0.5
     if landcover is None:
         landcover = np.full(hgt.shape, UNKNOWN, dtype=np.uint8)
