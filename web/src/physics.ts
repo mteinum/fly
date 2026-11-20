@@ -1,4 +1,5 @@
 /* Enkel flymodell, landing og krasj. Posisjon i rutenettceller, høyde og fart i meter. */
+import { glidePathAltitude } from "./guidance";
 import type { Plane, Touchdown } from "./plane";
 import { type Airport, BRIDGE, BUILDING, type Runway, type RunwayEnd, type Terrain } from "./terrain";
 
@@ -52,7 +53,6 @@ export const turnRate = (P: Plane): number => ((G * Math.tan(P.roll)) / P.spd) *
 /** Stigerate i m/s. */
 export const verticalSpeed = (P: Plane): number => P.spd * Math.sin(P.pitch);
 export const APPROACH_DIST_M = 8000;
-const GLIDE_SLOPE = Math.tan((3 * Math.PI) / 180);
 
 export type Keys = Record<string, boolean | undefined>;
 export type Say = (msg: string, seconds?: number) => void;
@@ -101,7 +101,7 @@ export function startApproach(P: Plane, t: Terrain, end: RunwayEnd): void {
   Object.assign(P, {
     x: end.x - Math.sin(hdg) * d,
     y: end.y + Math.cos(hdg) * d,
-    alt: t.heightAt(end.x, end.y) + APPROACH_DIST_M * GLIDE_SLOPE,
+    alt: glidePathAltitude(t, end, APPROACH_DIST_M), // på glidebanen som PFD viser
     hdg, spd: APPROACH_SPEED, pitch: -0.05, roll: 0, thr: 0,
     gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, state: "fly", t: 0, touchdown: null,
   } satisfies Plane);

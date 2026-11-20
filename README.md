@@ -48,6 +48,13 @@ og full klaff), `?time=22:00` og `?date=2026-06-21`
 (norsk tid; uten dem starter spillet kl. 09:00 i dag), og `?pos=øst,nord,høyde,kurs` (UTM 33,
 meter, sann kurs), f.eks. `?pos=91725,6468775,70,174` for Varoddbrua.
 
+## Innflyging
+
+PFD viser en magenta rombe for glidebanen (til høyre for horisonten) og en for kursen
+(under den), slik et ILS-anlegg gjør: fly mot romben. Står begge i midten, er du på
+senterlinja og på 3° glidebane. ND viser forlenget senterlinje med et merke per nautiske
+mil. Veiledningen er regnet fra banegeometrien, ikke fra flyplassens faktiske anlegg.
+
 ## Diplom
 
 Når flyet står stille etter en landing, vises et diplom med karakter (1–5 stjerner) og det

@@ -16,6 +16,7 @@ import { osloTime } from "./clock";
 import type { Game } from "./game";
 import { FLAP_NAMES, speedLimit, stallSpeed, verticalSpeed, warnings } from "./physics";
 import type { Plane } from "./plane";
+import { guidance, type Guidance } from "./guidance";
 import { H, OX, PANEL_TOP, TOP, W } from "./screen";
 import type { Terrain } from "./terrain";
 
@@ -51,6 +52,8 @@ interface Data {
   kt: number; altFt: number; vsFpm: number; pitch: number; roll: number; hdg: number; raFt: number;
   thr: number; arpNm: number; arpBearing: number;
   stallKt: number; limitKt: number; plane: Plane;
+  /** Kurs- og glidebaneavvik mot banen det flys mot, eller null utenfor dekning. */
+  ils: Guidance | null; runway: string;
   /** Røde varsler som gjelder nå. */
   warnings: string[];
 }
@@ -114,6 +117,29 @@ function pfd(g: G2D, x: number, y: number, d: Data, body: number): void {
 
   attitudeBall(g, 46, CY, 21, 25, d, 1.9);
   if (d.raFt < 2500) text(g, String(Math.round(d.raFt / (d.raFt < 50 ? 1 : 10)) * (d.raFt < 50 ? 1 : 10)), 46, 74.6, 5.6, d.raFt < 400 ? AMBER : GREEN, "center", SANS, 600);
+
+  // Kurs- og glidebaneviser (magenta rombe) mot faste merker: fly MOT romben.
+  // Syntetisk: regnet fra banegeometrien, se guidance.ts.
+  const DOT = 6.2, gx = 69.2, ly = 80.2;
+  g.fillStyle = WHITE;
+  for (const k of [-2, -1, 1, 2]) {
+    g.beginPath(); g.arc(gx, CY + k * DOT, 0.75, 0, 7); g.fill();
+    g.beginPath(); g.arc(46 + k * DOT, ly, 0.75, 0, 7); g.fill();
+  }
+  line(g, gx - 1.6, CY, gx + 1.6, CY, 0.7, YELLOW);
+  line(g, 46, ly - 1.6, 46, ly + 1.6, 0.7, YELLOW);
+  if (d.ils) {
+    const diamond = (x: number, y: number, pegged: boolean) => {
+      g.beginPath(); g.moveTo(x, y - 2.3); g.lineTo(x + 1.7, y); g.lineTo(x, y + 2.3); g.lineTo(x - 1.7, y); g.closePath();
+      g.strokeStyle = MAGENTA; g.lineWidth = 0.6;
+      if (pegged) g.stroke(); else { g.fillStyle = MAGENTA; g.fill(); } // hul rombe = utenfor skalaen
+    };
+    // over glidebanen: romben står under midten. Til høyre for linja: romben står til venstre.
+    diamond(gx, CY + clamp(d.ils.glideDots, -2.2, 2.2) * DOT, Math.abs(d.ils.glideDots) > 2.2);
+    diamond(46 - clamp(d.ils.courseDots, -2.2, 2.2) * DOT, ly, Math.abs(d.ils.courseDots) > 2.2);
+    text(g, `RWY ${d.runway}`, 2, 86.5, 3.8, MAGENTA, "left");
+    text(g, `${(d.ils.distanceM / NM).toFixed(1)} NM`, 2, 91.5, 3.8, MAGENTA, "left");
+  }
 
   // fartsbånd
   g.save();
@@ -418,11 +444,14 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
     stallKt: stallSpeed(P) * KT,
     limitKt: speedLimit(P) * KT,
     plane: P,
+    ils: null, runway: game.approach.ident,
     warnings: [],
     arpNm: (Math.hypot(arp.x - P.x, arp.y - P.y) * t.cell) / NM,
     // peiling i rutenettet + meridiankonvergens = sann peiling
     arpBearing: (((Math.atan2(arp.x - P.x, -(arp.y - P.y)) * DEG + t.meta.gridConvergenceDeg) % 360) + 360) % 360,
   };
+  const target = game.airport.runways.find((rw) => rw.ends.some((e) => e.ident === game.approach.ident));
+  if (target && P.state === "fly") d.ils = guidance(t, target, target.ends.find((e) => e.ident === game.approach.ident)!, P);
   const w = warnings(P, d.raFt);
   if (w.overspeed) d.warnings.push("OVERSPEED", ` MAX ${Math.round(d.limitKt)} KT`);
   if (w.stall) d.warnings.push("STALL");

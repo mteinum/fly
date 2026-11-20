@@ -27,6 +27,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     game.ts        spilltilstand, klokke, inndata
     terrain.ts     laster fliser; heightAt, isWater, utmToGrid, sann kurs
     physics.ts     flymodell (enkel, med A320-lignende fartsgrenser), landing, kollisjon
+    guidance.ts    avvik fra senterlinje og 3° glidebane (vises som ILS på PFD, syntetisk)
     sun.ts         solas posisjon fra tid og sted
     sky.ts         himmelfarger og lysstyrke fra solhøyden
     clock.ts       norsk tid <-> UTC
