@@ -105,7 +105,7 @@ async function main(): Promise<void> {
       const at = renderer.project(place.x * terrain.cell, place.z + 20, place.y * terrain.cell);
       if (!at || !inSight(terrain, cx, cy, ey, place)) continue;
       const px = at[0] * W, py = TOP + at[1] * (H - TOP), near = distanceM < 2500 ? 1 : 0;
-      const size = Math.min(4.6, 3.0 + (place.size - 5) * 0.2 + near * 0.3);
+      const size = Math.min(3.9, 2.6 + (place.size - 5) * 0.17 + near * 0.25);
       const font = `${labelStyle(place).italic ? "italic " : ""}500 ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
       g.font = font;
       const w = g.measureText(place.name).width;
@@ -114,7 +114,7 @@ async function main(): Promise<void> {
     g.save();
     g.textAlign = "center"; g.textBaseline = "alphabetic"; g.lineJoin = "round";
     // Dempet: liten, halvgjennomsiktig skrift med tynn skygge. Navnene skal kunne leses, ikke ta over bildet.
-    g.globalAlpha = 0.78;
+    g.globalAlpha = 0.63;
     for (const b of declutter(boxes, 16)) {
       const { color } = labelStyle(b.place);
       g.strokeStyle = "rgba(0,0,0,.4)"; g.lineWidth = 0.25;
