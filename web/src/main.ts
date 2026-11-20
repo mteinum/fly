@@ -19,7 +19,7 @@ async function listAirports(dataUrl: string): Promise<AreaInfo[]> {
     const index: { areas: AreaInfo[] } = await (await fetch(`${dataUrl}/index.json`)).json();
     return index.areas.filter((a) => a.cellSize === 10);
   } catch {
-    return [{ id: "kjevik10", name: "Kristiansand lufthavn, Kjevik", icao: DEFAULT_ICAO, cellSize: 10 }];
+    return [{ id: "kjevik10", name: "Kristiansand Airport, Kjevik", icao: DEFAULT_ICAO, cellSize: 10 }];
   }
 }
 
@@ -40,7 +40,7 @@ async function main(): Promise<void> {
     if (a === chosen) link.className = "current";
     picker.append(link);
   }
-  document.title = `Fly Airbus A320 til ${chosen.name.split(",").pop()!.trim()} – teinum-fly`;
+  document.title = `Fly an Airbus A320 to ${chosen.name.split(",").pop()!.trim()} – teinum-fly`;
   document.getElementById("where")!.textContent = chosen.name;
   const assets = await loadTerrain(`${dataUrl}/${area}`);
   const { terrain } = assets;
@@ -68,15 +68,15 @@ async function main(): Promise<void> {
     else void document.documentElement.requestFullscreen();
   };
   document.getElementById("info")!.textContent =
-    `Kart ${((terrain.width * terrain.cell) / 1000).toFixed(1)} km · celle ${terrain.cell} m · ${renderer.buildingCount} bygningsceller · ${terrain.bridges.length} bruer · ${terrain.meta.crs}`;
-  document.getElementById("credits")!.textContent = [...terrain.meta.attribution, "Lyd: generert med ElevenLabs"].join(" · ");
+    `Map ${((terrain.width * terrain.cell) / 1000).toFixed(1)} km · cell ${terrain.cell} m · ${renderer.buildingCount} building cells · ${terrain.bridges.length} bridges · ${terrain.meta.crs}`;
+  document.getElementById("credits")!.textContent = [...terrain.meta.attribution, "Audio: generated with ElevenLabs"].join(" · ");
 
   // ?clean: bare 3D-bildet, uten skjermtekst, hjelp og kreditering. Til skjermbilder (f.eks. delingsbildet).
   const clean = new URLSearchParams(location.search).has("clean");
   document.body.classList.toggle("clean", clean);
   const audio = new GameAudio(`${import.meta.env.BASE_URL}audio`, game.airport);
   addEventListener("keydown", (e) => {
-    if (e.code === "KeyM" && !e.repeat && !isTyping(e)) { game.msg.text = audio.toggleMute() ? "Lyd av" : "Lyd på"; game.msg.t = 1.5; }
+    if (e.code === "KeyM" && !e.repeat && !isTyping(e)) { game.msg.text = audio.toggleMute() ? "Sound off" : "Sound on"; game.msg.t = 1.5; }
   });
 
   // ?selftest (kun i utviklingsmodus): start lyden uten tastetrykk og skriv tilstanden til <body data-audio>.
@@ -129,6 +129,6 @@ main().catch((err) => {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void document.documentElement.requestFullscreen();
   };
-  document.getElementById("info")!.textContent = `Feil: ${err.message}. Har du kjørt pipeline (uv run flypipe build ${area})?`;
+  document.getElementById("info")!.textContent = `Error: ${err.message}. Have you run the pipeline (uv run flypipe build ${area})?`;
   throw err;
 });

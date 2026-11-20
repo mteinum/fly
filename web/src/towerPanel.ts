@@ -94,7 +94,7 @@ function display(g: G2D, x: number, y: number, w: number, h: number, label: stri
 }
 
 function strip(g: G2D, x: number, y: number, game: Game): void {
-  const P = game.P, state = P.state === "landed" ? "LANDET" : P.state === "crash" ? "HAVARI" : P.gear >= 1 ? "HJUL NEDE" : "HJUL OPPE";
+  const P = game.P, state = P.state === "landed" ? "LANDED" : P.state === "crash" ? "CRASHED" : P.gear >= 1 ? "GEAR DOWN" : "GEAR UP";
   const rwy = game.approach.ident;
   g.fillStyle = "#2b2f36"; g.fillRect(x - 1.5, y - 1.5, 49, 15);
   g.fillStyle = "#f1e9a8"; g.fillRect(x, y, 46, 12); // gul stripe = ankomst
@@ -105,7 +105,7 @@ function strip(g: G2D, x: number, y: number, game: Game): void {
   text(g, game.airport.icao, x + 17.2, y + 3.4, 2.8, "#111", "left", MONO, 600);
   text(g, `RWY ${rwy}`, x + 17.2, y + 8.6, 2.6, "#111", "left", MONO, 600);
   text(g, state, x + 32, y + 3.4, 2.2, P.state === "crash" ? "#b00000" : "#111", "left", MONO, 600);
-  text(g, `KLAFF ${FLAP_NAMES[P.flapCfg]}`, x + 32, y + 8.6, 2.2, "#333", "left", MONO);
+  text(g, `FLAPS ${FLAP_NAMES[P.flapCfg]}`, x + 32, y + 8.6, 2.2, "#333", "left", MONO);
 }
 
 export function drawTower(g: G2D, t: Terrain, map: CanvasImageSource, game: Game, view: TowerView): void {
@@ -137,7 +137,7 @@ export function drawTower(g: G2D, t: Terrain, map: CanvasImageSource, game: Game
 
   // stripeholder
   strip(g, 72, 146, game);
-  text(g, "ANKOMST", 72, 142.4, 2.2, ink);
+  text(g, "ARRIVALS", 72, 142.4, 2.2, ink);
 
   // kikkertkameraets skjerm: selve bildet tegnes av 3D-rendereren i dette rektangelet
   g.clearRect(SCOPE.x, SCOPE.y, SCOPE.w, SCOPE.h); // benken er tegnet over: åpne et hull ned til 3D-bildet
@@ -149,23 +149,23 @@ export function drawTower(g: G2D, t: Terrain, map: CanvasImageSource, game: Game
   g.strokeStyle = "rgba(255,255,255,.5)"; g.lineWidth = 0.25;
   const mx = SCOPE.x + SCOPE.w / 2, my = SCOPE.y + SCOPE.h / 2;
   g.beginPath(); g.moveTo(mx - 5, my); g.lineTo(mx - 1.5, my); g.moveTo(mx + 1.5, my); g.lineTo(mx + 5, my); g.moveTo(mx, my - 5); g.lineTo(mx, my - 1.5); g.moveTo(mx, my + 1.5); g.lineTo(mx, my + 5); g.stroke();
-  text(g, `KAMERA  ${(view.distanceM / NM).toFixed(1)} NM  ${Math.round(50 / view.scopeFov)}x`, SCOPE.x + 1.2, SCOPE.y + 2.6, 2.4, "#e8ffe8", "left", MONO, 600);
+  text(g, `CAMERA  ${(view.distanceM / NM).toFixed(1)} NM  ${Math.round(50 / view.scopeFov)}x`, SCOPE.x + 1.2, SCOPE.y + 2.6, 2.4, "#e8ffe8", "left", MONO, 600);
   text(g, `${Math.round(P.alt * FT)} FT  ${Math.round(P.spd * KT)} KT`, SCOPE.x + SCOPE.w - 1.2, SCOPE.y + SCOPE.h - 2.6, 2.4, "#e8ffe8", "right", MONO, 600);
 
   // værpanel og klokke til høyre
-  display(g, 204, 146, 34, 10, "VIND", "000/00KT", body); // vindstille: flymodellen har ingen vind
+  display(g, 204, 146, 34, 10, "WIND", "000/00KT", body); // vindstille: flymodellen har ingen vind
   display(g, 204, 160, 34, 10, "QNH", "1013", body);
   display(g, 204, 174, 34, 10, "UTC", `${pad(utc.getUTCHours(), 2)}:${pad(utc.getUTCMinutes(), 2)}:${pad(utc.getUTCSeconds(), 2)}`, body, "#7dffa0");
 
   // lyspanel: knappene lyser når banelysene står på fullt
-  text(g, "BANELYS", 246, 142.4, 2.2, ink);
-  ["KANT", "TERSKEL", "INNFL", "PAPI", "TAKSE", "FLOM"].forEach((s, i) => {
+  text(g, "RUNWAY LIGHTS", 246, 142.4, 2.2, ink);
+  ["EDGE", "THR", "APP", "PAPI", "TAXI", "FLOOD"].forEach((s, i) => {
     const bx = 246 + (i % 3) * 14, by = 146 + ((i / 3) | 0) * 12, on = i < 3 || night > 0.3;
     g.fillStyle = on ? (i < 3 ? "#1f7a3a" : "#8a6a12") : "#17191c";
     g.beginPath(); g.roundRect(bx, by, 12, 9, 1); g.fill();
     text(g, s, bx + 6, by + 4.7, 2, on ? "#eaffea" : "#7c838c", "center", SANS, 600);
   });
-  display(g, 246, 174, 40, 10, "BANE I BRUK", game.approach.ident, body, "#7dffa0");
+  display(g, 246, 174, 40, 10, "RUNWAY IN USE", game.approach.ident, body, "#7dffa0");
 
   // kikkert og kaffekopp
   g.fillStyle = "#101214"; g.beginPath(); g.roundRect(294, 150, 8, 15, 2); g.roundRect(304, 150, 8, 15, 2); g.fill(); g.fillRect(300, 154, 6, 3);

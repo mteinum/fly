@@ -42,6 +42,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
 data/raw/        cache av nedlastede rådata (ikke i git)
 data/processed/  GeoTIFF-kopier for kontroll i QGIS (ikke i git)
 deploy/          publisering til fly.teinum.no (SSH + rsync), kjøres av .github/workflows/deploy.yml
+web/public/share/  delingssiden for diplomer (PHP på webhotellet): index.php, image.php, lib.php
 tests/fixtures/  fasitpunkter fra Kartverkets API-er, delt av pytest og vitest
 reference/       opprinnelig piksel-prototype (én HTML-fil), kun til oppslag
 docs/            datakilder.md, resampling.md, ai-logg.md
@@ -98,6 +99,8 @@ cd web && npm test && npm run typecheck
 ## Konvensjoner
 
 - Kode og identifikatorer på engelsk, kommentarer og dokumentasjon på norsk.
+- ALL tekst spilleren ser er på engelsk: skjermtekst, meldinger, paneler, diplom, hjelp,
+  delingsbilder og navn/kreditering som pipeline skriver til metadata.
 - Ikke finn på API-endepunkter. Sjekk GetCapabilities/OpenAPI eller spør.
   Verifiserte endepunkter står i docs/datakilder.md.
 - Pipeline skal være reproduserbar: ingen manuelle steg, deterministisk
@@ -131,6 +134,10 @@ cd web && npm test && npm run typecheck
 - Spillet fyller hele vinduet. Skjermtekst, panel og tårninteriør tegnes i logiske enheter
   (grunnflate 320 x 200, se web/src/screen.ts): bruk `W` og `TOP` for det som skal følge
   vinduskanten, og `OX` for å sentrere faste oppsett. Ikke anta 16:10.
+- Delingssiden er den eneste serverkoden. Den lagrer ingenting og tar ikke imot opplastinger:
+  diplomet tegnes fra tallene i adressen, og alt derfra avgrenses i lib.php. Titlene der må
+  holdes like TITLES i web/src/diploma.ts. PHP kan ikke kjøres lokalt på denne maskinen;
+  `deploy/test_share.sh` kjøres i GitHub Actions.
 - API-nøkler leses fra miljøet i pipeline og skrives aldri til fil, logg eller nettleser.
 - Generert lyd er ikke reproduserbar. `flypipe audio` lager bare filer som mangler;
   slett en fil for å lage den på nytt. Lydfilene ligger i git.

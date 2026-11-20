@@ -10,25 +10,26 @@ export interface Grade {
   remarks: string[];
 }
 
-const TITLES = ["", "Du kom ned", "Hard landing", "Godkjent landing", "Fin landing", "Smørlanding"];
+// Samme titler som i web/public/share/lib.php (delingssiden tegner sitt eget bilde)
+export const TITLES = ["", "You got it down", "Hard landing", "Acceptable landing", "Nice landing", "Butter landing"];
 
 export function gradeLanding(td: Touchdown): Grade {
   const remarks: string[] = [];
   let stars = 5;
-  if (td.fpm > 500) { stars -= 2; remarks.push("hard nedsetting"); }
-  else if (td.fpm > 250) { stars -= 1; remarks.push("litt bestemt nedsetting"); }
-  if (td.crossM > 8) { stars -= 1; remarks.push("til side for senterlinja"); }
-  if (td.pastThresholdM < 0) { stars -= 1; remarks.push("før terskelen"); }
-  else if (td.pastThresholdM > 900) { stars -= 1; remarks.push("langt inne på banen"); }
-  if (td.kt > 155) { stars -= 1; remarks.push("høy fart"); }
-  if (td.flaps < 3) { stars -= 1; remarks.push("lite klaff"); }
+  if (td.fpm > 500) { stars -= 2; remarks.push("hard touchdown"); }
+  else if (td.fpm > 250) { stars -= 1; remarks.push("firm touchdown"); }
+  if (td.crossM > 8) { stars -= 1; remarks.push("off the centreline"); }
+  if (td.pastThresholdM < 0) { stars -= 1; remarks.push("short of the threshold"); }
+  else if (td.pastThresholdM > 900) { stars -= 1; remarks.push("long landing"); }
+  if (td.kt > 155) { stars -= 1; remarks.push("high speed"); }
+  if (td.flaps < 3) { stars -= 1; remarks.push("not enough flap"); }
   stars = Math.max(1, stars);
   return { stars, title: TITLES[stars], remarks };
 }
 
 export interface DiplomaData {
   name: string;
-  airportName: string; // «Stavanger lufthavn, Sola»
+  airportName: string; // «Stavanger Airport, Sola»
   icao: string;
   touchdown: Touchdown;
   grade: Grade;
@@ -39,7 +40,17 @@ const W = 1200, H = 630;
 const SERIF = 'Georgia, "Times New Roman", serif', SANS = '"Helvetica Neue", Helvetica, Arial, sans-serif';
 
 export const shareText = (d: DiplomaData): string =>
-  `Jeg landet en Airbus A320 på ${d.airportName.split(",").pop()!.trim()}, bane ${d.touchdown.runway}: ${"★".repeat(d.grade.stars)}${"☆".repeat(5 - d.grade.stars)} ${d.grade.title}.`;
+  `I landed an Airbus A320 at ${d.airportName.split(",").pop()!.trim()}, runway ${d.touchdown.runway}: ${"★".repeat(d.grade.stars)}${"☆".repeat(5 - d.grade.stars)} ${d.grade.title}.`;
+
+/** Lenka som deles: delingssiden på serveren tegner diplomet fra tallene, så forhåndsvisningen viser det. */
+export function shareUrl(siteUrl: string, d: DiplomaData): string {
+  const td = d.touchdown, iso = `${d.date.getFullYear()}-${String(d.date.getMonth() + 1).padStart(2, "0")}-${String(d.date.getDate()).padStart(2, "0")}`;
+  const q = new URLSearchParams({
+    n: d.name.trim(), a: d.icao, r: td.runway, s: String(d.grade.stars), k: String(Math.round(td.kt)), f: String(Math.round(td.fpm)),
+    c: td.crossM.toFixed(1), t: String(Math.round(td.pastThresholdM)), d: iso,
+  });
+  return `${siteUrl}share/?${q}`;
+}
 
 /** Tegn diplomet (1200 x 630, samme format som delingsbilder). `photo` er 3D-bildet fra landingsøyeblikket. */
 export function drawDiploma(canvas: HTMLCanvasElement, d: DiplomaData, photo: CanvasImageSource | null): void {
@@ -61,10 +72,10 @@ export function drawDiploma(canvas: HTMLCanvasElement, d: DiplomaData, photo: Ca
     g.font = font; g.fillStyle = color; g.textAlign = "center"; g.textBaseline = "middle";
     g.fillText(s, W / 2, y, W - 140);
   };
-  text("D I P L O M", 96, `600 58px ${SERIF}`, "#f0d48a");
-  text("tildeles", 150, `italic 24px ${SERIF}`, "#d6dbe6");
-  text(d.name.trim() || "en dyktig pilot", 204, `600 54px ${SERIF}`, "#ffffff");
-  text(`for landing med Airbus A320 på ${d.airportName} (${d.icao}), bane ${d.touchdown.runway}`, 266, `26px ${SERIF}`, "#e6eaf2");
+  text("D I P L O M A", 96, `600 58px ${SERIF}`, "#f0d48a");
+  text("awarded to", 150, `italic 24px ${SERIF}`, "#d6dbe6");
+  text(d.name.trim() || "a skilled pilot", 204, `600 54px ${SERIF}`, "#ffffff");
+  text(`for landing an Airbus A320 at ${d.airportName} (${d.icao}), runway ${d.touchdown.runway}`, 266, `26px ${SERIF}`, "#e6eaf2");
 
   // stjerner og karakter
   g.font = `52px ${SANS}`; g.textAlign = "center"; g.textBaseline = "middle";
@@ -73,12 +84,12 @@ export function drawDiploma(canvas: HTMLCanvasElement, d: DiplomaData, photo: Ca
   text(d.grade.title, 396, `600 34px ${SERIF}`, "#f0d48a");
 
   // målinger
-  const td = d.touchdown, where = td.pastThresholdM >= 0 ? `${Math.round(td.pastThresholdM)} m etter terskel` : `${Math.round(-td.pastThresholdM)} m før terskel`;
+  const td = d.touchdown, where = td.pastThresholdM >= 0 ? `${Math.round(td.pastThresholdM)} m past threshold` : `${Math.round(-td.pastThresholdM)} m before threshold`;
   const stats: [string, string][] = [
-    ["Fart", `${Math.round(td.kt)} kt`],
-    ["Synkerate", `${Math.round(td.fpm)} fot/min`],
-    ["Fra senterlinja", `${td.crossM.toFixed(1).replace(".", ",")} m`],
-    ["Nedsetting", where],
+    ["Speed", `${Math.round(td.kt)} kt`],
+    ["Sink rate", `${Math.round(td.fpm)} ft/min`],
+    ["Off centreline", `${td.crossM.toFixed(1)} m`],
+    ["Touchdown", where],
   ];
   const colW = (W - 160) / stats.length;
   stats.forEach(([label, value], i) => {
@@ -89,11 +100,11 @@ export function drawDiploma(canvas: HTMLCanvasElement, d: DiplomaData, photo: Ca
 
   g.font = `22px ${SANS}`; g.textBaseline = "alphabetic";
   g.textAlign = "left"; g.fillStyle = "#d6dbe6";
-  g.fillText(d.date.toLocaleDateString("nb-NO", { day: "numeric", month: "long", year: "numeric" }), 62, H - 56);
+  g.fillText(d.date.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }), 62, H - 56);
   g.textAlign = "center"; g.fillStyle = "#f0d48a"; g.font = `600 26px ${SANS}`;
   g.fillText("fly.teinum.no", W / 2, H - 56);
   g.textAlign = "right"; g.fillStyle = "#aeb8cc"; g.font = `18px ${SANS}`;
-  g.fillText("Flysimulator · Kartdata © Kartverket", W - 62, H - 56);
+  g.fillText("Flight simulator · Map data © Kartverket", W - 62, H - 56);
 }
 
 const NAME_KEY = "teinum-fly.pilot";
@@ -115,11 +126,13 @@ export function createDiplomaUi(siteUrl: string): DiplomaUi {
 
   const redraw = () => { if (current) { current.name = name.value; drawDiploma(canvas, current, photo); } };
   const blob = () => new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("kunne ikke lage bildet"))), "image/png"));
-  const url = () => `${siteUrl}?apt=${current!.icao}`;
+  const url = () => shareUrl(siteUrl, current!);
+  /** Delevinduer åpner seg bak et spill i fullskjerm, så gå ut av fullskjerm først. */
+  const leaveFullscreen = async () => { if (document.fullscreenElement) await document.exitFullscreen().catch(() => {}); };
   const download = async () => {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(await blob());
-    a.download = `diplom-${current!.icao}-bane-${current!.touchdown.runway}.png`;
+    a.download = `diploma-${current!.icao}-runway-${current!.touchdown.runway}.png`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 5000);
   };
@@ -129,24 +142,26 @@ export function createDiplomaUi(siteUrl: string): DiplomaUi {
     redraw();
   });
   document.getElementById("diplomaDownload")!.onclick = () => void download();
-  document.getElementById("diplomaFacebook")!.onclick = () => {
-    // Facebook tar bare imot en lenke herfra og lager forhåndsvisningen selv; diplomet må legges ved for hånd
-    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url())}`, "_blank", "noopener,width=640,height=560");
-    note.textContent = "Facebook viser spillets eget bilde for lenker. Vil du vise diplomet, last ned bildet og legg det ved innlegget.";
+  document.getElementById("diplomaFacebook")!.onclick = async () => {
+    // Facebook tar bare imot en lenke og henter forhåndsvisningen selv - derfor lenka til delingssiden
+    const target = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url())}`;
+    await leaveFullscreen();
+    window.open(target, "_blank", "noopener");
+    note.textContent = "Facebook shows the diploma from the link. The picture there has a standard background; download the image if you want the one from your own landing.";
   };
   document.getElementById("diplomaAgain")!.onclick = () => onAgain();
   shareBtn.onclick = async () => {
-    const file = new File([await blob()], "diplom.png", { type: "image/png" }), text = shareText(current!);
+    const file = new File([await blob()], "diploma.png", { type: "image/png" }), text = shareText(current!);
     try {
-      if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: "Diplom fra teinum-fly", text: `${text} ${url()}` });
-      else if (navigator.share) await navigator.share({ title: "Diplom fra teinum-fly", text, url: url() });
+      await leaveFullscreen();
+      if (navigator.canShare?.({ files: [file] })) await navigator.share({ files: [file], title: "Diploma from teinum-fly", text: `${text} ${url()}` });
+      else if (navigator.share) await navigator.share({ title: "Diploma from teinum-fly", text, url: url() });
       else {
         await navigator.clipboard.writeText(`${text} ${url()}`);
-        await download();
-        note.textContent = "Nettleseren kan ikke dele direkte. Teksten er kopiert og bildet lastet ned, så du kan lime inn og legge ved selv.";
+        note.textContent = "This browser cannot share directly. The text and link are copied, so you can paste them into a message. The link shows the diploma.";
       }
     } catch (err) {
-      if ((err as Error).name !== "AbortError") note.textContent = "Delingen gikk ikke. Prøv «Last ned bilde».";
+      if ((err as Error).name !== "AbortError") note.textContent = "Sharing failed. Try \"Download image\".";
     }
   };
 
@@ -157,7 +172,7 @@ export function createDiplomaUi(siteUrl: string): DiplomaUi {
       photo = shot;
       onAgain = again;
       const r = current.grade.remarks;
-      note.textContent = r.length ? `Trakk ned: ${r.join(", ")}.` : "Ingenting å utsette.";
+      note.textContent = r.length ? `Marked down for: ${r.join(", ")}.` : "Nothing to fault.";
       drawDiploma(canvas, current, photo);
       root.hidden = false;
     },

@@ -444,7 +444,7 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
   standby(g, 111, ROW, 22, d, body);
   const utc = new Date(game.time), lt = osloTime(game.time);
   lcd(g, 111, ROW + 26, 22, 8, "UTC", `${pad(utc.getUTCHours(), 2)}:${pad(utc.getUTCMinutes(), 2)}`, GREEN, body);
-  lcd(g, 111, ROW + 37, 22, 8, "LOKAL", `${pad(lt.hour, 2)}:${pad(lt.minute, 2)}`, GREEN, body);
+  lcd(g, 111, ROW + 37, 22, 8, "LOCAL", `${pad(lt.hour, 2)}:${pad(lt.minute, 2)}`, GREEN, body);
   ewd(g, 137, ROW, d, body);
   gearPanel(g, 187, ROW, P, body);
   nd(g, 214, ROW, d, t, game, body);

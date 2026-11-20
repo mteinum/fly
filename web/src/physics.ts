@@ -113,7 +113,7 @@ export function startApproach(P: Plane, t: Terrain, end: RunwayEnd): void {
 export function toggleGear(P: Plane, say: Say): void {
   if (P.state !== "fly") return;
   P.gearDown = !P.gearDown;
-  say(P.gearDown ? "Understell ned" : "Understell opp", 2);
+  say(P.gearDown ? "Gear down" : "Gear up", 2);
 }
 
 /** Klaffspaken ett hakk ut (+1) eller inn (-1). */
@@ -122,7 +122,7 @@ export function moveFlaps(P: Plane, step: number, say: Say): void {
   const cfg = clamp(P.flapCfg + step, 0, FLAP_NAMES.length - 1);
   if (cfg === P.flapCfg) return;
   P.flapCfg = cfg;
-  say(`Klaff ${FLAP_NAMES[cfg]}`, 2);
+  say(`Flaps ${FLAP_NAMES[cfg]}`, 2);
 }
 
 /** Ett fysikksteg. Returnerer true når flyet skal settes tilbake på innflyging. */
@@ -160,21 +160,21 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
   if (!t.inBounds(P.x, P.y)) {
     P.state = "outside";
     P.t = 2.5;
-    say("Utenfor kartutsnittet", 2.5);
+    say("Outside the map area", 2.5);
     return false;
   }
   const ci = t.cellIndex(P.x, P.y), kind = t.sKind[ci];
   // Bru: bare dekket er solid, så det går an å fly under
   if (kind === BRIDGE && P.alt <= t.sTop[ci] + 1.5 && P.alt >= t.sBase[ci] - 1) {
     P.state = "crash"; P.t = 2.5;
-    say("Traff brua!", 2.5);
+    say("Hit the bridge!", 2.5);
     return false;
   }
   let gh = Math.max(0, t.heightAt(P.x, P.y));
   if (kind === BUILDING && t.sTop[ci] > gh) {
     if (P.alt <= t.sTop[ci] + 1.5) {
       P.state = "crash"; P.t = 2.5; P.alt = t.sTop[ci] + 1;
-      say("Traff en bygning!", 2.5);
+      say("Hit a building!", 2.5);
       return false;
     }
     gh = t.sTop[ci];
@@ -183,14 +183,14 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
     const vs = verticalSpeed(P);
     if (onRunway(t, airport, P.x, P.y) && P.gear < 1) {
       P.state = "crash"; P.t = 3; P.alt = gh + 1;
-      say("Buklanding! Understellet var ikke nede.", 3);
+      say("Belly landing! The gear was not down.", 3);
     } else if (onRunway(t, airport, P.x, P.y) && vs > -4 && Math.abs(P.roll) < 0.2 && P.spd < MAX_LANDING_SPEED) {
       P.touchdown = measureTouchdown(t, airport, P, vs);
       P.state = "landed"; P.t = 5; P.alt = gh + 1; P.pitch = 0; P.roll = 0;
-      say(`Landet! ${(P.spd * 1.944) | 0} kt, ${vs.toFixed(1)} m/s`, 5);
+      say(`Landed! ${(P.spd * 1.944) | 0} kt, ${vs.toFixed(1)} m/s`, 5);
     } else {
       P.state = "crash"; P.t = 2.5; P.alt = gh + 1;
-      say(t.isWater(P.x, P.y) ? "Plask!" : "Bakkekontakt!", 2.5);
+      say(t.isWater(P.x, P.y) ? "Splash!" : "Ground contact!", 2.5);
     }
   }
   return false;

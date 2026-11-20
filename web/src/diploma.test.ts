@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gradeLanding, shareText } from "./diploma";
+import { gradeLanding, shareText, shareUrl } from "./diploma";
 import { update } from "./physics";
 import { newPlane, type Touchdown } from "./plane";
 import { loadTestTerrain } from "./testTerrain";
@@ -8,25 +8,34 @@ const good: Touchdown = { runway: "03", kt: 138, fpm: 150, crossM: 2, pastThresh
 
 describe("karakter for landingen", () => {
   it("gir fem stjerner for en rolig landing i landingssonen", () => {
-    expect(gradeLanding(good)).toEqual({ stars: 5, title: "Smørlanding", remarks: [] });
+    expect(gradeLanding(good)).toEqual({ stars: 5, title: "Butter landing", remarks: [] });
   });
 
   it("trekker for hver ting som er galt, og sier hva", () => {
-    expect(gradeLanding({ ...good, fpm: 300 })).toMatchObject({ stars: 4, title: "Fin landing", remarks: ["litt bestemt nedsetting"] });
-    expect(gradeLanding({ ...good, fpm: 600 })).toMatchObject({ stars: 3, remarks: ["hard nedsetting"] });
-    expect(gradeLanding({ ...good, crossM: 15 }).remarks).toEqual(["til side for senterlinja"]);
-    expect(gradeLanding({ ...good, pastThresholdM: -40 }).remarks).toEqual(["før terskelen"]);
-    expect(gradeLanding({ ...good, pastThresholdM: 1400 }).remarks).toEqual(["langt inne på banen"]);
-    expect(gradeLanding({ ...good, kt: 160, flaps: 2 })).toMatchObject({ stars: 3, remarks: ["høy fart", "lite klaff"] });
+    expect(gradeLanding({ ...good, fpm: 300 })).toMatchObject({ stars: 4, title: "Nice landing", remarks: ["firm touchdown"] });
+    expect(gradeLanding({ ...good, fpm: 600 })).toMatchObject({ stars: 3, remarks: ["hard touchdown"] });
+    expect(gradeLanding({ ...good, crossM: 15 }).remarks).toEqual(["off the centreline"]);
+    expect(gradeLanding({ ...good, pastThresholdM: -40 }).remarks).toEqual(["short of the threshold"]);
+    expect(gradeLanding({ ...good, pastThresholdM: 1400 }).remarks).toEqual(["long landing"]);
+    expect(gradeLanding({ ...good, kt: 160, flaps: 2 })).toMatchObject({ stars: 3, remarks: ["high speed", "not enough flap"] });
   });
 
   it("gir aldri mindre enn én stjerne", () => {
-    expect(gradeLanding({ runway: "03", kt: 164, fpm: 780, crossM: 20, pastThresholdM: 1900, flaps: 0 })).toMatchObject({ stars: 1, title: "Du kom ned" });
+    expect(gradeLanding({ runway: "03", kt: 164, fpm: 780, crossM: 20, pastThresholdM: 1900, flaps: 0 })).toMatchObject({ stars: 1, title: "You got it down" });
   });
 
   it("lager en tekst til deling med stedsnavn, bane og stjerner", () => {
-    const text = shareText({ name: "", airportName: "Stavanger lufthavn, Sola", icao: "ENZV", touchdown: { ...good, runway: "18" }, grade: gradeLanding({ ...good, fpm: 300 }), date: new Date() });
-    expect(text).toBe("Jeg landet en Airbus A320 på Sola, bane 18: ★★★★☆ Fin landing.");
+    const text = shareText({ name: "", airportName: "Stavanger Airport, Sola", icao: "ENZV", touchdown: { ...good, runway: "18" }, grade: gradeLanding({ ...good, fpm: 300 }), date: new Date() });
+    expect(text).toBe("I landed an Airbus A320 at Sola, runway 18: ★★★★☆ Nice landing.");
+  });
+});
+
+describe("lenke til delingssiden", () => {
+  it("har resultatet i adressen, slik web/public/share/lib.php leser det", () => {
+    const td = { ...good, runway: "25", kt: 110.6, fpm: 183.4, crossM: 0.04, pastThresholdM: 152.6 };
+    const url = new URL(shareUrl("https://fly.teinum.no/", { name: " Morten Ø ", airportName: "Bodø Airport", icao: "ENBO", touchdown: td, grade: gradeLanding(td), date: new Date(2026, 10, 20) }));
+    expect(url.origin + url.pathname).toBe("https://fly.teinum.no/share/");
+    expect(Object.fromEntries(url.searchParams)).toEqual({ n: "Morten Ø", a: "ENBO", r: "25", s: "5", k: "111", f: "183", c: "0.0", t: "153", d: "2026-11-20" });
   });
 });
 

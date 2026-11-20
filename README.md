@@ -52,10 +52,13 @@ meter, sann kurs), f.eks. `?pos=91725,6468775,70,174` for Varoddbrua.
 
 Når flyet står stille etter en landing, vises et diplom med karakter (1–5 stjerner) og det
 som ble målt i landingsøyeblikket: fart, synkerate, avstand fra senterlinja og hvor på
-banen hjulene tok bakken. Bakgrunnen er 3D-bildet fra landingen. «Del» bruker telefonens
-eller nettleserens delingsmeny med bildet vedlagt; «Last ned bilde» gir en PNG på
-1200 x 630. Facebook tar bare imot en lenke fra en nettside, så diplomet må legges ved
-innlegget for hånd. Navnet lagres bare i nettleseren.
+banen hjulene tok bakken. Bakgrunnen er 3D-bildet fra landingen. All tekst er på engelsk.
+
+Deling skjer med en lenke til `fly.teinum.no/share/?...`, der resultatet står i adressen.
+Den siden (PHP på webhotellet) tegner diplomet på nytt, slik at Facebook, Messenger og
+iMessage viser det som forhåndsvisning. Bildet der har en fast bakgrunn; bildet fra din egen
+landing får du med «Download image», og «Share» legger det ved der nettleseren støtter det.
+Ingenting lastes opp eller lagres på serveren. Navnet lagres bare i nettleseren.
 
 ## Publisering
 

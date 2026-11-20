@@ -1,6 +1,6 @@
 {
   "id": "kjevik",
-  "name": "Kristiansand lufthavn, Kjevik",
+  "name": "Kristiansand Airport, Kjevik",
   "crs": "EPSG:25833",
   "verticalDatum": "NN2000",
   "cellSize": 50.0,
@@ -381,7 +381,7 @@
     }
   ],
   "attribution": [
-    "Høydedata (DTM, DOM) og N50 Kartdata: © Kartverket (CC BY 4.0)",
-    "Flyplassdata: OurAirports (public domain)"
+    "Elevation data (DTM, DOM) and N50 map data: © Kartverket (CC BY 4.0)",
+    "Airport data: OurAirports (public domain)"
   ]
 }

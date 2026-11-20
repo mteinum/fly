@@ -200,6 +200,15 @@ og hva som ble endret.
 - Jeg hadde bare sett diplomet i et skjermbilde, aldri skrevet i feltet.
 - Rettet: alle tastelyttere bruker samme sjekk (`isTyping`).
 
+**25. «Facebook kan ikke vise diplomet» var for raskt konkludert**
+- Jeg sa at en nettside bare kan sende en lenke til Facebook, og at diplomet
+  derfor måtte legges ved for hånd. Første halvdel er riktig, men lenka kan
+  peke på en side som har diplomet som forhåndsvisningsbilde. Det krever at
+  bildet lages på serveren, og webhotellet har PHP med bildestøtte.
+- Jeg hadde ikke sjekket hva webhotellet kunne før jeg svarte. Brukeren
+  viste med et skjermbilde at resultatet ikke var godt nok.
+- Rettet: delingsside som tegner diplomet fra tallene i adressen.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

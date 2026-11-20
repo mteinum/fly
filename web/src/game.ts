@@ -55,7 +55,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     startApproach(P, terrain, ends[endIdx]);
     approach.count++;
     approach.ident = ends[endIdx].ident;
-    say(`Innflyging ${airport.icao} bane ${ends[endIdx].ident}`, 3);
+    say(`Approach ${airport.icao} runway ${ends[endIdx].ident}`, 3);
   };
   const environment = (time: number): Environment => {
     // Sola regnes for flyplassen; over 25 km er forskjellen ubetydelig

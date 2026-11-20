@@ -59,13 +59,13 @@ describe("bakkekontakt", () => {
   it("rolig sett på banen gir landing", () => {
     const { P, said } = lowOver(le.x + 0.2 * (he.x - le.x), le.y + 0.2 * (he.y - le.y));
     expect(P.state).toBe("landed");
-    expect(said).toMatch(/^Landet/);
+    expect(said).toMatch(/^Landed/);
   });
 
   it("fjorden gir plask", () => {
     const { P, said } = lowOver(...t.utmToGrid(92000, 6469000));
     expect(P.state).toBe("crash");
-    expect(said).toMatch(/^Plask/);
+    expect(said).toMatch(/^Splash/);
   });
 
   describe("Varoddbrua", () => {
@@ -102,7 +102,7 @@ describe("bakkekontakt", () => {
     it("stopper et fly i dekkhøyde", () => {
       const { P, said } = cross(t.sTop[ci] - 1);
       expect(P.state).toBe("crash");
-      expect(said).toBe("Traff brua!");
+      expect(said).toBe("Hit the bridge!");
     });
 
     it("kan flys over", () => {
@@ -117,7 +117,7 @@ describe("bakkekontakt", () => {
     Object.assign(P, { x, y, alt: t.sTop[i] + 2, hdg: 0, spd: 60, pitch: -0.05, thr: 0.1 });
     let said = "";
     for (let k = 0; k < 20 && P.state === "fly"; k++) update(P, t, airport, {}, 0.02, (m) => { said = m; });
-    expect(said).toBe("Traff en bygning!");
+    expect(said).toBe("Hit a building!");
   });
 
   it("å fly ut av utsnittet stopper flyet", () => {
@@ -167,7 +167,7 @@ describe("klaffer og understell", () => {
     expect(P.flapCfg).toBe(4);
     expect(said).toBe("");
     moveFlaps(P, -1, (m) => { said = m; });
-    expect([P.flapCfg, said]).toEqual([3, "Klaff 3"]);
+    expect([P.flapCfg, said]).toEqual([3, "Flaps 3"]);
     for (let i = 0; i < 9; i++) moveFlaps(P, -1, quiet);
     expect(P.flapCfg).toBe(0);
   });
@@ -200,6 +200,6 @@ describe("klaffer og understell", () => {
     let said = "";
     for (let i = 0; i < 100 && P.state === "fly"; i++) update(P, t, airport, {}, 0.02, (m) => { said = m; });
     expect(P.state).toBe("crash");
-    expect(said).toMatch(/^Buklanding/);
+    expect(said).toMatch(/^Belly landing/);
   });
 });

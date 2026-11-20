@@ -167,8 +167,8 @@ def build(area: Area) -> Path:
         },
         "airports": [airport],
         "attribution": [
-            "Høydedata (DTM, DOM) og N50 Kartdata: © Kartverket (CC BY 4.0)",
-            "Flyplassdata: OurAirports (public domain)",
+            "Elevation data (DTM, DOM) and N50 map data: © Kartverket (CC BY 4.0)",
+            "Airport data: OurAirports (public domain)",
         ],
     }
     (out / "metadata.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")

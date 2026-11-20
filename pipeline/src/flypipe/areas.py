@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
+# Navnene vises i spillet, som er på engelsk.
 @dataclass(frozen=True)
 class Area:
     id: str
@@ -43,11 +44,11 @@ def _airport_10m(id: str, name: str, icao: str, county: str, cache: str = "") ->
 
 AREAS = {
     # 50 m: grovt nivå. Brukes ikke av spillet nå, men av testene og av blokkmiddel-kontrollen
-    "kjevik": Area(id="kjevik", name="Kristiansand lufthavn, Kjevik", icao="ENCN", n50_county="42_Agder"),
+    "kjevik": Area(id="kjevik", name="Kristiansand Airport, Kjevik", icao="ENCN", n50_county="42_Agder"),
     # 10 m: det spillet bruker. kjevik10 har samme bbox som kjevik, så rådata deles.
-    "kjevik10": _airport_10m("kjevik10", "Kristiansand lufthavn, Kjevik", "ENCN", "42_Agder", cache="kjevik"),
-    "sola10": _airport_10m("sola10", "Stavanger lufthavn, Sola", "ENZV", "11_Rogaland"),
-    "flesland10": _airport_10m("flesland10", "Bergen lufthavn, Flesland", "ENBR", "46_Vestland"),
-    "gardermoen10": _airport_10m("gardermoen10", "Oslo lufthavn, Gardermoen", "ENGM", "32_Akershus"),
-    "bodo10": _airport_10m("bodo10", "Bodø lufthavn", "ENBO", "18_Nordland"),
+    "kjevik10": _airport_10m("kjevik10", "Kristiansand Airport, Kjevik", "ENCN", "42_Agder", cache="kjevik"),
+    "sola10": _airport_10m("sola10", "Stavanger Airport, Sola", "ENZV", "11_Rogaland"),
+    "flesland10": _airport_10m("flesland10", "Bergen Airport, Flesland", "ENBR", "46_Vestland"),
+    "gardermoen10": _airport_10m("gardermoen10", "Oslo Airport, Gardermoen", "ENGM", "32_Akershus"),
+    "bodo10": _airport_10m("bodo10", "Bodø Airport", "ENBO", "18_Nordland"),
 }

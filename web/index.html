@@ -1,26 +1,26 @@
 <!DOCTYPE html>
-<html lang="no">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Fly Airbus A320 til Kjevik – teinum-fly</title>
-<meta name="description" content="Flysimulator i nettleseren: land en Airbus A320 på Kristiansand lufthavn, Kjevik, over ekte norsk terreng fra Kartverket.">
+<title>Fly an Airbus A320 in Norway – teinum-fly</title>
+<meta name="description" content="A flight simulator in your browser: land an Airbus A320 at Kjevik, Sola, Flesland, Gardermoen or Bodø, over real Norwegian terrain from Kartverket.">
 <link rel="canonical" href="https://fly.teinum.no/">
 <!-- Forhåndsvisning ved deling (Facebook, Messenger, iMessage/SMS, Slack). Bildet må ha full adresse. -->
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="teinum-fly">
-<meta property="og:locale" content="nb_NO">
+<meta property="og:locale" content="en_GB">
 <meta property="og:url" content="https://fly.teinum.no/">
-<meta property="og:title" content="Fly Airbus A320 til Kjevik">
-<meta property="og:description" content="Flysimulator i nettleseren over ekte norsk terreng fra Kartverket. Ta ut understell og klaff, og land på Kjevik – dag eller natt.">
+<meta property="og:title" content="Fly an Airbus A320 in Norway">
+<meta property="og:description" content="A flight simulator in your browser over real Norwegian terrain. Lower the gear and flaps and land at one of five airports, day or night.">
 <meta property="og:image" content="https://fly.teinum.no/og.jpg">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="En Airbus A320 på innflyging over Topdalsfjorden mot rullebanen på Kjevik i solnedgang.">
+<meta property="og:image:alt" content="An Airbus A320 on approach over a fjord towards a runway at sunset.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Fly Airbus A320 til Kjevik">
-<meta name="twitter:description" content="Flysimulator i nettleseren over ekte norsk terreng fra Kartverket.">
+<meta name="twitter:title" content="Fly an Airbus A320 in Norway">
+<meta name="twitter:description" content="A flight simulator in your browser over real Norwegian terrain.">
 <meta name="twitter:image" content="https://fly.teinum.no/og.jpg">
 <link rel="stylesheet" href="/src/style.css">
 </head>
@@ -30,30 +30,30 @@
   <canvas id="screen" tabindex="0"></canvas>
 </div>
 <div class="touch" id="touch">
-  <button data-k="ArrowLeft">◀</button><button data-k="ArrowUp">▲ ned</button><button data-k="ArrowDown">▼ opp</button><button data-k="ArrowRight">▶</button>
-  <button data-k="KeyW">Gass +</button><button data-k="KeyS">Gass −</button><button id="tGear">Hjul</button><button id="tFlapOut">Klaff +</button><button id="tFlapIn">Klaff −</button><button id="tCam">Kamera</button><button id="tTime">Tid +2 t</button>
+  <button data-k="ArrowLeft">◀</button><button data-k="ArrowUp">▲ down</button><button data-k="ArrowDown">▼ up</button><button data-k="ArrowRight">▶</button>
+  <button data-k="KeyW">Thrust +</button><button data-k="KeyS">Thrust −</button><button id="tGear">Gear</button><button id="tFlapOut">Flaps +</button><button id="tFlapIn">Flaps −</button><button id="tCam">Camera</button><button id="tTime">Time +2 h</button>
 </div>
 <details id="help">
-  <summary>Hjelp</summary>
+  <summary>Help</summary>
   <div class="panel">
     <h1>teinum-fly · Airbus A320 · <span id="where"></span></h1>
-    <nav id="airports" aria-label="Velg flyplass"></nav>
-    <div><kbd>←</kbd><kbd>→</kbd> krenge · <kbd>↑</kbd> nese ned · <kbd>↓</kbd> nese opp · <kbd>W</kbd>/<kbd>S</kbd> gass · <kbd>G</kbd> understell · <kbd>F</kbd>/<kbd>V</kbd> klaff ut/inn</div>
-    <div><kbd>C</kbd> kamera (utvendig, cockpit, tårn) · <kbd>R</kbd> ny innflyging · <kbd>T</kbd> bytt bane · <kbd>Q</kbd>/<kbd>E</kbd> klokka ∓ 30 min · <kbd>M</kbd> lyd av/på</div>
-    <div class="muted">Du starter på innflyging, 8 km ute med klaff 2 og understellet oppe: ta ut understell og full klaff, brems til ca. 140 kt, og land med vingene i vater og rolig synkerate.</div>
+    <nav id="airports" aria-label="Choose airport"></nav>
+    <div><kbd>←</kbd><kbd>→</kbd> bank · <kbd>↑</kbd> nose down · <kbd>↓</kbd> nose up · <kbd>W</kbd>/<kbd>S</kbd> thrust · <kbd>G</kbd> gear · <kbd>F</kbd>/<kbd>V</kbd> flaps out/in</div>
+    <div><kbd>C</kbd> camera (outside, cockpit, tower) · <kbd>R</kbd> new approach · <kbd>T</kbd> next runway · <kbd>Q</kbd>/<kbd>E</kbd> clock ∓ 30 min · <kbd>M</kbd> sound on/off</div>
+    <div class="muted">You start on approach, 8 km out, with flaps 2 and the gear up: lower the gear, select full flaps, slow to about 140 kt, and land with the wings level and a gentle sink rate.</div>
     <div class="muted" id="info"></div>
-    <button id="fullscreen">Fullskjerm av/på</button>
+    <button id="fullscreen">Full screen on/off</button>
   </div>
 </details>
 <div id="diploma" hidden>
   <div class="sheet">
     <canvas id="diplomaCanvas" width="1200" height="630"></canvas>
-    <label>Navn på diplomet <input id="pilotName" type="text" maxlength="40" placeholder="Skriv navnet ditt" autocomplete="name"></label>
+    <label>Name on the diploma <input id="pilotName" type="text" maxlength="40" placeholder="Type your name" autocomplete="name"></label>
     <div class="actions">
-      <button id="diplomaShare">Del</button>
-      <button id="diplomaDownload">Last ned bilde</button>
-      <button id="diplomaFacebook">Del lenke på Facebook</button>
-      <button id="diplomaAgain">Ny innflyging</button>
+      <button id="diplomaShare">Share</button>
+      <button id="diplomaDownload">Download image</button>
+      <button id="diplomaFacebook">Share on Facebook</button>
+      <button id="diplomaAgain">New approach</button>
     </div>
     <div class="muted" id="diplomaNote"></div>
   </div>
