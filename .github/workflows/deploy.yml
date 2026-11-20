@@ -88,10 +88,11 @@ jobs:
           npm run build
       - name: Publiser med SSH og rsync
         env:
-          CPANEL_HOST: ${{ vars.CPANEL_HOST }}
-          CPANEL_USERNAME: ${{ vars.CPANEL_USERNAME }}
-          CPANEL_PORT: ${{ vars.CPANEL_PORT || '22' }}
-          CPANEL_DEPLOY_PATH: ${{ vars.CPANEL_DEPLOY_PATH }}
+          # Vert, bruker og sti er secrets, ikke variabler: da maskeres de i loggene, som er offentlige
+          CPANEL_HOST: ${{ secrets.CPANEL_HOST }}
+          CPANEL_USERNAME: ${{ secrets.CPANEL_USERNAME }}
+          CPANEL_PORT: ${{ secrets.CPANEL_PORT || '22' }}
+          CPANEL_DEPLOY_PATH: ${{ secrets.CPANEL_DEPLOY_PATH }}
           CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
           CPANEL_PASSWORD: ${{ secrets.CPANEL_SSH_PASSWORD }}
           CPANEL_SSH_KNOWN_HOSTS: ${{ secrets.CPANEL_SSH_KNOWN_HOSTS }}

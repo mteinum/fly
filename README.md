@@ -74,15 +74,17 @@ Ingenting lastes opp eller lagres på serveren. Navnet lagres bare i nettleseren
 
 ## Publisering
 
-Spillet publiseres til <https://fly.teinum.no/> (cPanel hos itpays) av GitHub Actions
+Spillet publiseres til <https://fly.teinum.no/> (et webhotell med cPanel) av GitHub Actions
 når `main` pushes: testene kjøres, 10 m-flisene bygges av pipeline (rådata caches),
 spillet bygges med Vite, og `deploy/deploy-cpanel.sh` laster opp `web/dist` med SSH og
 rsync. Skriptet godtar bare en dokumentrot som slutter med `/fly.teinum.no`, sjekker at
 mappa finnes, sletter ingenting, og bytter `index.html` til slutt.
 
-Repository variables: `CPANEL_HOST`, `CPANEL_USERNAME`, `CPANEL_PORT`, `CPANEL_DEPLOY_PATH`.
-Repository secrets: `CPANEL_SSH_KEY`, `CPANEL_SSH_PASSWORD` (nøkkelpassord),
-`CPANEL_SSH_KNOWN_HOSTS`. Ingen nøkler eller passord skal ligge i repoet.
+Alt publiseringen trenger ligger som repository secrets: `CPANEL_HOST`, `CPANEL_USERNAME`,
+`CPANEL_DEPLOY_PATH`, `CPANEL_SSH_KEY`, `CPANEL_SSH_PASSWORD` (nøkkelpassord) og
+`CPANEL_SSH_KNOWN_HOSTS` (`CPANEL_PORT` hvis porten ikke er 22). Vert, bruker og sti er
+secrets og ikke variabler, fordi de ellers skrives i klartekst i loggene. Ingen nøkler
+eller passord skal ligge i repoet.
 
 Delingsbildet `web/public/og.jpg` (1200 x 630) er et skjermbilde fra spillet med
 `?clean` (uten skjermtekst), med tittel lagt på. Lag et nytt hvis utseendet endres mye.
@@ -103,6 +105,19 @@ flisene og cache-regler.
 2. **N50-arealdekke, veier, bruer og bygninger, tid på døgnet** (ferdig) · METAR-vind og -sikt (gjenstår)
 3. Fliser/LOD langs ENCN–ENGM, ruter fra Avinor
 4. AI-genererte sprite-stabler, LLM-briefing fra METAR/TAF
+
+## Lisens
+
+Koden er lisensiert under MIT, se [LICENSE](LICENSE). Det gjelder ikke data og medier som
+følger med eller hentes av pipeline; de har egne vilkår:
+
+- Kartfliser og fasitpunkter er avledet av data fra Kartverket (CC BY 4.0).
+- Flyplassdata er fra OurAirports (public domain).
+- Lydfilene i `web/public/audio/` er generert med ElevenLabs og publisert av
+  rettighetshaveren. De er ikke omfattet av MIT-lisensen.
+- Skriftene i `web/public/share/fonts/` er DejaVu, med egen lisens i samme mappe.
+
+Detaljer står i [docs/datakilder.md](docs/datakilder.md).
 
 ## Kreditering
 

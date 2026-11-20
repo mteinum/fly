@@ -186,7 +186,7 @@ vann er nesten svart.
 | Tjenester | `POST https://api.elevenlabs.io/v1/sound-generation` (lydeffekter) og `POST https://api.elevenlabs.io/v1/text-to-speech/{voice_id}` (tale, modell `eleven_multilingual_v2`). Verifisert 2026-11-20 |
 | Nøkkel | `ELEVENLABS_API_KEY` i miljøet. Brukes bare av `pipeline/src/flypipe/audio.py` |
 | Innhold | 10 lydeffekter (motor, vind, tårnrom, understell, klaff, landing, krasj, plask, varsel, radioklikk) og 18 taleklipp (høydeutrop, «retard», «too low, gear», «stall», og fire meldinger fra tårnet). Tekst og stemme per fil står i `web/public/audio/manifest.json` |
-| Lisens | Avhenger av abonnementet nøkkelen tilhører: ElevenLabs gir kommersiell bruksrett på betalte planer og krever kreditering på gratisplanen. Hvilken plan dette er, er ikke kontrollert (nøkkelen har ikke lesetilgang til kontoen). Kreditering vises i spillet uansett |
+| Lisens | Kontoeieren har bekreftet (2026-11-21) at abonnementet gir rett til å publisere lyden. Dette er eierens opplysning; pipeline kan ikke lese abonnementet, fordi nøkkelen ikke har lesetilgang til kontoen. Kreditering vises i spillet. Lydfilene er ikke omfattet av repoets MIT-lisens |
 | Reproduserbarhet | Ingen: samme tekst gir ny lyd hver gang. Filene ligger derfor i git |
 
 Alt er syntetisk. Ingen lyd er opptak av et fly, og stemmen fra tårnet er
