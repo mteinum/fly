@@ -82,9 +82,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   };
   const toggleCam = () => { game.cam = CAMERAS[(CAMERAS.indexOf(game.cam) + 1) % CAMERAS.length]; };
 
-  const typing = (e: Event) => e.target instanceof HTMLInputElement;
   addEventListener("keydown", (e) => {
-    if (typing(e)) return; // navnefeltet på diplomet
+    if (isTyping(e)) return; // navnefeltet på diplomet
     K[e.code] = true;
     if (e.code === "KeyQ") game.time -= TIME_STEP_MS;
     if (e.code === "KeyE") game.time += TIME_STEP_MS;
@@ -124,6 +123,9 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   focus.focus();
   return game;
 }
+
+/** Sant når tastetrykket hører til et skrivefelt. Da skal det ikke styre spillet. */
+export const isTyping = (e: Event): boolean => e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
 
 /** Kjør `frame(dt)` hver animasjonsramme, med dt begrenset til 50 ms. */
 export function runLoop(frame: (dt: number) => void): void {

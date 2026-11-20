@@ -1,6 +1,6 @@
 import { GameAudio } from "./audio";
 import { createDiplomaUi } from "./diploma";
-import { createGame, runLoop } from "./game";
+import { createGame, isTyping, runLoop } from "./game";
 import { GlRenderer } from "./glRenderer";
 import { drawHud, drawMessage } from "./hud";
 import { drawPanel } from "./panel";
@@ -76,7 +76,7 @@ async function main(): Promise<void> {
   document.body.classList.toggle("clean", clean);
   const audio = new GameAudio(`${import.meta.env.BASE_URL}audio`, game.airport);
   addEventListener("keydown", (e) => {
-    if (e.code === "KeyM" && !e.repeat && !(e.target instanceof HTMLInputElement)) { game.msg.text = audio.toggleMute() ? "Lyd av" : "Lyd på"; game.msg.t = 1.5; }
+    if (e.code === "KeyM" && !e.repeat && !isTyping(e)) { game.msg.text = audio.toggleMute() ? "Lyd av" : "Lyd på"; game.msg.t = 1.5; }
   });
 
   // ?selftest (kun i utviklingsmodus): start lyden uten tastetrykk og skriv tilstanden til <body data-audio>.
@@ -89,7 +89,8 @@ async function main(): Promise<void> {
   // Diplom etter landing: bildet tas i landingsøyeblikket, diplomet vises når flyet står stille
   const diploma = createDiplomaUi("https://fly.teinum.no/"), glCanvas = document.getElementById("gl") as HTMLCanvasElement;
   let landingPhoto: HTMLCanvasElement | null = null, wasLanded = false;
-  addEventListener("keydown", (e) => { if (e.code === "KeyR" || e.code === "KeyT") diploma.hide(); });
+  // R og T starter ny innflyging og lukker diplomet - men ikke når de er bokstaver i navnet som skrives
+  addEventListener("keydown", (e) => { if (!isTyping(e) && (e.code === "KeyR" || e.code === "KeyT")) diploma.hide(); });
 
   runLoop((dt) => {
     game.step(dt);

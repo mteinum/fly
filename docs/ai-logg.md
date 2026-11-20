@@ -193,6 +193,13 @@ og hva som ble endret.
 - Lærdom: at en kommando «gikk» sier ikke at alle delene gikk. Typesjekk og
   tester rett etterpå fanget begge.
 
+**24. Navnet på diplomet startet ny innflyging (meldt av bruker)**
+- Jeg sperret spillets taster mens man skriver i navnefeltet, men glemte en
+  egen lytter som lukker diplomet på R og T. En R i navnet lukket diplomet,
+  feltet mistet fokus, og neste T gikk til spillet og startet ny innflyging.
+- Jeg hadde bare sett diplomet i et skjermbilde, aldri skrevet i feltet.
+- Rettet: alle tastelyttere bruker samme sjekk (`isTyping`).
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal
