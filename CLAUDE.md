@@ -40,6 +40,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     towerPanel.ts  tårnets interiør: sprosser, benk med radar, stripe, værpanel
 data/raw/        cache av nedlastede rådata (ikke i git)
 data/processed/  GeoTIFF-kopier for kontroll i QGIS (ikke i git)
+deploy/          publisering til fly.teinum.no (SSH + rsync), kjøres av .github/workflows/deploy.yml
 tests/fixtures/  fasitpunkter fra Kartverkets API-er, delt av pytest og vitest
 reference/       opprinnelig piksel-prototype (én HTML-fil), kun til oppslag
 docs/            datakilder.md, resampling.md, ai-logg.md

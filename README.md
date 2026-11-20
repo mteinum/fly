@@ -44,6 +44,21 @@ og full klaff), `?time=22:00` og `?date=2026-06-21`
 (norsk tid; uten dem brukes klokka nå), og `?pos=øst,nord,høyde,kurs` (UTM 33,
 meter, sann kurs), f.eks. `?pos=91725,6468775,70,174` for Varoddbrua.
 
+## Publisering
+
+Spillet publiseres til <https://fly.teinum.no/> (cPanel hos itpays) av GitHub Actions
+når `main` pushes: testene kjøres, 10 m-flisene bygges av pipeline (rådata caches),
+spillet bygges med Vite, og `deploy/deploy-cpanel.sh` laster opp `web/dist` med SSH og
+rsync. Skriptet godtar bare en dokumentrot som slutter med `/fly.teinum.no`, sjekker at
+mappa finnes, sletter ingenting, og bytter `index.html` til slutt.
+
+Repository variables: `CPANEL_HOST`, `CPANEL_USERNAME`, `CPANEL_PORT`, `CPANEL_DEPLOY_PATH`.
+Repository secrets: `CPANEL_SSH_KEY`, `CPANEL_SSH_PASSWORD` (nøkkelpassord),
+`CPANEL_SSH_KNOWN_HOSTS`. Ingen nøkler eller passord skal ligge i repoet.
+
+Oppsettet følger `morten.teinum.no`. `web/public/.htaccess` gir HTTPS, komprimering av
+flisene og cache-regler.
+
 ## Dokumentasjon
 
 - [CLAUDE.md](CLAUDE.md) – arkitektur, konvensjoner, CRS-regler

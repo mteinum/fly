@@ -1,0 +1,35 @@
+DirectoryIndex index.html
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{HTTPS} !=on
+  RewriteRule ^ https://fly.teinum.no%{REQUEST_URI} [R=301,L,NE]
+</IfModule>
+
+<IfModule mod_mime.c>
+  # Fliser fra pipeline: rå Float32 og uint8
+  AddType application/octet-stream .f32 .bin
+</IfModule>
+
+# Høydekart og klasseraster er store (26 MB + 2 x 6,5 MB), men komprimerer godt
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE application/octet-stream application/json text/html text/css application/javascript text/javascript
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set X-Frame-Options "SAMEORIGIN"
+  # Vite legger innholds-hash i filnavnene under /assets/: de kan caches for alltid
+  <FilesMatch "\.(js|css)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+  # Fliser og lyd har faste navn og kan bli byttet ved neste publisering
+  <FilesMatch "\.(f32|bin|png|json|mp3)$">
+    Header set Cache-Control "public, max-age=3600"
+  </FilesMatch>
+  <FilesMatch "\.html$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+</IfModule>

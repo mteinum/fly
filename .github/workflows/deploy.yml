@@ -1,0 +1,95 @@
+name: Test og publiser
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+      - name: Web - typesjekk og tester
+        working-directory: web
+        run: |
+          npm ci
+          npm run typecheck
+          npm test
+      # 50 m-flisene ligger i git; tester som trenger 10 m-fliser eller rådata hoppes over her
+      - name: Pipeline - tester
+        working-directory: pipeline
+        run: uv run pytest -q
+      - name: Publiseringsskript - sperrer
+        run: |
+          bash -n deploy/deploy-cpanel.sh
+          python3 -B -m unittest discover -s deploy -p 'test_*.py'
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: production
+      url: https://fly.teinum.no/
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
+      # Rådata fra Kartverket (N50 256 MB, DTM, DOM). Caches så ikke hver publisering laster alt på nytt.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: data/raw
+          key: raw-kjevik-${{ hashFiles('pipeline/src/flypipe/areas.py', 'pipeline/src/flypipe/dtm.py', 'pipeline/src/flypipe/n50.py') }}
+          restore-keys: raw-kjevik-
+      - name: Bygg 10 m-fliser
+        working-directory: pipeline
+        run: |
+          uv run flypipe build kjevik10
+          uv run pytest -q
+      - name: Bygg spillet
+        working-directory: web
+        run: |
+          npm ci
+          npm test
+          npm run build
+      - name: Publiser med SSH og rsync
+        env:
+          CPANEL_HOST: ${{ vars.CPANEL_HOST }}
+          CPANEL_USERNAME: ${{ vars.CPANEL_USERNAME }}
+          CPANEL_PORT: ${{ vars.CPANEL_PORT || '22' }}
+          CPANEL_DEPLOY_PATH: ${{ vars.CPANEL_DEPLOY_PATH }}
+          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+          CPANEL_PASSWORD: ${{ secrets.CPANEL_SSH_PASSWORD }}
+          CPANEL_SSH_KNOWN_HOSTS: ${{ secrets.CPANEL_SSH_KNOWN_HOSTS }}
+        run: bash deploy/deploy-cpanel.sh --deploy
+      - name: Kontroller at siden svarer
+        run: |
+          curl -fsS -o /dev/null -w 'index %{http_code}\n' https://fly.teinum.no/
+          curl -fsS https://fly.teinum.no/data/kjevik10/metadata.json | python3 -c "import json,sys; m=json.load(sys.stdin); assert m['id']=='kjevik10' and m['cellSize']==10, m['id']; print('fliser', m['id'])"
+          curl -fsS -o /dev/null -w 'lyd %{http_code}\n' https://fly.teinum.no/audio/manifest.json
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://fly.teinum.no/)" = 301
