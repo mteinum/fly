@@ -159,6 +159,15 @@ og hva som ble endret.
   styrer klokka (`audioEngine.test.ts`): hva som spilles og når er
   kontrollert, hvordan det høres ut er det ikke.
 
+**20. En test som bare virket på min maskin**
+- `hd.test.ts` skulle hoppes over når 10 m-flisene mangler (de er ikke i
+  git). Men `describe.skipIf` kjører fortsatt funksjonen for å finne testene,
+  og den leste flisene på toppnivå. Første kjøring i GitHub Actions krasjet.
+- Jeg hadde aldri kjørt testene uten flisene, så «hoppes over» var en
+  påstand, ikke noe jeg hadde sett.
+- Rettet, og kontrollert ved å flytte flisene bort lokalt og kjøre begge
+  testsettene slik CI ser dem.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

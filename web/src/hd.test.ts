@@ -5,7 +5,9 @@ import { newPlane } from "./plane";
 import { BRIDGE } from "./terrain";
 import { hasTiles, loadReference, loadTestTerrain } from "./testTerrain";
 
-describe.skipIf(!hasTiles("kjevik10"))("kjevik10", () => {
+// describe.skipIf kjører fortsatt funksjonen for å finne testene, så flisene må ikke leses
+// før vi vet at de finnes.
+const suite = () => {
   const t = loadTestTerrain("kjevik10");
   const lo = loadTestTerrain("kjevik");
   const ref = loadReference();
@@ -60,4 +62,7 @@ describe.skipIf(!hasTiles("kjevik10"))("kjevik10", () => {
     expect(t.sKind[ci]).toBe(BRIDGE);
     expect(Math.abs(t.sTop[ci] - z)).toBeLessThan(1.5);
   });
-});
+};
+
+if (hasTiles("kjevik10")) describe("kjevik10", suite);
+else describe.skip("kjevik10 (fliser mangler: kjør `uv run flypipe build kjevik10`)", () => { it("hoppes over", () => {}); });
