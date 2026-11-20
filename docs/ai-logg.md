@@ -112,6 +112,21 @@ og hva som ble endret.
 - Dette er et valg jeg tok uten å spørre, ikke en feil som ble rettet.
   Sunrise-API-et kan fortsatt brukes som fasit i en test.
 
+**14. Veier ble til perlekjeder i første versjon av bakkedetaljene**
+- Antatt: vei kunne behandles som en klasse som bare ikke støyforskyves.
+- Riktig: en vei på skrå er rasterisert som celler som møtes hjørne mot
+  hjørne. Med nærmeste-nabo-oppslag ble den en rekke løse ruter.
+- Oppdaget: i første skjermbilde.
+- Rettet: asfalt hentes fra en lineært filtrert maske med terskel ved
+  0,36–0,46. Bilineær verdi i et felles hjørne er 0,5, så båndet henger sammen.
+
+**15. Speilvendt tekstur på rullebanen (unngått, men bare så vidt)**
+- Teksturen tegnes med y langs banen. Sett «framover» er da høyre side ved
+  x = 0, altså speilvendt i forhold til lerretet. Banenummeret for ende 03
+  måtte dreies en halv omdreining, og høyre kant fikk u = 0.
+- Kontrollert i skjermbilde fra cockpit over terskelen: «03» leses riktig.
+  «21» er tegnet etter samme resonnement, men ikke sett.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

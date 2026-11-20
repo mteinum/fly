@@ -49,6 +49,23 @@ CLASSES = [
     LandClass(15, "Rullebane og oppstilling", ("Rullebane",), ((98, 100, 106), (98, 100, 106))),
 ]
 WATER_CODES = [c.code for c in CLASSES if c.water]
+
+# Overflateklasser: arealdekket pluss det som er lagt oppå det. Brukes av spillet
+# til å velge detaljmønster på bakken; landcover.bin selv er rent N50-arealdekke.
+SURFACE_ROAD = 16
+SURFACE_RUNWAY = 17
+
+
+def surface_classes(road: RGB, runway: RGB) -> list[dict]:
+    """Klasseliste for surface.bin: kode, navn og middelfarge (til skarpe flater på nært hold)."""
+    out = [
+        {"code": c.code, "name": c.name, "color": [round((a + b) / 2) for a, b in zip(*c.colors)]}
+        for c in CLASSES
+    ]
+    out[UNKNOWN]["color"] = [112, 122, 92]
+    out.append({"code": SURFACE_ROAD, "name": "Vei", "color": list(road)})
+    out.append({"code": SURFACE_RUNWAY, "name": "Rullebane (OurAirports)", "color": list(runway)})
+    return out
 _BY_OBJTYPE = {o: c.code for c in CLASSES for o in c.objtypes}
 SUBCELL = 10.0  # m
 

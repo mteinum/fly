@@ -121,6 +121,175 @@
       }
     ]
   },
+  "surface": {
+    "file": "surface.bin",
+    "dtype": "uint8",
+    "about": "arealdekke med vei og rullebane lagt oppå; styrer detaljmønster på bakken",
+    "classes": [
+      {
+        "code": 0,
+        "name": "Ukjent",
+        "color": [
+          112,
+          122,
+          92
+        ]
+      },
+      {
+        "code": 1,
+        "name": "Havflate",
+        "color": [
+          45,
+          110,
+          150
+        ]
+      },
+      {
+        "code": 2,
+        "name": "Innsjø",
+        "color": [
+          58,
+          128,
+          170
+        ]
+      },
+      {
+        "code": 3,
+        "name": "Elv",
+        "color": [
+          58,
+          128,
+          170
+        ]
+      },
+      {
+        "code": 4,
+        "name": "Skog",
+        "color": [
+          46,
+          101,
+          54
+        ]
+      },
+      {
+        "code": 5,
+        "name": "Åpent område",
+        "color": [
+          113,
+          125,
+          70
+        ]
+      },
+      {
+        "code": 6,
+        "name": "Myr",
+        "color": [
+          130,
+          116,
+          68
+        ]
+      },
+      {
+        "code": 7,
+        "name": "Dyrket mark",
+        "color": [
+          174,
+          178,
+          91
+        ]
+      },
+      {
+        "code": 8,
+        "name": "Tettbebyggelse",
+        "color": [
+          138,
+          144,
+          120
+        ]
+      },
+      {
+        "code": 9,
+        "name": "Bymessig bebyggelse",
+        "color": [
+          152,
+          148,
+          143
+        ]
+      },
+      {
+        "code": 10,
+        "name": "Industriområde",
+        "color": [
+          142,
+          142,
+          151
+        ]
+      },
+      {
+        "code": 11,
+        "name": "Lufthavn",
+        "color": [
+          108,
+          128,
+          89
+        ]
+      },
+      {
+        "code": 12,
+        "name": "Gress og anlegg",
+        "color": [
+          94,
+          147,
+          68
+        ]
+      },
+      {
+        "code": 13,
+        "name": "Steinbrudd",
+        "color": [
+          146,
+          140,
+          132
+        ]
+      },
+      {
+        "code": 14,
+        "name": "Snø og isbre",
+        "color": [
+          231,
+          234,
+          239
+        ]
+      },
+      {
+        "code": 15,
+        "name": "Rullebane og oppstilling",
+        "color": [
+          98,
+          100,
+          106
+        ]
+      },
+      {
+        "code": 16,
+        "name": "Vei",
+        "color": [
+          104,
+          104,
+          110
+        ]
+      },
+      {
+        "code": 17,
+        "name": "Rullebane (OurAirports)",
+        "color": [
+          68,
+          70,
+          78
+        ]
+      }
+    ]
+  },
   "structures": {
     "file": "structures.json",
     "bridgeCells": 141,

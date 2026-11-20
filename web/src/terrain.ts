@@ -49,6 +49,7 @@ export interface TerrainMeta {
   heightmap: { file: string };
   colormap: { file: string };
   lights: { file: string } | null;
+  surface: { file: string; classes: { code: number; name: string; color: [number, number, number] }[] };
   landcover: { file: string; classes: { code: number; name: string; water: boolean }[] };
   structures: { file: string };
   airports: Airport[];
@@ -152,20 +153,23 @@ export interface TerrainAssets {
   colormap: HTMLImageElement;
   /** Nattlys: gatelys og vinduslys, svart ellers. */
   lights: HTMLImageElement | null;
+  /** Overflateklasse per celle: arealdekke med vei og rullebane oppå. */
+  surface: Uint8Array;
 }
 
 export async function loadTerrain(baseUrl: string): Promise<TerrainAssets> {
   const meta: TerrainMeta = await (await fetch(`${baseUrl}/metadata.json`)).json();
-  const [hgtBuf, colormap, lights, lcBuf, structures] = await Promise.all([
+  const [hgtBuf, colormap, lights, lcBuf, surfaceBuf, structures] = await Promise.all([
     fetch(`${baseUrl}/${meta.heightmap.file}`).then((r) => r.arrayBuffer()),
     loadImage(`${baseUrl}/${meta.colormap.file}`),
     meta.lights ? loadImage(`${baseUrl}/${meta.lights.file}`) : null,
     fetch(`${baseUrl}/${meta.landcover.file}`).then((r) => r.arrayBuffer()),
+    fetch(`${baseUrl}/${meta.surface.file}`).then((r) => r.arrayBuffer()),
     fetch(`${baseUrl}/${meta.structures.file}`).then((r) => r.json() as Promise<StructureFile>),
   ]);
   // heightmap.f32 er little-endian, som alle plattformer nettlesere kjører på
   const terrain = new Terrain(meta, new Float32Array(hgtBuf), new Uint8Array(lcBuf), structures);
-  return { terrain, colormap, lights };
+  return { terrain, colormap, lights, surface: new Uint8Array(surfaceBuf) };
 }
 
 function loadImage(url: string): Promise<HTMLImageElement> {

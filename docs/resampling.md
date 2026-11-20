@@ -113,3 +113,22 @@ sentraldifferanser i samme 10 m-rutenett, med helningen overdrevet 1,5 x så
 det lave terrenget får synlig relieff. Lyset er vanlig Lambert-skygge mot
 solretningen, omregnet fra sann asimut til rutenettet med
 meridiankonvergensen. 50 m-flisene har fortsatt bakt hillshade.
+
+## Under 10 m: syntetisk detalj i stedet for data
+
+Fargekartet er 10 m per piksel. Ortofoto ville gitt ekte detalj, men er ikke
+åpent (se datakilder.md). I stedet legger spillet på detalj som ikke finnes i
+dataene:
+
+- **Klassegrenser:** overflateklassen (`surface.bin`, nærmeste nabo) slås opp
+  i et punkt som er forskjøvet med jevn støy (opptil ca. 6 m). Det gjør de
+  rette 10 m-kantene uregelmessige. Grensa er altså *mindre* nøyaktig enn
+  rasteret, ikke mer - den ser bare mer naturlig ut.
+- **Vei, rullebane og oppstillingsplass** forskyves ikke. De hentes fra en
+  lineært filtrert maske med terskel, som gir sammenhengende bånd også når
+  veien går på skrå gjennom rutenettet.
+- **Mønster:** hver klasse har et prosedyralt mønster som tones inn etter
+  hvor mange meter én skjermpiksel dekker.
+
+Dette er kartografisk utsmykking, på linje med symboler på et kart. Det må
+ikke leses som informasjon om terrenget.

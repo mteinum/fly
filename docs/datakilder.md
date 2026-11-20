@@ -120,6 +120,8 @@ regulert vannstand over regulerte innsjøer (`innsjohoyde`). Bare punkter med
 | Gatelys og vinduslys (`lights.png`) | `pipeline/src/flypipe/lights.py`: hver 5. veicelle nær bebyggelse og på europa-/riksvei; 2–18 % av cellene i bebygde arealklasser | Viser hvor N50 har vei og bebyggelse, ikke hvor det faktisk er lys |
 | Rullebanelys | Kantlys hver 60. m, grønne terskellys, 420 m innflygingslys med tverrbjelke | Vanlig mønster, ikke ENCNs faktiske lysanlegg (AIP er ikke slått opp) |
 | Lykter på bruer | Hver 30. m langs senterlinja, 8 m over dekket | Syntetisk |
+| Bakkedetaljer | `web/src/groundDetail.ts`: mønster per overflateklasse (trekroner, furer, bølger, korn) og uregelmessige klassegrenser, regnet i shaderen | Hvilken klasse som ligger hvor er ekte (N50, `surface.bin`). Mønsteret er ikke: trærne står ikke der trær står, og grensene er forskjøvet opptil ca. 6 m med støy |
+| Rullebanemerking | `web/src/runwayDecal.ts`: terskelstriper, banenummer, siktepunkt, midt- og kantlinjer | Baneender, bredde og forskjøvne terskler er ekte (OurAirports). Selve oppmerkingen følger vanlig mønster, ikke ENCNs |
 | Stjerner, måne | 1400 tilfeldige punkter; fast, svakt «månelys» ovenfra | Ingen stjernekatalog, ingen månefase |
 | Instrumenter | Fart, høyde og stigning fra flymodellen | Høydemåleren er alltid stilt til 1013 hPa-visning uten trykkorreksjon; kursgyroen viser sann kurs, ikke magnetisk |
 

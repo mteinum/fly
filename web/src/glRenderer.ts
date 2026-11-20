@@ -10,6 +10,8 @@
  */
 import * as THREE from "three";
 import type { Camera, Environment } from "./game";
+import { addGroundDetail, type GroundDetail } from "./groundDetail";
+import { buildRunwayDecal } from "./runwayDecal";
 import type { Plane } from "./plane";
 import type { RGB } from "./sky";
 import { BUILDING, type Terrain, type TerrainAssets } from "./terrain";
@@ -58,6 +60,7 @@ export class GlRenderer {
   private runwayLights: THREE.Points;
   private lamps: THREE.Points;
   private size = new THREE.Vector2(1, 1);
+  private groundDetail: GroundDetail;
 
   constructor(private canvas: HTMLCanvasElement, private t: Terrain, assets: TerrainAssets) {
     this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -82,6 +85,8 @@ export class GlRenderer {
       this.terrainMat.emissive = new THREE.Color(0xffffff);
       this.terrainMat.emissiveIntensity = 0;
     }
+
+    this.groundDetail = addGroundDetail(this.terrainMat, t, assets.surface);
 
     for (let cy = 0; cy * CHUNK < t.height; cy++) for (let cx = 0; cx * CHUNK < t.width; cx++) {
       const step = LOD_STEPS[LOD_STEPS.length - 1];
@@ -118,6 +123,7 @@ export class GlRenderer {
     this.stars = this.buildStars();
     this.scene.add(this.skyDome, this.sunDisc, this.stars);
 
+    for (const rw of t.meta.airports[0].runways) this.scene.add(buildRunwayDecal(t, rw, map.anisotropy));
     this.buildingCount = this.addBuildings();
     this.addBridges();
     this.runwayLights = this.pointLights(this.runwayLightPositions(), 3.2);
@@ -437,6 +443,7 @@ export class GlRenderer {
       this.camera.rotation.set(P.pitch, -P.hdg, -P.roll);
     }
     this.applyEnvironment(env);
+    this.groundDetail.setTime(performance.now() / 1000);
     this.updateLod();
     this.renderer.render(this.scene, this.camera);
   }

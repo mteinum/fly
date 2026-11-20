@@ -73,3 +73,23 @@ def test_runway_is_painted_between_the_thresholds(any_tiles):
     for end, t in ((le, 0.05), (he, 0.95)):
         x, y = le["x"] + t * (he["x"] - le["x"]), le["y"] + t * (he["y"] - le["y"])
         assert abs(sample_bilinear(hgt, x, y) - end["elevationM"]) < 5
+
+
+def test_surface_overlays_road_and_runway_on_landcover(any_tiles):
+    """surface.bin = arealdekke, med vei (16) og rullebane (17) lagt oppå. landcover.bin er urørt."""
+    meta, hgt, _ = any_tiles
+    d = TILES.parent / meta["id"]
+    lc = np.fromfile(d / meta["landcover"]["file"], dtype=np.uint8).reshape(hgt.shape)
+    surface = np.fromfile(d / meta["surface"]["file"], dtype=np.uint8).reshape(hgt.shape)
+    codes = {c["name"]: c["code"] for c in meta["surface"]["classes"]}
+    road, runway = codes["Vei"], codes["Rullebane (OurAirports)"]
+    assert lc.max() < road  # ingen overflatekoder har lekket inn i arealdekket
+    untouched = (surface != road) & (surface != runway)
+    assert np.array_equal(surface[untouched], lc[untouched])
+    assert 0 < (surface == road).sum() <= meta["features"]["roadCells"]  # rullebanen dekker noen veiceller
+    le, he = meta["airports"][0]["runways"][0]["ends"]
+    for t in (0.02, 0.5, 0.98):
+        x, y = le["x"] + t * (he["x"] - le["x"]), le["y"] + t * (he["y"] - le["y"])
+        assert surface[int(y), int(x)] == runway
+    for c in meta["surface"]["classes"]:
+        assert len(c["color"]) == 3 and all(0 <= v <= 255 for v in c["color"])

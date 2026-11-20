@@ -30,6 +30,8 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     sky.ts         himmelfarger og lysstyrke fra solhøyden
     clock.ts       norsk tid <-> UTC
     glRenderer.ts  WebGL: terrengnett med LOD, normalkart, bygninger, bruer, lys
+    groundDetail.ts  prosedyrale bakkedetaljer per overflateklasse (shader, syntetisk)
+    runwayDecal.ts   rullebanen som skarp flate med merking (merkingen er syntetisk)
     hud.ts         skjermtekst og kart (utvendig kamera)
     panel.ts       instrumentpanel (cockpit)
 data/raw/        cache av nedlastede rådata (ikke i git)
@@ -44,6 +46,7 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 - `colormap.png`: RGB, bakken: arealdekke + veier + rullebane. 10 m-flisene har ren
   flatefarge (spillet lyssetter selv); 50 m-flisene har hillshade bakt inn
 - `lights.png`: RGB, nattlys (kun 10 m). Syntetisk plassert langs veier og i bebyggelse
+- `surface.bin`: uint8, arealdekke med vei (16) og rullebane (17) lagt oppå; velger detaljmønster på bakken
 - `landcover.bin`: uint8 palettindeks (klasser i metadata.json; avgjør hva som er vann)
 - `structures.json`: `[kol, rad, type, bunn, topp, r, g, b]` for bruer og bygninger
 - `metadata.json`: bbox, CRS, cellestørrelse, min/maks høyde, konvergens,
@@ -107,7 +110,7 @@ cd web && npm test && npm run typecheck
 - Tid: spillklokka er UTC i ms, vises i norsk tid. Solas asimut er sann og må
   korrigeres med meridiankonvergensen før den brukes i rutenettet (game.ts).
 - Skill mellom ekte og syntetisk: det som er plassert etter mønster og ikke
-  etter data (nattlys, rullebanelys, stjerner, himmelfarger) skal merkes
+  etter data (nattlys, rullebanelys, bakkedetaljer, banemerking, stjerner, himmelfarger) skal merkes
   som syntetisk i koden og i docs/datakilder.md.
 - Begge flissett har samme format og samme bbox. Kode som leser fliser skal
   ikke anta cellestørrelse: regn i meter og del på `terrain.cell`.

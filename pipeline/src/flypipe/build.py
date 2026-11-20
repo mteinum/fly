@@ -79,7 +79,8 @@ def build(area: Area) -> Path:
         )
     flat_light = np.ones_like(shade)
     rgb = terrain.colormap(hgt, area.cell, shade if area.bake_hillshade else flat_light, lc, features, steep_slope=area.steep_slope)
-    rgb[runway_mask(airport, grid)] = terrain.RUNWAY
+    on_runway = runway_mask(airport, grid)
+    rgb[on_runway] = terrain.RUNWAY
 
     out = TILES / area.id
     out.mkdir(parents=True, exist_ok=True)
@@ -92,6 +93,11 @@ def build(area: Area) -> Path:
     if lc is None:
         lc = np.where(hgt <= terrain.SEA_LEVEL_MAX, landcover.CLASSES[1].code, landcover.UNKNOWN).astype(np.uint8)
     lc.tofile(out / "landcover.bin")
+    surface = lc.copy()
+    if features is not None:
+        surface[features == n50.ROAD] = landcover.SURFACE_ROAD
+    surface[on_runway] = landcover.SURFACE_RUNWAY
+    surface.tofile(out / "surface.bin")
     (out / "structures.json").write_text(
         json.dumps({"columns": ["col", "row", "kind", "base", "top", "r", "g", "b"], "kinds": structures.KINDS, "items": items, "bridges": bridge_lines}, separators=(",", ":")) + "\n",
         encoding="utf-8",
@@ -122,6 +128,12 @@ def build(area: Area) -> Path:
             "source": "N50 Arealdekke" if area.n50_county else "kun DTM (hav der høyde <= 0,1 m)",
             "method": f"rasterisert til {landcover.SUBCELL:g} m, flertall per {area.cell:g} m-celle",
             "classes": [{"code": c.code, "name": c.name, "water": c.water} for c in landcover.CLASSES],
+        },
+        "surface": {
+            "file": "surface.bin",
+            "dtype": "uint8",
+            "about": "arealdekke med vei og rullebane lagt oppå; styrer detaljmønster på bakken",
+            "classes": landcover.surface_classes(terrain.ROAD, terrain.RUNWAY),
         },
         "structures": {
             "file": "structures.json",
