@@ -3,6 +3,7 @@ import { createDiplomaUi } from "./diploma";
 import { createGame, isTyping, runLoop } from "./game";
 import { GlRenderer } from "./glRenderer";
 import { drawCornerMap, drawHud, drawMessage } from "./hud";
+import { candidates, declutter, inSight, labelStyle, type PlaceName } from "./labels";
 import { drawPanel } from "./panel";
 import { H, setScreen, TOP, W } from "./screen";
 import { loadTerrain } from "./terrain";
@@ -92,6 +93,39 @@ async function main(): Promise<void> {
   // R og T starter ny innflyging og lukker diplomet - men ikke når de er bokstaver i navnet som skrives
   addEventListener("keydown", (e) => { if (!isTyping(e) && (e.code === "KeyR" || e.code === "KeyT")) diploma.hide(); });
 
+  // Stedsnavn tegnes under paneler og skjermtekst, så de aldri ligger oppå instrumentene. N slår dem av og på.
+  let showNames = true;
+  addEventListener("keydown", (e) => {
+    if (e.code === "KeyN" && !e.repeat && !isTyping(e)) { showNames = !showNames; game.msg.text = showNames ? "Place names on" : "Place names off"; game.msg.t = 1.5; }
+  });
+  const drawNames = () => {
+    const [ex, ey, ez] = renderer.eye, cx = ex / terrain.cell, cy = ez / terrain.cell;
+    const boxes: { x: number; y: number; w: number; h: number; place: PlaceName; px: number; py: number; font: string }[] = [];
+    for (const { place, distanceM } of candidates(terrain, cx, cy, ey)) {
+      const at = renderer.project(place.x * terrain.cell, place.z + 20, place.y * terrain.cell);
+      if (!at || !inSight(terrain, cx, cy, ey, place)) continue;
+      const px = at[0] * W, py = TOP + at[1] * (H - TOP), near = distanceM < 2500 ? 1 : 0;
+      const size = Math.min(4.6, 3.0 + (place.size - 5) * 0.2 + near * 0.3);
+      const font = `${labelStyle(place).italic ? "italic " : ""}500 ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      g.font = font;
+      const w = g.measureText(place.name).width;
+      boxes.push({ x: px - w / 2 - 2, y: py - 6 - size, w: w + 4, h: size + 3, place, px, py, font }); // luft rundt, så det blir færre navn
+    }
+    g.save();
+    g.textAlign = "center"; g.textBaseline = "alphabetic"; g.lineJoin = "round";
+    // Dempet: liten, halvgjennomsiktig skrift med tynn skygge. Navnene skal kunne leses, ikke ta over bildet.
+    g.globalAlpha = 0.78;
+    for (const b of declutter(boxes, 16)) {
+      const { color } = labelStyle(b.place);
+      g.strokeStyle = "rgba(0,0,0,.4)"; g.lineWidth = 0.25;
+      g.beginPath(); g.moveTo(b.px, b.py - 4.4); g.lineTo(b.px, b.py); g.stroke(); // strek ned til stedet
+      g.font = b.font;
+      g.strokeStyle = "rgba(0,0,0,.5)"; g.lineWidth = 0.6; g.strokeText(b.place.name, b.px, b.py - 5);
+      g.fillStyle = color; g.fillText(b.place.name, b.px, b.py - 5);
+    }
+    g.restore();
+  };
+
   runLoop((dt) => {
     game.step(dt);
     audio.update(game, terrain);
@@ -113,6 +147,7 @@ async function main(): Promise<void> {
     g.setTransform(scale, 0, 0, scale, 0, -TOP * scale); // logisk TOP ligger i overkanten av vinduet
     g.clearRect(0, TOP, W, H - TOP);
     if (clean) return;
+    if (showNames && !game.replay) drawNames();
     if (game.replay) {
       // reprisen vises uten instrumenter: bare merket og hva som skjedde
       g.font = "bold 9px ui-monospace, Menlo, Consolas, monospace"; g.textAlign = "left"; g.textBaseline = "alphabetic";

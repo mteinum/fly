@@ -78,6 +78,21 @@ def build(area: Area) -> Path:
             vectors, n50.rasterize_features(vectors, grid), hgt, grid, raw, ndsm
         )
     airport["tower"] = airports.tower_position(airport, vectors["buildingAreas"] if area.n50_county else None, hgt, grid)
+    # Stedsnavn: høyden er terrenget under navnet. Brunavn flyttes opp på brua, til nærmeste punkt på dekket.
+    names: list[dict] = n50.load_names(area.n50_county, grid, RAW) if area.n50_county else []
+    deck = [(px, py, pz) for b in bridge_lines for px, py, pz in b["points"]]
+    def ground(n: dict) -> float:
+        # Avrund FØR oppslaget: fila lagrer to desimaler, og 123,996 -> 124,00 er en annen celle
+        n["x"], n["y"] = min(round(n["x"], 2), grid.width - 0.01), min(round(n["y"], 2), grid.height - 0.01)
+        return max(0.0, float(hgt[int(n["y"]), int(n["x"])]))
+
+    for n in names:
+        n["z"] = ground(n)
+        if n["type"] == "bru" and deck:
+            px, py, pz = min(deck, key=lambda p: (p[0] - n["x"]) ** 2 + (p[1] - n["y"]) ** 2)
+            if np.hypot(px - n["x"], py - n["y"]) * area.cell < 400:
+                n["x"], n["y"] = px, py
+                n["z"] = max(ground(n), pz)
     flat_light = np.ones_like(shade)
     rgb = terrain.colormap(hgt, area.cell, shade if area.bake_hillshade else flat_light, lc, features, steep_slope=area.steep_slope)
     on_runway = runway_mask(airport, grid)
@@ -104,6 +119,12 @@ def build(area: Area) -> Path:
         encoding="utf-8",
     )
     n_bridge = sum(1 for it in items if it[2] == structures.BRIDGE)
+    (out / "names.json").write_text(
+        json.dumps({"columns": ["name", "x", "y", "z", "size", "type", "group"],
+                    "items": [[n["name"], round(n["x"], 2), round(n["y"], 2), round(n["z"], 1), n["size"], n["type"], n["group"]] for n in names]},
+                   separators=(",", ":"), ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
 
     meta = {
         "id": area.id,
@@ -136,6 +157,12 @@ def build(area: Area) -> Path:
             "dtype": "uint8",
             "about": "arealdekke med vei og rullebane lagt oppå; styrer detaljmønster på bakken",
             "classes": landcover.surface_classes(terrain.ROAD, terrain.RUNWAY),
+        },
+        "names": {
+            "file": "names.json",
+            "count": len(names),
+            "source": "N50 Kartdata, tekstlaget (stedsnavn fra Sentralt stedsnavnregister)",
+            "about": "size er kartets skriftstørrelse i 1:50 000 og brukes som mål på hvor viktig navnet er",
         },
         "structures": {
             "file": "structures.json",

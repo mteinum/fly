@@ -217,6 +217,21 @@ og hva som ble endret.
   i Facebook-bildet fra serveren.
 - Rettet: metadata og fliser sjekkes alltid mot serveren.
 
+**27. Antok at kartteksten står der stedet er**
+- Stedsnavnene i N50 er tekstplasseringer for det trykte kartet. Jeg la
+  navnet midt i teksten. «Kristiansand» havnet 1,4 km fra sentrum, ute i
+  havna, fordi kartografen har flyttet teksten dit det er plass.
+- Oppdaget i første skjermbilde.
+- Rettet: de største navnene hentes fra stedets eget punkt i
+  stedsnavnregisteret. De små står fortsatt ved kartteksten.
+
+**28. Avrunding flyttet et punkt til nabocella**
+- Høyden for hvert stedsnavn ble slått opp før koordinatene ble avrundet til
+  to desimaler for lagring. 123,996 ble 124,00 i fila, altså en annen celle
+  enn den høyden kom fra. Seks navn fikk høyde opptil 8 m feil.
+- Oppdaget av en ny test som sammenligner fila med høydekartet.
+- Rettet: avrund først, slå opp etterpå.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

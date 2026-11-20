@@ -1,7 +1,7 @@
 /* Laster de ekte flisene fra disk for tester (Node, ikke nettleser). */
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { type StructureFile, Terrain, type TerrainMeta } from "./terrain";
+import { parseNames, type StructureFile, Terrain, type TerrainMeta } from "./terrain";
 
 const dataDir = (area: string): string => fileURLToPath(new URL(`../public/data/${area}/`, import.meta.url));
 
@@ -16,7 +16,9 @@ export function loadTestTerrain(area = "kjevik"): Terrain {
   const hgt = new Float32Array(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength));
   const lc = new Uint8Array(readFileSync(DATA + meta.landcover.file));
   const structures: StructureFile = JSON.parse(readFileSync(DATA + meta.structures.file, "utf-8"));
-  return new Terrain(meta, hgt, lc, structures);
+  const terrain = new Terrain(meta, hgt, lc, structures);
+  if (meta.names && existsSync(DATA + meta.names.file)) terrain.names = parseNames(JSON.parse(readFileSync(DATA + meta.names.file, "utf-8")));
+  return terrain;
 }
 
 export interface ReferencePoints {

@@ -472,6 +472,22 @@ export class GlRenderer {
 
   /* ---------- bilde ---------- */
 
+  private projected = new THREE.Vector3();
+
+  /** Hvor et punkt i verden (m) havner i bildet fra forrige render(), som andel av bredde og høyde
+   *  (0-1, y nedover). Null hvis punktet er bak kameraet eller utenfor bildet. */
+  project(wx: number, wy: number, wz: number): [number, number] | null {
+    const v = this.projected.set(wx, wy, wz).project(this.camera);
+    if (v.z < -1 || v.z > 1 || Math.abs(v.x) > 1.05 || Math.abs(v.y) > 1.05) return null;
+    return [v.x * 0.5 + 0.5, 0.5 - v.y * 0.5];
+  }
+
+  /** Kameraets plass i verden (m): øst, høyde, sør. */
+  get eye(): [number, number, number] {
+    const p = this.camera.position;
+    return [p.x, p.y, p.z];
+  }
+
   /** `spectator` er kameraets faste plass i verden når cam er «replay». */
   render(P: Plane, cam: Camera, env: Environment, spectator?: [number, number, number]): void {
     const { cell } = this.t, x = P.x * cell, z = P.y * cell;

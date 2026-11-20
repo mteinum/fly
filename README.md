@@ -38,7 +38,7 @@ for fullskjerm.
 
 Taster: piltaster styrer, `W`/`S` gass, `G` understell, `F`/`V` klaff ut/inn,
 `C` bytter mellom utvendig kamera, cockpit og tårn, `R` ny innflyging, `T` bytt bane (03/21), `Q`/`E` stiller klokka en
-halvtime bakover/framover, `M` slår lyden av og på. Lyden starter ved første tastetrykk.
+halvtime bakover/framover, `M` slår lyden av og på, `N` stedsnavnene. Lyden starter ved første tastetrykk.
 
 Flyplass velges under «Hjelp» eller med `?apt=ENZV` (ICAO-kode). `T` blar gjennom alle
 baneender på flyplassen.

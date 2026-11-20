@@ -291,6 +291,12 @@
       }
     ]
   },
+  "names": {
+    "file": "names.json",
+    "count": 1046,
+    "source": "N50 Kartdata, tekstlaget (stedsnavn fra Sentralt stedsnavnregister)",
+    "about": "size er kartets skriftstørrelse i 1:50 000 og brukes som mål på hvor viktig navnet er"
+  },
   "structures": {
     "file": "structures.json",
     "bridgeCells": 141,

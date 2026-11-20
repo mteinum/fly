@@ -54,6 +54,7 @@ Lag og filtre som brukes (`pipeline/src/flypipe/n50.py`):
 | Veier | `N50_Samferdsel_senterlinje` | `objtype = Veglenke`, `typeveg = enkelBilveg`, `medium = T`, `vegkategori` E/R/F |
 | Bruer | samme | `medium = L` (i lufta), `vegkategori` E/R/F/K/P |
 | Bygninger | `N50_BygningerOgAnlegg_posisjon` og `_omrade` | `objtype = Bygning` |
+| Stedsnavn | `N50_Stedsnavn_tekstplassering` | rader med `stedsnummer`; tunneler utelatt. Tekstbiter slås sammen per sted, hele navnet tas fra `fulltekst` |
 
 Tunneler (`medium = U`), stier, traktorveier, gang- og sykkelveier og jernbane
 tegnes ikke. Kommunale og private veier (1050 km i utsnittet) er utelatt fordi
@@ -62,6 +63,17 @@ de ville fylt nesten hver celle i tettbygde strøk på 50 m-rutenett.
 N50 er generalisert for 1:50 000: bygninger er punkter (store bygg er flater),
 og ikke alle hus er med. Antallet i `metadata.json` er N50-objekter, ikke
 faktiske bygninger.
+
+Stedsnavnene vises i lufta når man flyr (`names.json`). Navn, type og hvor
+viktig navnet er (kartets skriftstørrelse) er fra N50. Plasseringen er
+kartteksten sin, som står *ved siden av* stedet. De 262 største navnene er
+derfor flyttet til stedets eget punkt, hentet fra
+`https://ws.geonorge.no/stedsnavn/v1/sted?stedsnummer=&utkoordsys=25833`
+(Sentralt stedsnavnregister, CC BY 4.0, verifisert 2026-11-21) og lagret i
+`data/raw/ssr/`. Brunavn er flyttet til nærmeste punkt på brudekket. Mindre
+navn står fortsatt der kartet har trykket dem, opptil noen hundre meter unna.
+Hvor langt unna et navn vises, og at navn bak en ås skjules, er valgt i
+spillet (`web/src/labels.ts`).
 
 N50 har ikke bygningshøyde. I 50 m-flisene er høyden nominell: 7 m for
 bygningspunkter og 12 m for bygninger som er flater i N50. I 10 m-flisene får

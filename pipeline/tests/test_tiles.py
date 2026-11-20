@@ -125,3 +125,19 @@ def test_tower_stands_on_the_terminal_building_beside_the_runway(any_tiles):
     assert 100 < min(cross(rw) for rw in meta["airports"][0]["runways"]) < 1300
     assert tower["groundM"] == pytest.approx(max(0, hgt[int(tower["y"]), int(tower["x"])]), abs=0.06)
     assert tower["eyeM"] - tower["groundM"] == 32.0  # antatt høyde, se airports.TOWER_EYE_HEIGHT
+
+
+def test_place_names_are_whole_names_inside_the_map(any_tiles):
+    """names.json: hele navn (ikke kartets tekstbiter), innenfor utsnittet, med høyde fra terrenget."""
+    import json
+
+    meta, hgt, grid = any_tiles
+    names = json.loads((TILES.parent / meta["id"] / meta["names"]["file"]).read_text(encoding="utf-8"))["items"]
+    assert len(names) == meta["names"]["count"] > 300
+    assert not [n[0] for n in names if n[0].endswith("-") or not n[0].strip()]
+    assert all(n[5] != "tunnel" for n in names)
+    sizes = [n[4] for n in names]
+    assert sizes == sorted(sizes, reverse=True)  # viktigste først
+    for name, x, y, z, *_ in names:
+        assert 0 <= x < grid.width and 0 <= y < grid.height, name
+        assert z >= max(0, hgt[int(y), int(x)]) - 0.06, name  # aldri under bakken; brunavn ligger høyere

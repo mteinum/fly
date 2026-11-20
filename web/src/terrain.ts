@@ -54,9 +54,16 @@ export interface TerrainMeta {
   surface: { file: string; classes: { code: number; name: string; color: [number, number, number] }[] };
   landcover: { file: string; classes: { code: number; name: string; water: boolean }[] };
   structures: { file: string };
+  names?: { file: string; count: number };
   airports: Airport[];
   attribution: string[];
 }
+
+import type { PlaceName } from "./labels";
+
+/** names.json: [navn, x, y, z, skriftstørrelse, type, gruppe]. */
+export interface NameFile { items: [string, number, number, number, number, string, string][] }
+export const parseNames = (f: NameFile): PlaceName[] => f.items.map(([name, x, y, z, size, type, group]) => ({ name, x, y, z, size, type, group }));
 
 export const BUILDING = 1;
 export const BRIDGE = 2;
@@ -78,6 +85,8 @@ export class Terrain {
   readonly sTop: Float32Array;
   readonly sCol: Uint32Array; // 0xRRGGBB
   readonly bridges: StructureFile["bridges"];
+  /** Stedsnavn fra N50, viktigste først. */
+  names: PlaceName[] = [];
   private readonly waterCodes: Uint8Array;
 
   constructor(
@@ -161,16 +170,18 @@ export interface TerrainAssets {
 
 export async function loadTerrain(baseUrl: string): Promise<TerrainAssets> {
   const meta: TerrainMeta = await (await fetch(`${baseUrl}/metadata.json`)).json();
-  const [hgtBuf, colormap, lights, lcBuf, surfaceBuf, structures] = await Promise.all([
+  const [hgtBuf, colormap, lights, lcBuf, surfaceBuf, structures, names] = await Promise.all([
     fetch(`${baseUrl}/${meta.heightmap.file}`).then((r) => r.arrayBuffer()),
     loadImage(`${baseUrl}/${meta.colormap.file}`),
     meta.lights ? loadImage(`${baseUrl}/${meta.lights.file}`) : null,
     fetch(`${baseUrl}/${meta.landcover.file}`).then((r) => r.arrayBuffer()),
     fetch(`${baseUrl}/${meta.surface.file}`).then((r) => r.arrayBuffer()),
     fetch(`${baseUrl}/${meta.structures.file}`).then((r) => r.json() as Promise<StructureFile>),
+    meta.names ? fetch(`${baseUrl}/${meta.names.file}`).then((r) => r.json() as Promise<NameFile>) : null,
   ]);
   // heightmap.f32 er little-endian, som alle plattformer nettlesere kjører på
   const terrain = new Terrain(meta, new Float32Array(hgtBuf), new Uint8Array(lcBuf), structures);
+  if (names) terrain.names = parseNames(names);
   return { terrain, colormap, lights, surface: new Uint8Array(surfaceBuf) };
 }
 

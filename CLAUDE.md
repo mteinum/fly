@@ -37,6 +37,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     runwayDecal.ts   rullebanen som skarp flate med merking (merkingen er syntetisk)
     audio.ts       lydmotor: motor, vind, hendelser, utrop, flygeleder
     diploma.ts     diplom etter landing: karakter, bilde til deling, deleknapper
+    labels.ts      stedsnavn i lufta: utvalg etter viktighet og avstand, fri sikt, plassering
     hud.ts         skjermtekst og kart (utvendig kamera)
     panel.ts       A320-instrumentpanel (cockpit): PFD, ND med terreng, E/WD, FCU
     tower.ts       tårnkameraets geometri (blikkretning, kikkertkamera)
@@ -58,6 +59,7 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 - `surface.bin`: uint8, arealdekke med vei (16) og rullebane (17) lagt oppå; velger detaljmønster på bakken
 - `landcover.bin`: uint8 palettindeks (klasser i metadata.json; avgjør hva som er vann)
 - `structures.json`: `[kol, rad, type, bunn, topp, r, g, b]` for bruer og bygninger
+- `names.json`: `[navn, x, y, z, skriftstørrelse, type, gruppe]`, stedsnavn fra N50, viktigste først
 - `metadata.json`: bbox, CRS, cellestørrelse, min/maks høyde, konvergens,
   flyplasser med rullebaner, klasseliste
 

@@ -121,3 +121,66 @@ def rasterize_features(features: dict[str, gpd.GeoDataFrame], grid: GridSpec) ->
     # Uten all_touched: linjer brennes som sammenhengende 1-celle-streker,
     # flater tar celler med sentrum innenfor. Senere former overskriver tidligere.
     return rasterize(shapes, out_shape=(grid.height, grid.width), transform=grid.transform, fill=NONE, dtype="uint8")
+
+
+# Navnetyper som ikke gir mening sett fra lufta
+SKIP_NAME_TYPES = {"tunnel"}
+# Navn med minst denne skriftstørrelsen flyttes fra kartteksten til stedets eget punkt i SSR
+SSR_POINT_MIN_SIZE = 8.5
+SSR_URL = "https://ws.geonorge.no/stedsnavn/v1/sted"
+
+
+def ssr_point(stedsnummer: int, raw_dir: Path) -> tuple[float, float] | None:
+    """Stedets representasjonspunkt (øst, nord i EPSG:25833) fra Sentralt stedsnavnregister. Caches."""
+    import json
+
+    path = raw_dir / "ssr" / f"{stedsnummer}.json"
+    if not path.exists():
+        r = requests.get(SSR_URL, params={"stedsnummer": stedsnummer, "utkoordsys": 25833}, headers={"User-Agent": USER_AGENT}, timeout=60)
+        r.raise_for_status()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(r.text, encoding="utf-8")
+    hits = json.loads(path.read_text(encoding="utf-8")).get("navn", [])
+    if not hits or "representasjonspunkt" not in hits[0]:
+        return None
+    p = hits[0]["representasjonspunkt"]
+    assert p.get("koordsys") == 25833, p
+    return float(p["øst"]), float(p["nord"])
+
+
+def load_names(county: str, grid: GridSpec, raw_dir: Path) -> list[dict]:
+    """Stedsnavn fra N50 sitt tekstlag: navn, plass, type og kartets skriftstørrelse.
+
+    Laget er laget for å trykke kartet i 1:50 000: ett navn kan være delt i flere
+    tekstbiter («Topdals-» + «fjorden»), og skriftstørrelsen sier hvor viktig
+    kartografen mente navnet var. Vi slår bitene sammen per sted (stedsnummer),
+    bruker hele navnet (`fulltekst`), og legger navnet midt i tekstbitene.
+    Høydetall og fastmerker (rader uten stedsnummer) tas ikke med.
+
+    Kartteksten står ved siden av stedet, ikke på det: «Kristiansand» er trykket
+    1,4 km fra sentrum, ute i havna. De største navnene (ses på lang avstand)
+    flyttes derfor til stedets eget punkt i SSR, slått opp på stedsnummer.
+    """
+    gdf = _read(gdb_path(county, raw_dir), "N50_Stedsnavn_tekstplassering", grid)
+    gdf = gdf[gdf["stedsnummer"].notna() & gdf["fulltekst"].notna() & ~gdf["navneobjekttype"].isin(SKIP_NAME_TYPES)]
+    names = []
+    for _, parts in gdf.groupby("stedsnummer"):
+        first = parts.iloc[0]
+        where = parts.geometry.union_all().centroid
+        x, y = grid.utm_to_grid(where.x, where.y)
+        if not (0 <= x < grid.width and 0 <= y < grid.height):
+            continue
+        if float(parts["FontSize"].max()) >= SSR_POINT_MIN_SIZE:
+            point = ssr_point(int(first["stedsnummer"]), raw_dir)
+            if point:
+                sx, sy = grid.utm_to_grid(*point)
+                if 0 <= sx < grid.width and 0 <= sy < grid.height:
+                    x, y = sx, sy
+        names.append({
+            "name": str(first["fulltekst"]).strip(),
+            "x": x, "y": y,
+            "size": round(float(parts["FontSize"].max()), 2),
+            "type": str(first["navneobjekttype"]),
+            "group": str(first["navneobjekthovedgruppe"]),
+        })
+    return sorted(names, key=lambda n: (-n["size"], n["name"]))
