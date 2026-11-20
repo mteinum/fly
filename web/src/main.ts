@@ -40,6 +40,9 @@ async function main(): Promise<void> {
     `Kart ${((terrain.width * terrain.cell) / 1000).toFixed(1)} km · celle ${terrain.cell} m · ${renderer.buildingCount} bygningsceller · ${terrain.bridges.length} bruer · ${terrain.meta.crs}`;
   document.getElementById("credits")!.textContent = [...terrain.meta.attribution, "Lyd: generert med ElevenLabs"].join(" · ");
 
+  // ?clean: bare 3D-bildet, uten skjermtekst, hjelp og kreditering. Til skjermbilder (f.eks. delingsbildet).
+  const clean = new URLSearchParams(location.search).has("clean");
+  document.body.classList.toggle("clean", clean);
   const audio = new GameAudio(`${import.meta.env.BASE_URL}audio`);
   addEventListener("keydown", (e) => {
     if (e.code === "KeyM" && !e.repeat) { game.msg.text = audio.toggleMute() ? "Lyd av" : "Lyd på"; game.msg.t = 1.5; }
@@ -58,6 +61,7 @@ async function main(): Promise<void> {
     renderer.render(game.P, game.cam, game.env);
     g.setTransform(scale, 0, 0, scale, 0, -TOP * scale); // logisk TOP ligger i overkanten av vinduet
     g.clearRect(0, TOP, W, H - TOP);
+    if (clean) return;
     if (game.cam === "tower") {
       drawTower(g, terrain, map, game, towerView(terrain, game.P));
       drawMessage(g, game, TOP + 20);

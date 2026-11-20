@@ -56,6 +56,9 @@ Repository variables: `CPANEL_HOST`, `CPANEL_USERNAME`, `CPANEL_PORT`, `CPANEL_D
 Repository secrets: `CPANEL_SSH_KEY`, `CPANEL_SSH_PASSWORD` (nøkkelpassord),
 `CPANEL_SSH_KNOWN_HOSTS`. Ingen nøkler eller passord skal ligge i repoet.
 
+Delingsbildet `web/public/og.jpg` (1200 x 630) er et skjermbilde fra spillet med
+`?clean` (uten skjermtekst), med tittel lagt på. Lag et nytt hvis utseendet endres mye.
+
 Oppsettet følger `morten.teinum.no`. `web/public/.htaccess` gir HTTPS, komprimering av
 flisene og cache-regler.
 
