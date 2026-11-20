@@ -123,6 +123,41 @@ regulert vannstand over regulerte innsjøer (`innsjohoyde`). Bare punkter med
 | Stjerner, måne | 1400 tilfeldige punkter; fast, svakt «månelys» ovenfra | Ingen stjernekatalog, ingen månefase |
 | Instrumenter | Fart, høyde og stigning fra flymodellen | Høydemåleren er alltid stilt til 1013 hPa-visning uten trykkorreksjon; kursgyroen viser sann kurs, ikke magnetisk |
 
+## Undersøkt, ikke i bruk: bilde som bakketekstur (2026-11-20)
+
+### Ortofoto: Norge i bilder – ikke åpent
+
+Alle tjenestene til Norge i bilder står i Geonorges kartkatalog med tilgang
+«Norge digitalt begrenset» og Norge digitalt-lisens, ikke CC BY:
+
+| Tjeneste | Resultat uten pålogging |
+|---|---|
+| WMTS `https://tilecache.norgeibilder.no/wmts/utm33_euref89` | `499 Token Required` |
+| WMS `https://services.norgeibilder.no/wms/ortofoto` | `499` |
+| WMS `https://wms.geonorge.no/skwms1/wms.nib` | «Bruker kan ikke autentiseres» |
+| `opencache.statkart.no` (eldre åpen cache) | svarer ikke lenger |
+
+Lisensvilkår: <https://www.kartverket.no/geodataarbeid/norge-digitalt/partsinformasjon/avtaler-og-vilkar/norge-digitalt-lisens>.
+Bruk krever at man er Norge digitalt-part eller har egen avtale. Om UiA er
+part, og om en students sideprosjekt dekkes, er ikke undersøkt. Selv med
+tilgang kan flisene trolig ikke legges i et åpent repo eller på en åpen
+nettside.
+
+### Sentinel-2 skyfri mosaikk – åpent, men 10 m
+
+| | |
+|---|---|
+| Tjeneste | WMS, `https://wms.geonorge.no/skwms1/wms.sentinel2`, lag `sentinel2` |
+| Innhold | Årlig skyfri mosaikk av Sentinel-2, juni–august, prosessert av Kartverket |
+| CRS / format | EPSG:25833 støttes; PNG/JPEG; maks 8192 x 8192 per kall |
+| Tilgang | Åpne data, ingen pålogging |
+| Kreditering (krav) | «Copernicus Sentinel-2 data (årstall)/prosessert av Statens Kartverk» |
+| Verifisert | Ja. Hele Kjevik-utsnittet hentet i 10 m (2560 x 2560, 12 MB PNG, 11 s). Bildet ligger riktig i rutenettet: rullebanen faller på samme celler som i fargekartet |
+
+Begrensninger: oppløsningen er 10 m (som fargekartet vi har), så bakken blir
+ikke skarpere på nært hold. Bildet har sommerens solskygger bakt inn, og
+vann er nesten svart.
+
 ## Planlagt (ikke i bruk, ikke verifisert ennå)
 
 | Fase | Kilde | Lisens / kreditering | Merknad |

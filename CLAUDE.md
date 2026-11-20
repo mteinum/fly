@@ -1,6 +1,6 @@
 # teinum-fly
 
-Pixel-art flysimulator over ekte norsk terreng, bygget på åpne norske geodata.
+Flysimulator (WebGL) over ekte norsk terreng, bygget på åpne norske geodata.
 Sideprosjekt til IS-930 (GIS og KI) ved UiA: GIS-delen skal være ryddig,
 reproduserbar og dokumentert.
 
@@ -9,16 +9,17 @@ reproduserbar og dokumentert.
 ```
 pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<utsnitt>/
   src/flypipe/
-    crs.py       ALL koordinattransformasjon (WGS84 <-> UTM 33), konvergens
-    grid.py      GridSpec: UTM-meter <-> rutenettceller
-    areas.py     definisjon av utsnitt (kjevik)
-    dtm.py       Kartverket DTM via WCS, cache i data/raw/
-    airports.py  OurAirports: flyplass + rullebaner
-    n50.py       N50 Kartdata: veier, bruer, bygninger -> feature-raster
-    landcover.py N50 Arealdekke -> palettindeks per celle (flertall)
+    crs.py        ALL koordinattransformasjon (WGS84 <-> UTM 33), konvergens
+    grid.py       GridSpec: UTM-meter <-> rutenettceller
+    areas.py      definisjon av utsnitt (kjevik10 = 10 m, kjevik = 50 m)
+    dtm.py        Kartverket DTM og DOM via WCS, cache i data/raw/
+    airports.py   OurAirports: flyplass + rullebaner
+    n50.py        N50 Kartdata: veier, bruer, bygninger -> feature-raster
+    landcover.py  N50 Arealdekke -> palettindeks per celle
     structures.py bruer (dekkhøyde fra DOM) og bygninger som egen liste
-    terrain.py   blokkmiddel, hillshade, fargekart
-    build.py     setter det sammen og skriver fliser + metadata.json
+    lights.py     nattlys (syntetisk plassert)
+    terrain.py    blokkmiddel, hillshade, fargekart
+    build.py      setter det sammen og skriver fliser + metadata.json
 web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
   src/
     main.ts        laster fliser, kobler sammen og kjører løkka
@@ -31,25 +32,6 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     glRenderer.ts  WebGL: terrengnett med LOD, normalkart, bygninger, bruer, lys
     hud.ts         skjermtekst og kart (utvendig kamera)
     panel.ts       instrumentpanel (cockpit)
-data/raw/
-    airports.py  OurAirports: flyplass + rullebaner
-    n50.py       N50 Kartdata: veier, bruer, bygninger -> feature-raster
-    landcover.py N50 Arealdekke -> palettindeks per celle (flertall)
-    structures.py bruer (dekkhøyde fra DOM) og bygninger som egen liste
-    terrain.py   blokkmiddel, hillshade, fargekart
-    build.py     setter det sammen og skriver fliser + metadata.json
-web/        Vite + TypeScript, ingen spillmotor. To moduser med felles terreng, fysikk og HUD:
-  src/
-    main.ts           velger modus (3D er standard, ?mode=pixel for pikselmodus)
-    game.ts           felles tilstand, inndata og spilløkke
-    terrain.ts        laster fliser; heightAt, isWater, utmToGrid, sann kurs
-    physics.ts plane.ts hud.ts
-    glMain.ts         3D-modus: 10 m-fliser (kjevik10)
-    glRenderer.ts       WebGL via three.js: terrengnett med LOD, bygninger, bruer
-    pixelMain.ts      pikselmodus: 50 m-fliser (kjevik), Canvas 2D, 320x200
-    layers.ts           skiver for sprite stacking
-    chaseRenderer.ts    jaktkamera (sprite stack)
-    voxelRenderer.ts    cockpit (Voxel Space)
 data/raw/        cache av nedlastede rådata (ikke i git)
 data/processed/  GeoTIFF-kopier for kontroll i QGIS (ikke i git)
 tests/fixtures/  fasitpunkter fra Kartverkets API-er, delt av pytest og vitest
