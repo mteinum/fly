@@ -30,6 +30,15 @@ export function drawMap(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImag
   g.restore();
 }
 
+/** Oversiktskartet oppe i høyre hjørne. `inset` er avstanden fra høyre kant (i cockpit står vindusstolpen der). */
+export function drawCornerMap(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImageSource, game: Game, inset: number): void {
+  const m = 52, mx = W - m - inset, my = TOP + 4;
+  g.save();
+  g.fillStyle = "#000"; g.fillRect(mx - 1, my - 1, m + 2, m + 2);
+  drawMap(g, t, map, game, mx, my, m);
+  g.restore();
+}
+
 export function drawMessage(g: CanvasRenderingContext2D, game: Game, y: number): void {
   if (game.msg.t <= 0) return;
   g.save();
@@ -55,9 +64,7 @@ export function drawHud(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImag
   g.fillStyle = "rgba(0,0,0,.45)"; g.fillRect(3, TOP + 3, 138, 6 + lines.length * 9);
   g.fillStyle = "#ffe9b0";
   lines.forEach((l, i) => g.fillText(l, 6, TOP + 12 + i * 9));
-  const m = 52, mx = W - m - 4, my = TOP + 4;
-  g.fillStyle = "#000"; g.fillRect(mx - 1, my - 1, m + 2, m + 2);
-  drawMap(g, t, map, game, mx, my, m);
   g.restore();
+  drawCornerMap(g, t, map, game, 4);
   drawMessage(g, game, TOP + 60);
 }

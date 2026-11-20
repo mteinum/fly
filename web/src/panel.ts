@@ -221,6 +221,17 @@ function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body:
   }
   line(g, AX, AY - R - 4, AX, AY - R + 2, 0.9, YELLOW);
 
+  // forlenget senterlinje for banen det flys mot: 10 NM ut fra baneenden, stiplet, med et merke per NM
+  const end = game.airport.runways.flatMap((rw) => rw.ends).find((e) => e.ident === game.approach.ident);
+  if (end) {
+    const h = (end.headingGridDeg * Math.PI) / 180, nm = NM / t.cell;
+    const out = (d: number, side = 0): [number, number] => toScreen(end.x - Math.sin(h) * d * nm + Math.cos(h) * side * nm, end.y + Math.cos(h) * d * nm + Math.sin(h) * side * nm);
+    g.setLineDash([1.6, 1.6]);
+    line(g, ...out(0), ...out(10), 0.5, CYAN);
+    g.setLineDash([]);
+    for (let d = 1; d <= 10; d++) line(g, ...out(d, -0.12), ...out(d, 0.12), 0.5, CYAN);
+  }
+
   // flyplass og rullebane
   for (const rw of game.airport.runways) {
     const [ax, ay] = toScreen(rw.ends[0].x, rw.ends[0].y), [bx, by] = toScreen(rw.ends[1].x, rw.ends[1].y);

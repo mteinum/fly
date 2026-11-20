@@ -2,7 +2,7 @@ import { GameAudio } from "./audio";
 import { createDiplomaUi } from "./diploma";
 import { createGame, isTyping, runLoop } from "./game";
 import { GlRenderer } from "./glRenderer";
-import { drawHud, drawMessage } from "./hud";
+import { drawCornerMap, drawHud, drawMessage } from "./hud";
 import { drawPanel } from "./panel";
 import { H, setScreen, TOP, W } from "./screen";
 import { loadTerrain } from "./terrain";
@@ -117,6 +117,8 @@ async function main(): Promise<void> {
       drawMessage(g, game, TOP + 20);
     } else if (game.cam === "cockpit") {
       drawPanel(g, terrain, game);
+      // Et ekte fly har ikke dette kartet, men uten det er det vanskelig å finne flyplassen
+      drawCornerMap(g, terrain, map, game, 16);
       drawMessage(g, game, TOP + 20);
     } else {
       drawHud(g, terrain, map, game);
