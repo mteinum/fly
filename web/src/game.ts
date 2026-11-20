@@ -40,19 +40,20 @@ const TIME_STEP_MS = 30 * 60 * 1000;
 
 export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   const airport = terrain.meta.airports[0];
-  const runway = airport.runways[0];
+  // Alle baneender på flyplassen, i den rekkefølgen T blar gjennom dem
+  const ends = airport.runways.flatMap((rw) => rw.ends);
   const params = new URLSearchParams(location.search);
-  let endIdx = Math.max(0, runway.ends.findIndex((e) => e.ident === params.get("rwy")));
+  let endIdx = Math.max(0, ends.findIndex((e) => e.ident === params.get("rwy")));
   const P = newPlane();
   const K: Keys = {};
   const msg: Message = { text: "", t: 0 };
   const say = (text: string, t = 3) => { msg.text = text; msg.t = t; };
-  const approach = { count: 0, ident: runway.ends[endIdx].ident };
+  const approach = { count: 0, ident: ends[endIdx].ident };
   const reset = () => {
-    startApproach(P, terrain, runway.ends[endIdx]);
+    startApproach(P, terrain, ends[endIdx]);
     approach.count++;
-    approach.ident = runway.ends[endIdx].ident;
-    say(`Innflyging ${airport.icao} bane ${runway.ends[endIdx].ident}`, 3);
+    approach.ident = ends[endIdx].ident;
+    say(`Innflyging ${airport.icao} bane ${ends[endIdx].ident}`, 3);
   };
   const environment = (time: number): Environment => {
     // Sola regnes for flyplassen; over 25 km er forskjellen ubetydelig
@@ -85,7 +86,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     if (e.repeat) return;
     if (e.code === "KeyC") toggleCam();
     if (e.code === "KeyR") reset();
-    if (e.code === "KeyT") { endIdx = 1 - endIdx; reset(); }
+    if (e.code === "KeyT") { endIdx = (endIdx + 1) % ends.length; reset(); }
     if (e.code === "KeyG") toggleGear(P, say);
     if (e.code === "KeyF") moveFlaps(P, 1, say);
     if (e.code === "KeyV") moveFlaps(P, -1, say);

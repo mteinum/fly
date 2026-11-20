@@ -25,7 +25,7 @@ const rwy = { x: (le.x + he.x) / 2, y: (le.y + he.y) / 2 };
 
 async function setup(cam: Game["cam"] = "cockpit") {
   const { GameAudio } = await import("./audio");
-  const audio = new GameAudio("/audio");
+  const audio = new GameAudio("/audio", airport);
   await audio.startNow();
   const P = Object.assign(newPlane(), rwy, { spd: 70, thr: 0.3 });
   const game = { P, cam, airport, approach: { count: 1, ident: "03" }, msg: { text: "", t: 0 }, time: 0, env: { sunAzimuth: 0, sunElevation: 0, sky: skyState(30) }, step() {} } as Game;
@@ -54,7 +54,7 @@ describe("lydmotoren", () => {
     for (let i = 0; i < 40; i++) frame(1500);
     expect(played()).toEqual([]);
     for (let i = 0; i < 20; i++) frame(1500);
-    expect(played()).toEqual(["radio", "cleared_03"]);
+    expect(played()).toEqual(["radio", "cleared_ENCN_03"]);
   });
 
   it("roper ut høydene i rekkefølge på vei ned, og «retard» til slutt", async () => {
@@ -94,7 +94,7 @@ describe("lydmotoren", () => {
     a.P.state = "landed";
     for (let i = 0; i < 80; i++) a.frame(0);
     expect(a.played()).toContain("touchdown");
-    expect(a.played().slice(-2)).toEqual(["radio", "welcome"]);
+    expect(a.played().slice(-2)).toEqual(["radio", "welcome_ENCN"]);
 
     const b = await setup();
     [b.P.x, b.P.y] = t.utmToGrid(92000, 6469000); // Topdalsfjorden
@@ -109,7 +109,7 @@ describe("lydmotoren", () => {
     const { frame, played } = await setup("tower");
     for (let i = 0; i < 80; i++) frame(1200);
     for (let ft = 1200; ft > 2; ft -= 2) frame(ft, 0.2);
-    expect(played()).toContain("cleared_03");
+    expect(played()).toContain("cleared_ENCN_03");
     expect(played()).not.toContain("radio");
     expect(played().some((n) => n.startsWith("alt_"))).toBe(false);
   });

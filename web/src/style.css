@@ -18,3 +18,7 @@ h1{font-size:15px;margin:0 0 4px;color:#ffb366}
 @media (pointer:coarse){.touch{display:flex}}
 .touch button{padding:10px 14px;font-size:16px;background:rgba(27,27,41,.7)}
 .clean #help,.clean #credits,.clean .touch{display:none}
+#airports{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 8px}
+#airports a{padding:2px 9px;border:1px solid #444458;border-radius:3px;color:#e8e2d0;text-decoration:none;background:#1b1b29}
+#airports a:hover{background:#26263a}
+#airports a.current{border-color:#ffb366;color:#ffb366}

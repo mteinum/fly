@@ -95,14 +95,14 @@ function display(g: G2D, x: number, y: number, w: number, h: number, label: stri
 
 function strip(g: G2D, x: number, y: number, game: Game): void {
   const P = game.P, state = P.state === "landed" ? "LANDET" : P.state === "crash" ? "HAVARI" : P.gear >= 1 ? "HJUL NEDE" : "HJUL OPPE";
-  const rwy = game.airport.runways[0].ends.reduce((a, b) => (Math.hypot(a.x - P.x, a.y - P.y) < Math.hypot(b.x - P.x, b.y - P.y) ? a : b)).ident;
+  const rwy = game.approach.ident;
   g.fillStyle = "#2b2f36"; g.fillRect(x - 1.5, y - 1.5, 49, 15);
   g.fillStyle = "#f1e9a8"; g.fillRect(x, y, 46, 12); // gul stripe = ankomst
   g.strokeStyle = "#7a7450"; g.lineWidth = 0.25;
   for (const lx of [16, 31]) { g.beginPath(); g.moveTo(x + lx, y); g.lineTo(x + lx, y + 12); g.stroke(); }
   text(g, CALLSIGN, x + 1.2, y + 3.4, 3.2, "#111", "left", MONO, 700);
   text(g, "A320  M", x + 1.2, y + 8.6, 2.4, "#333", "left", MONO);
-  text(g, "ENCN", x + 17.2, y + 3.4, 2.8, "#111", "left", MONO, 600);
+  text(g, game.airport.icao, x + 17.2, y + 3.4, 2.8, "#111", "left", MONO, 600);
   text(g, `RWY ${rwy}`, x + 17.2, y + 8.6, 2.6, "#111", "left", MONO, 600);
   text(g, state, x + 32, y + 3.4, 2.2, P.state === "crash" ? "#b00000" : "#111", "left", MONO, 600);
   text(g, `KLAFF ${FLAP_NAMES[P.flapCfg]}`, x + 32, y + 8.6, 2.2, "#333", "left", MONO);
@@ -165,7 +165,7 @@ export function drawTower(g: G2D, t: Terrain, map: CanvasImageSource, game: Game
     g.beginPath(); g.roundRect(bx, by, 12, 9, 1); g.fill();
     text(g, s, bx + 6, by + 4.7, 2, on ? "#eaffea" : "#7c838c", "center", SANS, 600);
   });
-  display(g, 246, 174, 40, 10, "BANE I BRUK", game.airport.runways[0].ends.reduce((a, b) => (Math.hypot(a.x - P.x, a.y - P.y) < Math.hypot(b.x - P.x, b.y - P.y) ? a : b)).ident, body, "#7dffa0");
+  display(g, 246, 174, 40, 10, "BANE I BRUK", game.approach.ident, body, "#7dffa0");
 
   // kikkert og kaffekopp
   g.fillStyle = "#101214"; g.beginPath(); g.roundRect(294, 150, 8, 15, 2); g.roundRect(304, 150, 8, 15, 2); g.fill(); g.fillRect(300, 154, 6, 3);

@@ -40,7 +40,7 @@ mindre enn 3 m klaring til terrenget tegnes som vanlig vei.
 
 | | |
 |---|---|
-| Fil | `https://nedlasting.geonorge.no/geonorge/Basisdata/N50Kartdata/FGDB/Basisdata_42_Agder_25833_N50Kartdata_FGDB.zip` (256 MB) |
+| Fil | `https://nedlasting.geonorge.no/geonorge/Basisdata/N50Kartdata/FGDB/Basisdata_<fylke>_25833_N50Kartdata_FGDB.zip`. Verifisert for `42_Agder` (256 MB), `11_Rogaland` (187 MB), `46_Vestland` (490 MB) og `32_Akershus` (53 MB) |
 | Format | Esri filgeodatabase, EPSG:25833. Leses med geopandas/pyogrio (GDAL OpenFileGDB) |
 | Lisens | Creative Commons BY 4.0 |
 | Kreditering | © Kartverket |
@@ -77,6 +77,18 @@ kommunale og private bilveier (1384 km mot 329 km).
 | Lisens | Public domain (ingen krav; krediteres likevel) |
 | Brukt til | ENCN referansepunkt, baneender (lon/lat), banelengde og -bredde, høyde |
 | Verifisert | Ja |
+
+Flyplassene i spillet (2026-11-20), alle sentrert på referansepunktet fra OurAirports:
+
+| ICAO | Utsnitt | N50-fylke | Baner | Meridiankonvergens | Kontroll mot Kartverket |
+|---|---|---|---|---|---|
+| ENCN Kjevik | `kjevik10` | Agder | 03/21 | -5,89° | Se under |
+| ENZV Sola | `sola10` | Rogaland | 10/28, 18/36 | -8,03° | 6 punkter langs banene: terreng = Rullebane, høyde innenfor 2 m |
+| ENBR Flesland | `flesland10` | Vestland | 17/35 | -8,52° | 3 punkter, som over |
+| ENGM Gardermoen | `gardermoen10` | Akershus | 01L/19R, 01R/19L | -3,39° | 6 punkter, som over |
+
+Alle utsnittene ligger innenfor ett fylke (andel celler uten arealdekke er 0),
+så én N50-fil per flyplass holder. Det er kontrollert per utsnitt, ikke antatt.
 
 **Hvorfor OurAirports og ikke AIP Norge:** AIP (Avinor) er den autoritative
 kilden, men publiseres som eAIP (HTML/PDF per AIRAC-syklus) uten et stabilt,

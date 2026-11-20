@@ -41,6 +41,12 @@ EFFECTS: dict[str, tuple[str, float, bool]] = {
     "radio": ("Short burst of aviation radio static and a click as a transmission starts", 1, False),
 }
 
+# Flyplassene spillet har, med navnet flygelederen bruker på tårnet og på stedet.
+# Banene hentes fra OurAirports når lyden genereres, så de følger dataene.
+AIRPORTS = {"ENCN": ("Kjevik", "Kjevik"), "ENZV": ("Sola", "Sola"), "ENBR": ("Flesland", "Bergen"), "ENGM": ("Gardermoen", "Oslo")}
+DIGITS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
+SIDES = {"L": " left", "R": " right", "C": " center"}
+
 # navn -> (stemme, tekst). Kallesignalet «Teinum 320» er oppdiktet.
 SPEECH: dict[str, tuple[tuple[str, str], str]] = {
     **{f"alt_{n}": (VOICE_CALLOUT, t) for n, t in [
@@ -50,11 +56,29 @@ SPEECH: dict[str, tuple[tuple[str, str], str]] = {
     "retard": (VOICE_CALLOUT, "Retard. Retard."),
     "too_low_gear": (VOICE_CALLOUT, "Too low, gear."),
     "stall": (VOICE_CALLOUT, "Stall! Stall!"),
-    "cleared_03": (VOICE_TOWER, "Teinum three two zero, Kjevik tower. Runway zero three, cleared to land. Wind calm."),
-    "cleared_21": (VOICE_TOWER, "Teinum three two zero, Kjevik tower. Runway two one, cleared to land. Wind calm."),
-    "welcome": (VOICE_TOWER, "Teinum three two zero, welcome to Kjevik. Vacate when able."),
     "go_around": (VOICE_TOWER, "Teinum three two zero, check gear down."),
 }
+
+
+def spoken_runway(ident: str) -> str:
+    """«01L» -> «zero one left», slik baner leses over radio."""
+    return " ".join(DIGITS[int(c)] for c in ident if c.isdigit()) + SIDES.get(ident[-1], "")
+
+
+def tower_speech(raw_dir: Path) -> dict[str, tuple[tuple[str, str], str]]:
+    """Landingsklarering for hver baneende og en velkomst, per flyplass."""
+    from .airports import load_airport
+
+    out = {}
+    for icao, (tower, place) in AIRPORTS.items():
+        for rw in load_airport(icao, raw_dir)["runways"]:
+            for end in rw["ends"]:
+                out[f"cleared_{icao}_{end['ident']}"] = (
+                    VOICE_TOWER,
+                    f"Teinum three two zero, {tower} tower. Runway {spoken_runway(end['ident'])}, cleared to land. Wind calm.",
+                )
+        out[f"welcome_{icao}"] = (VOICE_TOWER, f"Teinum three two zero, welcome to {place}. Vacate when able.")
+    return out
 
 
 def _post(path: str, body: dict, key: str) -> bytes:
@@ -64,7 +88,7 @@ def _post(path: str, body: dict, key: str) -> bytes:
     return r.content
 
 
-def generate(out: Path) -> None:
+def generate(out: Path, raw_dir: Path) -> None:
     key = os.environ.get("ELEVENLABS_API_KEY")
     if not key:
         raise SystemExit("ELEVENLABS_API_KEY er ikke satt")
@@ -76,7 +100,7 @@ def generate(out: Path) -> None:
             print(f"  lydeffekt: {name}")
             path.write_bytes(_post("sound-generation", {"text": prompt, "duration_seconds": seconds, "prompt_influence": 0.5, "loop": loop}, key))
         manifest[name] = {"file": path.name, "kind": "effect", "loop": loop, "prompt": prompt}
-    for name, ((voice_id, voice), text) in SPEECH.items():
+    for name, ((voice_id, voice), text) in {**SPEECH, **tower_speech(raw_dir)}.items():
         path = out / f"{name}.mp3"
         if not path.exists():
             print(f"  tale: {name}")

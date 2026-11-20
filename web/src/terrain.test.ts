@@ -25,7 +25,10 @@ describe("rutenett <-> UTM 33", () => {
       const p = ref.transform.points.find((q) => q.name === name)!;
       return t.utmToGrid(p.east, p.north);
     };
-    for (const p of ref.transform.points) expect(t.inBounds(...t.utmToGrid(p.east, p.north)), p.name).toBe(true);
+    // fasiten har også punkter for de andre flyplassene; her gjelder de tre ved Kjevik
+    const local = ref.transform.points.filter((q) => ["ENCN baneende 03", "Kristiansand domkirke", "Moseidvarden"].includes(q.name));
+    expect(local).toHaveLength(3);
+    for (const p of local) expect(t.inBounds(...t.utmToGrid(p.east, p.north)), p.name).toBe(true);
     // Domkirken ligger sørvest for Kjevik: mindre x, større y
     const [dx, dy] = pt("Kristiansand domkirke");
     expect(dx).toBeLessThan(arp.x);
@@ -47,7 +50,7 @@ describe("rutenett <-> UTM 33", () => {
 
 describe("høyde i spillet mot kilden", () => {
   it("heightAt er innenfor ±5 m av Kartverkets DTM 1 m i fasitpunktene", () => {
-    for (const p of ref.heights.points) {
+    for (const p of ref.heights.areas.kjevik) {
       const h = t.heightAt(...t.utmToGrid(p.east, p.north));
       expect(Math.abs(h - p.z), `${p.name}: spill ${h.toFixed(1)} m, kilde ${p.z} m`).toBeLessThanOrEqual(ref.heights.toleranceM);
     }

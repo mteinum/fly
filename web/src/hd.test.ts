@@ -21,7 +21,7 @@ const suite = () => {
   });
 
   it("er nærmere Kartverkets DTM 1 m enn 50 m-flisene: ±2 m i fasitpunktene", () => {
-    for (const p of ref.heights.points) {
+    for (const p of ref.heights.areas.kjevik) {
       const h = t.heightAt(...t.utmToGrid(p.east, p.north));
       expect(Math.abs(h - p.z), `${p.name}: ${h.toFixed(1)} mot ${p.z}`).toBeLessThanOrEqual(2);
     }

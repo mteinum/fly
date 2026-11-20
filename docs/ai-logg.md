@@ -168,6 +168,21 @@ og hva som ble endret.
 - Rettet, og kontrollert ved å flytte flisene bort lokalt og kjøre begge
   testsettene slik CI ser dem.
 
+**21. Kode og tester som antok Kjevik (flere flyplasser lagt til)**
+- Flere steder sto `runways[0]`, og en test pakket ut nøyaktig én rullebane.
+  Sola og Gardermoen har to. Tårnmeldingene sa «Kjevik tower» uansett, og
+  ankomststripa hadde «ENCN» som fast tekst.
+- Oppdaget: ved gjennomgang før de nye flisene ble tatt i bruk, og av testen
+  som krasjet. Rettet: alle baneender behandles likt, lyd og tekst følger
+  flyplassen.
+
+**22. Flaten utenfor kartet dekket terrenget på Gardermoen**
+- I innlandet ender kartet ikke i hav, så jeg la en skogfarget flate rundt, i
+  middelhøyden langs kartkanten. Men kanten ligger høyere enn Romerikssletta
+  inne i kartet, så flaten la seg OVER terrenget foran flyet.
+- Oppdaget i skjermbilde (en stor, jevn grønn flate). Rettet: flaten ligger
+  under kartets laveste punkt.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal
@@ -212,6 +227,12 @@ middagshøyden skal være 90° − breddegrad ± 23,44° ved solverv, sola skal 
 i sør ved kulminasjon, stå opp i øst og gå ned i vest ved jevndøgn, og gå
 med klokka i løpet av dagen. Alle testene gikk første gang. Skyggene i
 3D-bildet er ikke sjekket mot et foto eller mot Kartverkets skyggerelieff.
+
+**Negative øst-koordinater.** Sola og Flesland ligger så langt vest for
+sentralmeridianen at øst i UTM 33 blir negativ (ca. -39 000). Ingenting i
+koden antok positive verdier, men det var ikke prøvd. Kontrollert: pyproj
+mot Kartverkets transformasjons-API i de tre nye referansepunktene (innenfor
+1 cm), og høyden i flisene mot punkt-API-et i 15 punkter på rullebanene.
 
 **16-bit PNG.** Oppgaven åpnet for 16-bit PNG som høydekart. Nettleserens
 canvas leser bare 8 bit per kanal, så det ville gitt 256 høydenivåer uten

@@ -8,10 +8,40 @@ import { loadTerrain } from "./terrain";
 import { towerView } from "./tower";
 import { drawTower } from "./towerPanel";
 
-const AREA = "kjevik10";
+const DEFAULT_ICAO = "ENCN";
+
+interface AreaInfo { id: string; name: string; icao: string; cellSize: number }
+
+/** Flyplassene pipeline har bygget 10 m-fliser for (data/index.json). */
+async function listAirports(dataUrl: string): Promise<AreaInfo[]> {
+  try {
+    const index: { areas: AreaInfo[] } = await (await fetch(`${dataUrl}/index.json`)).json();
+    return index.areas.filter((a) => a.cellSize === 10);
+  } catch {
+    return [{ id: "kjevik10", name: "Kristiansand lufthavn, Kjevik", icao: DEFAULT_ICAO, cellSize: 10 }];
+  }
+}
+
+let area = "kjevik10";
 
 async function main(): Promise<void> {
-  const assets = await loadTerrain(`${import.meta.env.BASE_URL}data/${AREA}`);
+  const dataUrl = `${import.meta.env.BASE_URL}data`, params = new URLSearchParams(location.search);
+  const airports = await listAirports(dataUrl);
+  // ?apt=ENZV velger flyplass (ICAO-kode). Ukjent kode gir standardflyplassen.
+  const wanted = (params.get("apt") ?? DEFAULT_ICAO).toUpperCase();
+  const chosen = airports.find((a) => a.icao === wanted) ?? airports.find((a) => a.icao === DEFAULT_ICAO) ?? airports[0];
+  area = chosen.id;
+  const picker = document.getElementById("airports")!;
+  for (const a of airports) {
+    const link = document.createElement("a");
+    link.textContent = `${a.icao} ${a.name.split(",").pop()!.trim()}`;
+    link.href = `?apt=${a.icao}`;
+    if (a === chosen) link.className = "current";
+    picker.append(link);
+  }
+  document.title = `Fly Airbus A320 til ${chosen.name.split(",").pop()!.trim()} – teinum-fly`;
+  document.getElementById("where")!.textContent = chosen.name;
+  const assets = await loadTerrain(`${dataUrl}/${area}`);
   const { terrain } = assets;
   // Skjermtekst og instrumentpanel tegnes på et eget lerret oppå 3D-bildet
   const overlay = document.getElementById("screen") as HTMLCanvasElement;
@@ -43,7 +73,7 @@ async function main(): Promise<void> {
   // ?clean: bare 3D-bildet, uten skjermtekst, hjelp og kreditering. Til skjermbilder (f.eks. delingsbildet).
   const clean = new URLSearchParams(location.search).has("clean");
   document.body.classList.toggle("clean", clean);
-  const audio = new GameAudio(`${import.meta.env.BASE_URL}audio`);
+  const audio = new GameAudio(`${import.meta.env.BASE_URL}audio`, game.airport);
   addEventListener("keydown", (e) => {
     if (e.code === "KeyM" && !e.repeat) { game.msg.text = audio.toggleMute() ? "Lyd av" : "Lyd på"; game.msg.t = 1.5; }
   });
@@ -79,6 +109,6 @@ main().catch((err) => {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void document.documentElement.requestFullscreen();
   };
-  document.getElementById("info")!.textContent = `Feil: ${err.message}. Har du kjørt pipeline (uv run flypipe build ${AREA})?`;
+  document.getElementById("info")!.textContent = `Feil: ${err.message}. Har du kjørt pipeline (uv run flypipe build ${area})?`;
   throw err;
 });

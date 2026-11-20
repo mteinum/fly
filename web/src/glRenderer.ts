@@ -98,13 +98,7 @@ export class GlRenderer {
       this.chunks.push({ mesh, cx, cy, step });
     }
 
-    // Hav utenfor utsnittet
-    const sea = new THREE.Mesh(
-      new THREE.PlaneGeometry(400000, 400000).rotateX(-Math.PI / 2),
-      new THREE.MeshStandardMaterial({ color: color(t.meta.seaColor), roughness: 1, metalness: 0 }),
-    );
-    sea.position.set((t.width * t.cell) / 2, -0.5, (t.height * t.cell) / 2);
-    this.scene.add(sea);
+    this.scene.add(this.surroundings());
 
     this.moon.position.set(-0.35, 0.8, 0.5);
     this.scene.add(this.sun, this.moon, this.ambient, this.landingLight, this.landingLight.target);
@@ -153,6 +147,25 @@ export class GlRenderer {
   }
 
   /* ---------- terreng ---------- */
+
+  /** Det som ligger utenfor kartutsnittet: én stor flate. Hav ved kysten; i innlandet en flate i
+   *  høyde med kartets laveste punkt og med skogfarge, så kartet ikke ender i blått hav. Ikke data. */
+  private surroundings(): THREE.Mesh {
+    const t = this.t, W = t.width, H = t.height;
+    let water = 0, n = 0;
+    for (let i = 0; i < W; i += 8) for (const [x, y] of [[i, 0], [i, H - 1], [0, i], [W - 1, i]]) {
+      n++;
+      if (t.isWater(x + 0.5, y + 0.5)) water++;
+    }
+    const inland = water / n < 0.25, forest = t.meta.surface.classes.find((c) => c.code === 4)?.color ?? [46, 101, 54];
+    const plane = new THREE.Mesh(
+      new THREE.PlaneGeometry(400000, 400000).rotateX(-Math.PI / 2),
+      new THREE.MeshStandardMaterial({ color: color(inland ? forest : t.meta.seaColor), roughness: 1, metalness: 0 }),
+    );
+    // Under kartets laveste punkt, ellers ville flaten stikke opp gjennom dalene inne i kartet
+    plane.position.set((W * t.cell) / 2, inland ? Math.max(0, t.meta.minHeight) - 5 : -0.5, (H * t.cell) / 2);
+    return plane;
+  }
 
   /** Flatenormaler fra høydekartet (sentraldifferanser), pakket som RGB. Samme rutenett som høydekartet. */
   private normalMap(): THREE.DataTexture {

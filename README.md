@@ -1,7 +1,8 @@
 # teinum-fly
 
-Flysimulator over ekte norsk terreng: innflyging med Airbus A320 til Kristiansand
-lufthavn, Kjevik (ENCN), 25,6 x 25,6 km i 10 m-celler. WebGL, sann målestokk, bygninger
+Flysimulator over ekte norsk terreng: innflyging med Airbus A320 til Kjevik (ENCN),
+Sola (ENZV), Flesland (ENBR) eller Gardermoen (ENGM). Hver flyplass har et kartutsnitt
+på 25,6 x 25,6 km i 10 m-celler. WebGL, sann målestokk, bygninger
 og bruer som geometri, sol og mørke etter klokka, og cockpit med instrumentpanel.
 
 ## Kjøre
@@ -11,8 +12,8 @@ Forutsetninger: [uv](https://docs.astral.sh/uv/) og Node 22.
 ```bash
 # 1. Pipeline: hent data og skriv fliser (laster ned ca. 280 MB første gang, deretter fra cache)
 cd pipeline
-uv run flypipe build kjevik10   # 10 m-fliser som spillet bruker (37 MB, ikke i git)
-uv run flypipe build kjevik     # 50 m-fliser: grovt nivå, brukes av testene (ligger i git)
+uv run flypipe build all        # alle flyplasser (42 MB hver, ikke i git; ca. 1 GB nedlasting første gang)
+uv run flypipe build kjevik10   # eller bare én: kjevik10, sola10, flesland10, gardermoen10
 uv run pytest
 
 # 2. Spill
@@ -22,7 +23,7 @@ npm run dev          # http://localhost:5173
 npm test
 ```
 
-Spillet krever at `kjevik10` er bygget. 50 m-flisene i `web/public/data/kjevik/`
+Spillet tilbyr de flyplassene som er bygget. 50 m-flisene i `web/public/data/kjevik/`
 er sjekket inn fordi testene bruker dem; spillet gjør det ikke lenger.
 `data/raw/` (cache) kan slettes for å hente alt
 på nytt. `data/processed/kjevik/*.tif` er georefererte kopier som kan åpnes
@@ -39,7 +40,10 @@ Taster: piltaster styrer, `W`/`S` gass, `G` understell, `F`/`V` klaff ut/inn,
 `C` bytter mellom utvendig kamera, cockpit og tårn, `R` ny innflyging, `T` bytt bane (03/21), `Q`/`E` stiller klokka en
 halvtime bakover/framover, `M` slår lyden av og på. Lyden starter ved første tastetrykk.
 
-URL-parametre: `?cam=cockpit` eller `?cam=tower`, `?rwy=21`, `?cfg=full` (start med understell nede
+Flyplass velges under «Hjelp» eller med `?apt=ENZV` (ICAO-kode). `T` blar gjennom alle
+baneender på flyplassen.
+
+URL-parametre: `?apt=ENGM`, `?cam=cockpit` eller `?cam=tower`, `?rwy=21`, `?cfg=full` (start med understell nede
 og full klaff), `?time=22:00` og `?date=2026-06-21`
 (norsk tid; uten dem brukes klokka nå), og `?pos=øst,nord,høyde,kurs` (UTM 33,
 meter, sann kurs), f.eks. `?pos=91725,6468775,70,174` for Varoddbrua.

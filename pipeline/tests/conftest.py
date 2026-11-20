@@ -32,10 +32,15 @@ def tiles():
     return _load_tiles("kjevik")
 
 
-@pytest.fixture(scope="session", params=["kjevik", "kjevik10"])
+@pytest.fixture(scope="session", params=["kjevik", "kjevik10", "sola10", "flesland10", "gardermoen10"])
 def any_tiles(request):
-    """Hvert flissett etter tur: 50 m (pikselmodus) og 10 m (3D-modus)."""
+    """Hvert flissett etter tur: 50 m-nivået for Kjevik, og 10 m-flisene for hver flyplass."""
     return _load_tiles(request.param)
+
+
+def area_key(meta: dict) -> str:
+    """Flyplassområdet et flissett hører til: «kjevik10» og «kjevik» -> «kjevik»."""
+    return meta["id"].removesuffix("10")
 
 
 def sample_bilinear(hgt: np.ndarray, x: float, y: float) -> float:

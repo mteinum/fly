@@ -21,7 +21,7 @@ export function loadTestTerrain(area = "kjevik"): Terrain {
 
 export interface ReferencePoints {
   transform: { points: { name: string; lon: number; lat: number; east: number; north: number }[] };
-  heights: { toleranceM: number; points: { name: string; east: number; north: number; z: number }[] };
+  heights: { toleranceM: number; areas: Record<string, { name: string; east: number; north: number; z: number }[]> };
 }
 
 export const loadReference = (): ReferencePoints => JSON.parse(readFileSync(FIXTURES, "utf-8"));

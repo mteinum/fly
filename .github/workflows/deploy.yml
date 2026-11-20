@@ -46,7 +46,7 @@ jobs:
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 60
     environment:
       name: production
       url: https://fly.teinum.no/
@@ -60,16 +60,17 @@ jobs:
           cache: npm
           cache-dependency-path: web/package-lock.json
       - uses: astral-sh/setup-uv@1db35dd8eee11c5894872e0b383ae6c406cf738d # v10.4.0
-      # Rådata fra Kartverket (N50 256 MB, DTM, DOM). Caches så ikke hver publisering laster alt på nytt.
+      # Rådata fra Kartverket (N50 for fire fylker, ca. 1 GB, pluss DTM og DOM). Caches så ikke hver
+      # publisering laster alt på nytt.
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: data/raw
-          key: raw-kjevik-${{ hashFiles('pipeline/src/flypipe/areas.py', 'pipeline/src/flypipe/dtm.py', 'pipeline/src/flypipe/n50.py') }}
-          restore-keys: raw-kjevik-
-      - name: Bygg 10 m-fliser
+          key: raw-${{ hashFiles('pipeline/src/flypipe/areas.py', 'pipeline/src/flypipe/dtm.py', 'pipeline/src/flypipe/n50.py') }}
+          restore-keys: raw-
+      - name: Bygg fliser for alle flyplasser
         working-directory: pipeline
         run: |
-          uv run flypipe build kjevik10
+          uv run flypipe build all
           uv run pytest -q
       - name: Bygg spillet
         working-directory: web
@@ -91,5 +92,6 @@ jobs:
         run: |
           curl -fsS -o /dev/null -w 'index %{http_code}\n' https://fly.teinum.no/
           curl -fsS https://fly.teinum.no/data/kjevik10/metadata.json | python3 -c "import json,sys; m=json.load(sys.stdin); assert m['id']=='kjevik10' and m['cellSize']==10, m['id']; print('fliser', m['id'])"
+          for area in sola10 flesland10 gardermoen10; do curl -fsS -o /dev/null -w "$area %{http_code}\n" "https://fly.teinum.no/data/$area/metadata.json"; done
           curl -fsS -o /dev/null -w 'lyd %{http_code}\n' https://fly.teinum.no/audio/manifest.json
           test "$(curl -s -o /dev/null -w '%{http_code}' http://fly.teinum.no/)" = 301

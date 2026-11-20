@@ -28,7 +28,7 @@ done
 
 # Det som skal ut må være et komplett bygg, og ikke inneholde annet enn det.
 [[ -d "$site_dir" ]] || fail "Build the game first: $site_dir does not exist."
-for required in index.html .htaccess data/kjevik10/metadata.json data/kjevik10/heightmap.f32 data/kjevik10/colormap.png data/kjevik10/surface.bin audio/manifest.json; do
+for required in index.html .htaccess data/index.json data/kjevik10/metadata.json data/kjevik10/heightmap.f32 data/kjevik10/colormap.png data/kjevik10/surface.bin audio/manifest.json; do
   [[ -s "$site_dir/$required" ]] || fail "Missing $required in the build. Run the pipeline (flypipe build kjevik10) and npm run build."
 done
 unexpected=$(find "$site_dir" \( -name '.*' ! -name '.htaccess' ! -path "$site_dir" \) -o -name '*.map' -o -name '*.env' -o -name '*.tif' | head -5)

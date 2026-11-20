@@ -12,3 +12,5 @@ dist/
 .DS_Store
 # 10 m-fliser for 3D-modus (40 MB): bygges med `uv run flypipe build kjevik10`
 web/public/data/kjevik10/
+web/public/data/*10/
+web/public/data/index.json

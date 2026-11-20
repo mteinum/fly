@@ -12,7 +12,7 @@ from rasterio.features import rasterize
 from shapely.geometry import LineString
 
 from . import airports, dtm, landcover, lights, n50, structures, terrain
-from .areas import Area
+from .areas import AREAS, Area
 from .crs import UTM33, grid_convergence_deg, scale_factor
 from .grid import GridSpec
 
@@ -124,6 +124,7 @@ def build(area: Area) -> Path:
         "colormap": {"file": "colormap.png", "hillshadeBaked": area.bake_hillshade},
         "lights": {"file": "lights.png", "placement": "syntetisk: langs veier og i bebyggelse fra N50"} if has_lights else None,
         "landcover": {
+            "unknownShare": round(float((lc == landcover.UNKNOWN).mean()), 5),
             "file": "landcover.bin",
             "dtype": "uint8",
             "source": "N50 Arealdekke" if area.n50_county else "kun DTM (hav der høyde <= 0,1 m)",
@@ -171,6 +172,13 @@ def build(area: Area) -> Path:
         ],
     }
     (out / "metadata.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    # Indeks over utsnittene som finnes, så spillet kan tilby dem
+    index_path = TILES / "index.json"
+    index = json.loads(index_path.read_text(encoding="utf-8")) if index_path.exists() else {"areas": []}
+    entry = {"id": area.id, "name": area.name, "icao": area.icao, "cellSize": area.cell}
+    index["areas"] = sorted([a for a in index["areas"] if a["id"] != area.id] + [entry], key=lambda a: list(AREAS).index(a["id"]))
+    index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     # Georefererte kopier for kontroll i QGIS
     _write_geotiff(PROCESSED / area.id / f"dtm{area.cell:g}m.tif", hgt, grid)

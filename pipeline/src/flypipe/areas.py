@@ -28,18 +28,25 @@ class Area:
         return self.cache or self.id
 
 
-AREAS = {
-    # 50 m: grovt nivå. Brukes ikke av spillet nå, men av testene og av blokkmiddel-kontrollen
-    "kjevik": Area(id="kjevik", name="Kristiansand lufthavn, Kjevik", icao="ENCN", n50_county="42_Agder"),
-    # 10 m: det spillet bruker. Samme bbox, så rådata deles med "kjevik".
-    "kjevik10": Area(
-        id="kjevik10", name="Kristiansand lufthavn, Kjevik (10 m)", icao="ENCN", n50_county="42_Agder",
-        cell=10.0, size=2560, cache="kjevik",
+def _airport_10m(id: str, name: str, icao: str, county: str, cache: str = "") -> Area:
+    """10 m-utsnitt rundt en flyplass, slik spillet bruker det."""
+    return Area(
+        id=id, name=name, icao=icao, n50_county=county, cell=10.0, size=2560, cache=cache,
         # 10 m-celler tåler hele bilveinettet; på 50 m ville kommunale og private veier fylt byen
         road_categories=("E", "R", "F", "K", "P"),
         steep_slope=1.0,  # helning målt over 20 m er brattere enn over 100 m
         dom_building_heights=True,
         bake_hillshade=False,
         night_lights=True,
-    ),
+    )
+
+
+AREAS = {
+    # 50 m: grovt nivå. Brukes ikke av spillet nå, men av testene og av blokkmiddel-kontrollen
+    "kjevik": Area(id="kjevik", name="Kristiansand lufthavn, Kjevik", icao="ENCN", n50_county="42_Agder"),
+    # 10 m: det spillet bruker. kjevik10 har samme bbox som kjevik, så rådata deles.
+    "kjevik10": _airport_10m("kjevik10", "Kristiansand lufthavn, Kjevik", "ENCN", "42_Agder", cache="kjevik"),
+    "sola10": _airport_10m("sola10", "Stavanger lufthavn, Sola", "ENZV", "11_Rogaland"),
+    "flesland10": _airport_10m("flesland10", "Bergen lufthavn, Flesland", "ENBR", "46_Vestland"),
+    "gardermoen10": _airport_10m("gardermoen10", "Oslo lufthavn, Gardermoen", "ENGM", "32_Akershus"),
 }

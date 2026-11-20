@@ -7,12 +7,12 @@
  */
 import type { Camera, Game } from "./game";
 import { warnings } from "./physics";
-import type { Terrain } from "./terrain";
+import type { Airport, Terrain } from "./terrain";
 import { towerView } from "./tower";
 
 const FT = 3.28084;
 const LOOPS = ["engine", "wind", "tower_room"] as const;
-const ONE_SHOTS = ["gear", "flaps", "touchdown", "crash", "splash", "warning", "radio", "retard", "too_low_gear", "stall", "cleared_03", "cleared_21", "welcome", "go_around"];
+const ONE_SHOTS = ["gear", "flaps", "touchdown", "crash", "splash", "warning", "radio", "retard", "too_low_gear", "stall", "go_around"];
 /** Radiohøyder (fot) flyet roper ut på vei ned. */
 export const CALLOUTS = [1000, 500, 400, 300, 200, 100, 50, 40, 30, 20, 10];
 
@@ -41,7 +41,8 @@ export class GameAudio {
   private warnedGear = -1;
   private played: string[] = [];
 
-  constructor(private baseUrl: string) {
+  /** `airport` avgjør hvilke tårnmeldinger som lastes: én klarering per baneende og en velkomst. */
+  constructor(private baseUrl: string, private airport: Airport) {
     const start = () => { void this.start(); };
     addEventListener("keydown", start, { once: true });
     addEventListener("pointerdown", start, { once: true });
@@ -69,7 +70,9 @@ export class GameAudio {
     this.master = ctx.createGain();
     this.master.gain.value = this.muted ? 0 : 1;
     this.master.connect(ctx.destination);
-    const names = [...LOOPS, ...ONE_SHOTS, ...CALLOUTS.map((c) => `alt_${c}`)];
+    const icao = this.airport.icao;
+    const towerClips = [...this.airport.runways.flatMap((rw) => rw.ends.map((e) => `cleared_${icao}_${e.ident}`)), `welcome_${icao}`];
+    const names = [...LOOPS, ...ONE_SHOTS, ...CALLOUTS.map((c) => `alt_${c}`), ...towerClips];
     await Promise.all(names.map(async (name) => {
       try {
         const data = await (await fetch(`${this.baseUrl}/${name}.mp3`)).arrayBuffer();
@@ -171,7 +174,7 @@ export class GameAudio {
       this.later(2.5, () => {
         if (game.approach.count !== count) return;
         if (game.cam !== "tower") this.play("radio", 0.25);
-        this.say("tower", `cleared_${ident}`, 0.9, { radio: game.cam !== "tower", force: true });
+        this.say("tower", `cleared_${this.airport.icao}_${ident}`, 0.9, { radio: game.cam !== "tower", force: true });
       });
     } else if (P.state === "fly") {
       if (P.gearDown !== prev.gearDown && !tower) this.play("gear", 0.5);
@@ -181,7 +184,7 @@ export class GameAudio {
     if (P.state !== prev.state) {
       if (P.state === "landed") {
         this.play("touchdown", 0.45 * near);
-        this.later(3, () => { if (game.cam !== "tower") this.play("radio", 0.25); this.say("tower", "welcome", 0.9, { radio: game.cam !== "tower", force: true }); });
+        this.later(3, () => { if (game.cam !== "tower") this.play("radio", 0.25); this.say("tower", `welcome_${this.airport.icao}`, 0.9, { radio: game.cam !== "tower", force: true }); });
       } else if (P.state === "crash") {
         this.play(t.isWater(P.x, P.y) ? "splash" : "crash", 0.8 * Math.max(near, 0.15));
       }

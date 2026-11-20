@@ -11,7 +11,7 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
   src/flypipe/
     crs.py        ALL koordinattransformasjon (WGS84 <-> UTM 33), konvergens
     grid.py       GridSpec: UTM-meter <-> rutenettceller
-    areas.py      definisjon av utsnitt (kjevik10 = 10 m, kjevik = 50 m)
+    areas.py      definisjon av utsnitt: 10 m rundt ENCN, ENZV, ENBR og ENGM, og 50 m for Kjevik
     dtm.py        Kartverket DTM og DOM via WCS, cache i data/raw/
     airports.py   OurAirports: flyplass + rullebaner; tårnposisjon fra N50-bygning type 411
     n50.py        N50 Kartdata: veier, bruer, bygninger -> feature-raster
@@ -60,7 +60,8 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 ## Kommandoer
 
 ```bash
-cd pipeline && uv run flypipe build kjevik10   # 10 m-fliser som spillet bruker (37 MB, ikke i git)
+cd pipeline && uv run flypipe build all        # alle utsnitt (ca. 1 GB nedlasting første gang)
+cd pipeline && uv run flypipe build sola10     # ett utsnitt: kjevik10, sola10, flesland10, gardermoen10 (42 MB hver, ikke i git)
 cd pipeline && uv run flypipe build kjevik     # 50 m-fliser: grovt nivå, brukes av testene (i git)
 cd pipeline && uv run pytest                   # tester (krever bygde fliser)
 cd pipeline && uv run flypipe audio            # generer manglende lydfiler (bruker ElevenLabs-kvote)
@@ -81,13 +82,14 @@ cd web && npm test && npm run typecheck
 4. Kurs i spillet er **rutenettretning** (radianer, 0 = rutenett-nord, med
    klokka): `x += sin(hdg)`, `y -= cos(hdg)`.
 5. Rutenett-nord er ikke sann nord. `sann = rutenett + gridConvergenceDeg`.
-   Ved Kjevik er konvergensen -5,89° (nesten 7° vest for sentralmeridianen).
+   Konvergensen er -5,89° ved Kjevik, -8,03° på Sola, -8,52° på Flesland og -3,39° på
+   Gardermoen. Den står i hvert utsnitts metadata.json; bruk aldri én verdi for flere utsnitt.
    Retninger fra kilder (rullebane, vind, sol) er sanne og må korrigeres;
    rullebaneretning regnes helst direkte fra transformerte endepunkter.
    I rendereren er verden høyrehendt i meter: X = øst, Y = opp, Z = sør
    (nord er -Z). Framover er `(sin hdg, 0, -cos hdg)`, og flyets rotasjon er
    Euler YXZ = `(pitch, -hdg, -roll)`.
-6. Målestokkfaktoren ved Kjevik er 1,0016: rutenettavstander er 0,16 % lengre
+6. Målestokkfaktoren er 1,0016 ved Kjevik og opptil 1,0032 på Vestlandet: rutenettavstander er 0,16-0,32 % lengre
    enn i terrenget. Ignoreres i flymodellen, men ikke anta eksakt likhet i tester.
 7. Høyder er NN2000 (meter). Flyplasshøyder fra OurAirports er i fot (MSL).
 8. WGS84 og ETRS89 regnes som like (avvik < 1 m).
@@ -118,7 +120,11 @@ cd web && npm test && npm run typecheck
 - Skill mellom ekte og syntetisk: det som er plassert etter mønster og ikke
   etter data (nattlys, rullebanelys, bakkedetaljer, banemerking, stjerner, himmelfarger) skal merkes
   som syntetisk i koden og i docs/datakilder.md.
-- Begge flissett har samme format og samme bbox. Kode som leser fliser skal
+- Øst-koordinater i UTM 33 er NEGATIVE på Vestlandet (Sola og Flesland ligger rundt -39 000).
+  Det er riktig, og koden må tåle det.
+- Flere flyplasser: ikke anta én rullebane (`runways[0]`) eller Kjevik noe sted. Flyplass velges
+  med `?apt=ICAO`; hvilke som finnes står i web/public/data/index.json, skrevet av pipeline.
+- Alle flissett har samme format. Kode som leser fliser skal
   ikke anta cellestørrelse: regn i meter og del på `terrain.cell`.
 - Spillet fyller hele vinduet. Skjermtekst, panel og tårninteriør tegnes i logiske enheter
   (grunnflate 320 x 200, se web/src/screen.ts): bruk `W` og `TOP` for det som skal følge

@@ -34,6 +34,7 @@
   },
   "lights": null,
   "landcover": {
+    "unknownShare": 0.0,
     "file": "landcover.bin",
     "dtype": "uint8",
     "source": "N50 Arealdekke",

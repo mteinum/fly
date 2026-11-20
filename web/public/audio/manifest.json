@@ -145,29 +145,107 @@
       "voice": "Daniel",
       "text": "Stall! Stall!"
     },
-    "cleared_03": {
-      "file": "cleared_03.mp3",
-      "kind": "speech",
-      "voice": "Eric",
-      "text": "Teinum three two zero, Kjevik tower. Runway zero three, cleared to land. Wind calm."
-    },
-    "cleared_21": {
-      "file": "cleared_21.mp3",
-      "kind": "speech",
-      "voice": "Eric",
-      "text": "Teinum three two zero, Kjevik tower. Runway two one, cleared to land. Wind calm."
-    },
-    "welcome": {
-      "file": "welcome.mp3",
-      "kind": "speech",
-      "voice": "Eric",
-      "text": "Teinum three two zero, welcome to Kjevik. Vacate when able."
-    },
     "go_around": {
       "file": "go_around.mp3",
       "kind": "speech",
       "voice": "Eric",
       "text": "Teinum three two zero, check gear down."
+    },
+    "cleared_ENCN_03": {
+      "file": "cleared_ENCN_03.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Kjevik tower. Runway zero three, cleared to land. Wind calm."
+    },
+    "cleared_ENCN_21": {
+      "file": "cleared_ENCN_21.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Kjevik tower. Runway two one, cleared to land. Wind calm."
+    },
+    "welcome_ENCN": {
+      "file": "welcome_ENCN.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, welcome to Kjevik. Vacate when able."
+    },
+    "cleared_ENZV_10": {
+      "file": "cleared_ENZV_10.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Sola tower. Runway one zero, cleared to land. Wind calm."
+    },
+    "cleared_ENZV_28": {
+      "file": "cleared_ENZV_28.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Sola tower. Runway two eight, cleared to land. Wind calm."
+    },
+    "cleared_ENZV_18": {
+      "file": "cleared_ENZV_18.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Sola tower. Runway one eight, cleared to land. Wind calm."
+    },
+    "cleared_ENZV_36": {
+      "file": "cleared_ENZV_36.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Sola tower. Runway three six, cleared to land. Wind calm."
+    },
+    "welcome_ENZV": {
+      "file": "welcome_ENZV.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, welcome to Sola. Vacate when able."
+    },
+    "cleared_ENBR_17": {
+      "file": "cleared_ENBR_17.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Flesland tower. Runway one seven, cleared to land. Wind calm."
+    },
+    "cleared_ENBR_35": {
+      "file": "cleared_ENBR_35.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Flesland tower. Runway three five, cleared to land. Wind calm."
+    },
+    "welcome_ENBR": {
+      "file": "welcome_ENBR.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, welcome to Bergen. Vacate when able."
+    },
+    "cleared_ENGM_01L": {
+      "file": "cleared_ENGM_01L.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Gardermoen tower. Runway zero one left, cleared to land. Wind calm."
+    },
+    "cleared_ENGM_19R": {
+      "file": "cleared_ENGM_19R.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Gardermoen tower. Runway one nine right, cleared to land. Wind calm."
+    },
+    "cleared_ENGM_01R": {
+      "file": "cleared_ENGM_01R.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Gardermoen tower. Runway zero one right, cleared to land. Wind calm."
+    },
+    "cleared_ENGM_19L": {
+      "file": "cleared_ENGM_19L.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Gardermoen tower. Runway one nine left, cleared to land. Wind calm."
+    },
+    "welcome_ENGM": {
+      "file": "welcome_ENGM.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, welcome to Oslo. Vacate when able."
     }
   }
 }

@@ -44,7 +44,7 @@ class DeploySafetyTests(unittest.TestCase):
     def test_refuses_stray_files_in_the_build(self):
         with tempfile.TemporaryDirectory() as d:
             root = Path(d)
-            for rel in ("index.html", ".htaccess", "data/kjevik10/metadata.json", "data/kjevik10/heightmap.f32",
+            for rel in ("index.html", ".htaccess", "data/index.json", "data/kjevik10/metadata.json", "data/kjevik10/heightmap.f32",
                         "data/kjevik10/colormap.png", "data/kjevik10/surface.bin", "audio/manifest.json"):
                 (root / rel).parent.mkdir(parents=True, exist_ok=True)
                 (root / rel).write_text("x")
