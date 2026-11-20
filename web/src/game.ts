@@ -1,6 +1,6 @@
 /* Spilltilstand, klokke og inndata. */
 import { startTime } from "./clock";
-import { type Keys, startApproach, update } from "./physics";
+import { type Keys, moveFlaps, startApproach, toggleGear, update } from "./physics";
 import { newPlane, type Plane } from "./plane";
 import { type SkyState, skyState } from "./sky";
 import { sunPosition } from "./sun";
@@ -80,6 +80,9 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     if (e.code === "KeyC") toggleCam();
     if (e.code === "KeyR") reset();
     if (e.code === "KeyT") { endIdx = 1 - endIdx; reset(); }
+    if (e.code === "KeyG") toggleGear(P, say);
+    if (e.code === "KeyF") moveFlaps(P, 1, say);
+    if (e.code === "KeyV") moveFlaps(P, -1, say);
     if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
   });
   addEventListener("keyup", (e) => { K[e.code] = false; });
@@ -89,6 +92,9 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     for (const ev of ["pointerup", "pointerleave", "pointercancel"]) b.addEventListener(ev, () => { K[k] = false; });
   });
   document.getElementById("tCam")!.onclick = toggleCam;
+  document.getElementById("tGear")!.onclick = () => toggleGear(P, say);
+  document.getElementById("tFlapOut")!.onclick = () => moveFlaps(P, 1, say);
+  document.getElementById("tFlapIn")!.onclick = () => moveFlaps(P, -1, say);
   document.getElementById("tTime")!.onclick = () => { game.time += 4 * TIME_STEP_MS; };
   focus.addEventListener("click", () => focus.focus());
 
@@ -101,6 +107,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     P.hdg = ((pos[3] - terrain.meta.gridConvergenceDeg) * Math.PI) / 180;
     P.pitch = 0;
   }
+  // ?cfg=full: start ferdig satt opp for landing (understell nede, full klaff)
+  if (params.get("cfg") === "full") Object.assign(P, { gearDown: true, gear: 1, flapCfg: 4, flaps: 4 });
   focus.focus();
   return game;
 }

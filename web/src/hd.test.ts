@@ -1,6 +1,6 @@
 /* 10 m-flisene (3D-modus): samme Terrain og fysikk som pikselmodus, finere rutenett. */
 import { describe, expect, it } from "vitest";
-import { onRunway, startApproach, update } from "./physics";
+import { APPROACH_DIST_M, onRunway, startApproach, update } from "./physics";
 import { newPlane } from "./plane";
 import { BRIDGE } from "./terrain";
 import { hasTiles, loadReference, loadTestTerrain } from "./testTerrain";
@@ -32,10 +32,11 @@ describe.skipIf(!hasTiles("kjevik10"))("kjevik10", () => {
     expect(onRunway(t, airport, (le.x + he.x) / 2, (le.y + he.y) / 2)).toBe(true);
   });
 
-  it("starter innflygingen 4 km ute i meter, ikke i celler", () => {
+  it("starter innflygingen 8 km ute i meter, ikke i celler", () => {
     const P = newPlane();
     startApproach(P, t, le);
-    expect(Math.hypot(P.x - le.x, P.y - le.y) * t.cell).toBeCloseTo(4000, 0);
+    expect(Math.hypot(P.x - le.x, P.y - le.y) * t.cell).toBeCloseTo(APPROACH_DIST_M, 0);
+    expect(t.inBounds(P.x, P.y)).toBe(true);
   });
 
   it("lander på banen", () => {

@@ -3,12 +3,33 @@ import type { Plane } from "./plane";
 import { type Airport, BRIDGE, BUILDING, type Runway, type RunwayEnd, type Terrain } from "./terrain";
 
 export const MAX_ALT = 1500;
-// Tall i samme størrelsesorden som en Airbus A320 i landingsoppsett. Modellen er fortsatt
-// prototypens enkle fartsmodell, ikke aerodynamikk: ingen klaffer, understell eller vekt.
-export const STALL_SPEED = 55; // m/s (107 kt): under dette synker nesa
+// Tall i samme størrelsesorden som en Airbus A320 på ca. 60 tonn. Modellen er fortsatt prototypens
+// enkle fartsmodell, ikke aerodynamikk: klaffer og understell virker gjennom tabellene under.
+const KT = 1.943844;
+export const FLAP_NAMES = ["0", "1", "2", "3", "FULL"];
+const STALL_KT = [145, 125, 116, 110, 105]; // steilefart per klaffstilling
+const FLAP_LIMIT_KT = [350, 230, 200, 185, 177]; // høyeste tillatte fart (VFE; 350 = VMO uten klaff)
+const TOP_SPEED = [180, 150, 135, 125, 115]; // m/s ved full gass i flat flyging: mer klaff, mer motstand
+const GEAR_DRAG = 12; // m/s lavere toppfart med understellet ute
+export const GEAR_LIMIT_KT = 280; // høyeste fart med understellet ute (VLE)
 export const MAX_LANDING_SPEED = 85; // m/s (165 kt)
-export const MAX_SPEED = 180; // m/s (350 kt, VMO) ved full gass i flat flyging
-const APPROACH_THRUST = 0.22; // gir ca. 71 m/s (138 kt) i flat flyging
+const GEAR_TIME = 8; // s fra oppe til nede
+const FLAP_RATE = 0.3; // klaffstillinger per sekund
+const APPROACH_FLAPS = 2;
+const APPROACH_SPEED = 82; // m/s (160 kt)
+
+const table = (t: number[], flaps: number): number => {
+  const i = Math.min(Math.floor(flaps), t.length - 2), f = flaps - i;
+  return t[i] + (t[i + 1] - t[i]) * f;
+};
+/** Steilefart (m/s) for klaffene slik de står nå. */
+export const stallSpeed = (P: Plane): number => table(STALL_KT, P.flaps) / KT;
+/** Høyeste tillatte fart (m/s): strengeste av klaffgrense og understellsgrense. Mens klaffene går ut gjelder grensen for stillingen de er på vei til. */
+export const speedLimit = (P: Plane): number =>
+  Math.min(FLAP_LIMIT_KT[Math.ceil(Math.max(P.flaps, P.flapCfg) - 1e-6)], P.gear > 0.01 || P.gearDown ? GEAR_LIMIT_KT : 350) / KT;
+/** Fart (m/s) flyet går mot med gitt gass i flat flyging. */
+const targetSpeed = (P: Plane, thr: number): number => 40 + thr * (table(TOP_SPEED, P.flaps) - GEAR_DRAG * P.gear - 40);
+
 const G = 9.81;
 const TURN_GAIN = 1.8; // svinger raskere enn en koordinert sving skulle tilsi (arv fra prototypen)
 const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
@@ -17,7 +38,7 @@ const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? 
 export const turnRate = (P: Plane): number => ((G * Math.tan(P.roll)) / P.spd) * TURN_GAIN;
 /** Stigerate i m/s. */
 export const verticalSpeed = (P: Plane): number => P.spd * Math.sin(P.pitch);
-const APPROACH_DIST_M = 4000;
+export const APPROACH_DIST_M = 8000;
 const GLIDE_SLOPE = Math.tan((3 * Math.PI) / 180);
 
 export type Keys = Record<string, boolean | undefined>;
@@ -40,15 +61,34 @@ export function onRunway(t: Terrain, airport: Airport, x: number, y: number): bo
   });
 }
 
-/** Sett flyet på 3° innflyging, 4 km før baneenden. */
+/** Sett flyet på 3° innflyging, 8 km før baneenden: klaff 2, understell oppe, 160 kt. Resten må piloten gjøre. */
 export function startApproach(P: Plane, t: Terrain, end: RunwayEnd): void {
   const hdg = (end.headingGridDeg * Math.PI) / 180, d = APPROACH_DIST_M / t.cell;
   Object.assign(P, {
     x: end.x - Math.sin(hdg) * d,
     y: end.y + Math.cos(hdg) * d,
     alt: t.heightAt(end.x, end.y) + APPROACH_DIST_M * GLIDE_SLOPE,
-    hdg, spd: 72, pitch: -0.05, roll: 0, thr: APPROACH_THRUST, state: "fly", t: 0,
+    hdg, spd: APPROACH_SPEED, pitch: -0.05, roll: 0, thr: 0,
+    gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, state: "fly", t: 0,
   } satisfies Plane);
+  // gass som holder startfarten i flat flyging
+  P.thr = (APPROACH_SPEED - 40) / (targetSpeed(P, 1) - 40);
+}
+
+/** Understellsspaken. Virker bare i lufta. */
+export function toggleGear(P: Plane, say: Say): void {
+  if (P.state !== "fly") return;
+  P.gearDown = !P.gearDown;
+  say(P.gearDown ? "Understell ned" : "Understell opp", 2);
+}
+
+/** Klaffspaken ett hakk ut (+1) eller inn (-1). */
+export function moveFlaps(P: Plane, step: number, say: Say): void {
+  if (P.state !== "fly") return;
+  const cfg = clamp(P.flapCfg + step, 0, FLAP_NAMES.length - 1);
+  if (cfg === P.flapCfg) return;
+  P.flapCfg = cfg;
+  say(`Klaff ${FLAP_NAMES[cfg]}`, 2);
 }
 
 /** Ett fysikksteg. Returnerer true når flyet skal settes tilbake på innflyging. */
@@ -69,9 +109,12 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
   else P.pitch *= 1 - 0.5 * dt;
   if (K.KeyW) P.thr = Math.min(1, P.thr + 0.4 * dt);
   if (K.KeyS) P.thr = Math.max(0, P.thr - 0.4 * dt);
-  const target = 40 + P.thr * (MAX_SPEED - 40);
-  P.spd += (target - P.spd) * 0.35 * dt - G * Math.sin(P.pitch) * dt;
-  if (P.spd < STALL_SPEED) P.pitch -= 0.5 * dt;
+  P.gear = clamp(P.gear + ((P.gearDown ? 1 : -1) * dt) / GEAR_TIME, 0, 1);
+  P.flaps += clamp(P.flapCfg - P.flaps, -FLAP_RATE * dt, FLAP_RATE * dt);
+  // mer motstand gir også raskere fartsendring
+  const response = 0.35 * (1 + 0.075 * P.flaps + 0.2 * P.gear);
+  P.spd += (targetSpeed(P, P.thr) - P.spd) * response * dt - G * Math.sin(P.pitch) * dt;
+  if (P.spd < stallSpeed(P)) P.pitch -= 0.5 * dt;
   P.spd = Math.max(20, P.spd);
   P.hdg += turnRate(P) * dt;
   const d = (P.spd * Math.cos(P.pitch) * dt) / t.cell;
@@ -103,7 +146,10 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
   }
   if (P.alt <= gh + 1.5) {
     const vs = verticalSpeed(P);
-    if (onRunway(t, airport, P.x, P.y) && vs > -4 && Math.abs(P.roll) < 0.2 && P.spd < MAX_LANDING_SPEED) {
+    if (onRunway(t, airport, P.x, P.y) && P.gear < 1) {
+      P.state = "crash"; P.t = 3; P.alt = gh + 1;
+      say("Buklanding! Understellet var ikke nede.", 3);
+    } else if (onRunway(t, airport, P.x, P.y) && vs > -4 && Math.abs(P.roll) < 0.2 && P.spd < MAX_LANDING_SPEED) {
       P.state = "landed"; P.t = 5; P.alt = gh + 1; P.pitch = 0; P.roll = 0;
       say(`Landet! ${(P.spd * 1.944) | 0} kt, ${vs.toFixed(1)} m/s`, 5);
     } else {

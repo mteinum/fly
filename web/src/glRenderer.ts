@@ -47,6 +47,7 @@ export class GlRenderer {
   private terrainMat: THREE.MeshStandardMaterial;
   private buildingMat = new THREE.MeshLambertMaterial({ emissive: 0xffc27a, emissiveIntensity: 0 });
   private plane: THREE.Group;
+  private gear = new THREE.Group();
   private shadow: THREE.Mesh;
   private fog = new THREE.Fog(0, 3000, 28000);
   private sun = new THREE.DirectionalLight(0xffffff, 0);
@@ -333,6 +334,17 @@ export class GlRenderer {
     lamp(0xff2020, -17.1, -1.1, 5.4); // navigasjonslys: rødt på venstre vinge (babord)
     lamp(0x20ff40, 17.1, -1.1, 5.4); // grønt på høyre (styrbord)
     lamp(0xffffff, 0, 1.2, 21.6); // hvitt i halen
+    // Understell: nesehjul og to hovedhjul. Gruppa skaleres i høyden når det går inn og ut.
+    const strut = new THREE.MeshLambertMaterial({ color: 0x8a9098 });
+    for (const [gx, gz, wheels] of [[0, -11.5, 0.5], [-3.8, 1.2, 0.9], [3.8, 1.2, 0.9]]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.16, 1.5, 8), strut);
+      leg.position.set(gx, -0.75, gz);
+      const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.58, 0.58, wheels, 14).rotateZ(Math.PI / 2), dark);
+      wheel.position.set(gx, -1.45, gz);
+      this.gear.add(leg, wheel);
+    }
+    this.gear.position.y = -1.6; // festepunkt under skroget; hjulenes underkant havner 3,6 m under aksen
+    body.add(this.gear);
     // Flyets posisjon (P.alt) er hjulenes høyde: skrogets akse ligger 3,6 m over
     body.position.y = 3.6;
     g.add(body);
@@ -438,6 +450,8 @@ export class GlRenderer {
     this.plane.position.set(x, P.alt, z);
     this.plane.rotation.set(P.pitch, -P.hdg, -P.roll);
     this.plane.visible = cam === "external";
+    this.gear.visible = P.gear > 0.02;
+    this.gear.scale.y = Math.max(P.gear, 0.02);
 
     const ground = Math.max(0, this.t.heightAt(P.x, P.y));
     this.shadow.position.set(x, ground + 0.6, z);

@@ -2,6 +2,7 @@
  * Alt tegnes i 320 x 200 logiske enheter; main.ts skalerer konteksten til skjermoppløsningen. */
 import { formatOslo } from "./clock";
 import type { Game } from "./game";
+import { FLAP_NAMES } from "./physics";
 import { H, W } from "./screen";
 import type { Terrain } from "./terrain";
 
@@ -47,16 +48,16 @@ export function drawHud(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImag
     `ALT ${Math.round(P.alt)} m  AGL ${Math.round(P.alt - gh)}`,
     `FART ${Math.round(P.spd * 1.944)} kt  GASS ${Math.round(P.thr * 100)}%`,
     `${airport.icao} ${dist.toFixed(1)} km  KURS ${pad3(t.trueHeadingDeg(P.hdg))}`,
-    `KL ${formatOslo(game.time)}`,
+    `KLAFF ${FLAP_NAMES[P.flapCfg]}  HJUL ${P.gear >= 1 ? "NEDE" : P.gear <= 0 ? "OPPE" : "..."}  KL ${formatOslo(game.time)}`,
   ];
   g.save();
   g.font = `7px ${FONT}`; g.textAlign = "left";
-  g.fillStyle = "rgba(0,0,0,.45)"; g.fillRect(3, 3, 112, 6 + lines.length * 9);
+  g.fillStyle = "rgba(0,0,0,.45)"; g.fillRect(3, 3, 138, 6 + lines.length * 9);
   g.fillStyle = "#ffe9b0";
   lines.forEach((l, i) => g.fillText(l, 6, 12 + i * 9));
   const m = 52, mx = W - m - 4, my = 4;
   g.fillStyle = "#000"; g.fillRect(mx - 1, my - 1, m + 2, m + 2);
   drawMap(g, t, map, game, mx, my, m);
   g.restore();
-  drawMessage(g, game, H * 0.24);
+  drawMessage(g, game, H * 0.3);
 }

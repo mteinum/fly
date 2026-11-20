@@ -28,11 +28,16 @@ er sjekket inn fordi testene bruker dem; spillet gjør det ikke lenger.
 på nytt. `data/processed/kjevik/*.tif` er georefererte kopier som kan åpnes
 i QGIS for kontroll mot andre kartlag.
 
-Taster: piltaster styrer, `W`/`S` gass, `C` bytter mellom utvendig kamera og
-cockpit, `R` ny innflyging, `T` bytt bane (03/21), `Q`/`E` stiller klokka en
+Du starter 8 km ute med klaff 2 og understellet oppe. Ta ut understellet og
+full klaff, brems til ca. 140 kt, og land. Landing med understellet oppe er
+buklanding.
+
+Taster: piltaster styrer, `W`/`S` gass, `G` understell, `F`/`V` klaff ut/inn,
+`C` bytter mellom utvendig kamera og cockpit, `R` ny innflyging, `T` bytt bane (03/21), `Q`/`E` stiller klokka en
 halvtime bakover/framover.
 
-URL-parametre: `?cam=cockpit`, `?rwy=21`, `?time=22:00` og `?date=2026-06-21`
+URL-parametre: `?cam=cockpit`, `?rwy=21`, `?cfg=full` (start med understell nede
+og full klaff), `?time=22:00` og `?date=2026-06-21`
 (norsk tid; uten dem brukes klokka nå), og `?pos=øst,nord,høyde,kurs` (UTM 33,
 meter, sann kurs), f.eks. `?pos=91725,6468775,70,174` for Varoddbrua.
 

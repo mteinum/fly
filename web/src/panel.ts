@@ -8,12 +8,14 @@
  *
  * Ekte verdier: fart, høyde, stigning, kurs, stilling, radiohøyde, avstand og peiling til ENCN,
  * terrenget på ND (fra høydekartet), klokke.
- * Syntetisk: motorverdiene (regnet rett fra gasshåndtaket), landingsmemo, klaff- og understellsvisning
- * (flymodellen har verken klaffer eller understell), tomme FCU-vinduer (ingen autopilot).
+ * klaffer og understell med varsler og landingsmemo.
+ * Syntetisk: motorverdiene (regnet rett fra gasshåndtaket), memolinjene SIGNS/CABIN/SPLRS, drivstoffmengde,
+ * tomme FCU-vinduer (ingen autopilot).
  */
 import { osloTime } from "./clock";
 import type { Game } from "./game";
-import { MAX_SPEED, STALL_SPEED, verticalSpeed } from "./physics";
+import { FLAP_NAMES, speedLimit, stallSpeed, verticalSpeed } from "./physics";
+import type { Plane } from "./plane";
 import { H, W } from "./screen";
 import type { Terrain } from "./terrain";
 
@@ -51,6 +53,9 @@ function line(g: G2D, x0: number, y0: number, x1: number, y1: number, width: num
 interface Data {
   kt: number; altFt: number; vsFpm: number; pitch: number; roll: number; hdg: number; raFt: number;
   thr: number; arpNm: number; arpBearing: number;
+  stallKt: number; limitKt: number; plane: Plane;
+  /** Røde varsler som gjelder nå. */
+  warnings: string[];
 }
 
 /** Åpner en skjerm: ramme, svart flate, og koordinater 0-100 klippet til skjermen. */
@@ -122,7 +127,7 @@ function pfd(g: G2D, x: number, y: number, d: Data, body: number): void {
     line(g, 16, ys(v), 19, ys(v), 0.5, WHITE);
     if (v % 20 === 0) text(g, String(v), 15, ys(v), 5.4, WHITE, "right");
   }
-  const stall = STALL_SPEED * KT, vmax = MAX_SPEED * KT;
+  const stall = d.stallKt, vmax = d.limitKt;
   g.fillStyle = RED; g.fillRect(19.6, ys(stall), 1.8, 200); // under steilefart
   g.fillStyle = AMBER; g.fillRect(19.6, ys(stall * 1.13), 0.8, ys(stall) - ys(stall * 1.13)); // laveste valgbare fart
   for (let v = vmax; v < vmax + 80; v += 3) { g.fillStyle = (v / 3) % 2 < 1 ? RED : "#000"; g.fillRect(19.6, ys(v + 3), 1.8, ys(v) - ys(v + 3)); } // over maksfart
@@ -274,15 +279,32 @@ function ewd(g: G2D, x: number, y: number, d: Data, body: number): void {
   text(g, "EGT", 42, 40, 4, WHITE); text(g, "°C", 42, 44.4, 3.4, CYAN);
   text(g, "N2", 42, 56.6, 4, WHITE); text(g, "%", 42, 60.4, 3.2, CYAN);
   text(g, "FF", 42, 64.6, 4, WHITE); text(g, "KG/H", 42, 68.4, 2.8, CYAN);
-  // høyre kolonne: klaffer (fast landingsoppsett)
+  // høyre kolonne: klaffstilling. Blå mens klaffene går, grønn når de står der spaken er.
+  const P = d.plane, moving = Math.abs(P.flaps - P.flapCfg) > 0.02, fc = moving ? CYAN : GREEN;
   text(g, "FLAP", 86, 34, 3.8, WHITE);
-  line(g, 78, 41, 86, 41, 0.6, WHITE); line(g, 86, 41, 96, 46, 0.6, GREEN);
-  g.fillStyle = GREEN; g.beginPath(); g.moveTo(96, 46); g.lineTo(93, 43.6); g.lineTo(92.4, 46.4); g.closePath(); g.fill();
-  text(g, "FULL", 87, 52, 4.2, GREEN);
+  line(g, 76, 41, 84, 41, 0.6, WHITE);
+  for (let i = 1; i <= 4; i++) g.fillStyle = WHITE, g.fillRect(84 + i * 2.8, 41.6 + i * 1.5, 0.9, 0.9);
+  const fx = 84 + P.flaps * 2.8, fy = 41 + P.flaps * 1.5;
+  line(g, 84, 41, fx + 2, fy + 1.1, 0.7, fc);
+  g.fillStyle = fc; g.beginPath(); g.moveTo(fx + 3.4, fy + 1.9); g.lineTo(fx + 0.4, fy + 1.9); g.lineTo(fx + 2.4, fy - 0.6); g.closePath(); g.fill();
+  text(g, FLAP_NAMES[P.flapCfg], 87, 54, 4.2, fc);
   text(g, "FOB", 80, 62, 3.6, WHITE); text(g, "5400", 96, 66.6, 4.6, GREEN, "right"); text(g, "KG", 98, 62.2, 3, CYAN, "right");
-  // landingsmemo
   line(g, 2, 73, 98, 73, 0.4, WHITE); line(g, 62, 74, 62, 99, 0.4, WHITE);
-  ["LDG  LDG GEAR DN", "       SIGNS ON", "       CABIN READY", "       SPLRS ARM", "       FLAPS FULL"].forEach((m, i) => text(g, m, 3, 77.6 + i * 4.8, 3.9, GREEN, "left", MONO));
+  if (d.warnings.length) {
+    d.warnings.forEach((m, i) => text(g, m, 3, 77.6 + i * 4.8, 3.9, RED, "left", MONO, 700));
+  } else {
+    // Landingsmemo som i flyet: blå linje med prikker til punktet er gjort, så grønn.
+    // SIGNS, CABIN og SPLRS finnes ikke i modellen og står alltid som gjort.
+    const memo: [string, string, boolean][] = [
+      ["LDG GEAR DN", "LDG GEAR......DN", P.gear >= 1],
+      ["SIGNS ON", "", true],
+      ["CABIN READY", "", true],
+      ["SPLRS ARM", "", true],
+      ["FLAPS FULL", "FLAPS.......FULL", P.flaps >= 3.98],
+    ];
+    text(g, "LDG", 3, 77.6, 3.9, GREEN, "left", MONO);
+    memo.forEach(([done, todo, ok], i) => text(g, ok ? done : todo, 14, 77.6 + i * 4.8, 3.9, ok ? GREEN : CYAN, "left", MONO));
+  }
   g.restore();
 }
 
@@ -324,24 +346,37 @@ function fcu(g: G2D, body: number): void {
   }
 }
 
-/** Understellspanel. Flymodellen har ikke understell: det vises alltid nede og låst. */
-function gearPanel(g: G2D, x: number, y: number, body: number): void {
+/** Understellspanel: grønn trekant = nede og låst, rød UNLK = i bevegelse, mørkt = oppe. */
+function gearPanel(g: G2D, x: number, y: number, P: Plane, body: number): void {
+  const ink = shade(235, 235, 235, Math.max(body, 0.6));
   g.fillStyle = shade(86, 100, 114, body); g.beginPath(); g.roundRect(x, y, 22, DU, 1); g.fill();
-  text(g, "LDG GEAR", x + 11, y + 3, 2.2, shade(235, 235, 235, Math.max(body, 0.6)));
+  text(g, "LDG GEAR", x + 11, y + 3, 2.2, ink);
   for (const gx of [x + 4.5, x + 11, x + 17.5]) {
     g.fillStyle = "#07090a"; g.fillRect(gx - 2.6, y + 5.4, 5.2, 6.4);
-    g.fillStyle = GREEN; g.beginPath(); g.moveTo(gx - 1.8, y + 7); g.lineTo(gx + 1.8, y + 7); g.lineTo(gx, y + 10.4); g.closePath(); g.fill();
+    if (P.gear >= 1) { g.fillStyle = GREEN; g.beginPath(); g.moveTo(gx - 1.8, y + 8.6); g.lineTo(gx + 1.8, y + 8.6); g.lineTo(gx, y + 11.2); g.closePath(); g.fill(); }
+    else if (P.gear > 0) text(g, "UNLK", gx, y + 7.2, 1.7, RED, "center", SANS, 700);
   }
-  text(g, "AUTO/BRK", x + 11, y + 15.4, 2.1, shade(235, 235, 235, Math.max(body, 0.6)));
+  text(g, "AUTO/BRK", x + 11, y + 15.4, 2.1, ink);
   ["LO", "MED", "MAX"].forEach((s, i) => {
     g.fillStyle = "#101316"; g.fillRect(x + 1.6 + i * 6.6, y + 17.4, 5.6, 5.2);
     text(g, s, x + 4.4 + i * 6.6, y + 20.1, 2, shade(210, 214, 220, Math.max(body, 0.6)));
   });
-  // spake: nede
+  // spake med hjulformet knott
+  const ly = P.gearDown ? y + 40.4 : y + 29;
   g.fillStyle = "#07090a"; g.beginPath(); g.roundRect(x + 9.4, y + 26, 3.2, 17, 1.6); g.fill();
-  g.fillStyle = shade(200, 204, 210, Math.max(body, 0.5)); g.fillRect(x + 10.3, y + 34, 1.4, 6);
-  g.fillStyle = shade(40, 42, 46, 1); g.beginPath(); g.arc(x + 11, y + 40.4, 2.6, 0, 7); g.fill();
-  text(g, "UP", x + 5, y + 28.4, 2, shade(235, 235, 235, Math.max(body, 0.6))); text(g, "DOWN", x + 4.4, y + 40.6, 2, shade(235, 235, 235, Math.max(body, 0.6)));
+  g.fillStyle = shade(200, 204, 210, Math.max(body, 0.5)); g.fillRect(x + 10.3, Math.min(ly, y + 34.5), 1.4, Math.abs(ly - (y + 34.5)));
+  g.fillStyle = shade(40, 42, 46, 1); g.beginPath(); g.arc(x + 11, ly, 2.6, 0, 7); g.fill();
+  text(g, "UP", x + 5, y + 28.4, 2, ink); text(g, "DOWN", x + 4.4, y + 40.6, 2, ink);
+}
+
+/** Klaffspake med fem hakk. */
+function flapLever(g: G2D, cx: number, top: number, P: Plane, body: number): void {
+  const bottom = H - 1.5, ink = shade(235, 235, 235, Math.max(body, 0.6)), yAt = (c: number) => top + 3 + (c / 4) * (bottom - top - 6);
+  g.fillStyle = shade(40, 44, 50, Math.max(body, 0.4)); g.beginPath(); g.roundRect(cx - 9, top - 1.5, 21, bottom - top + 3, 1.4); g.fill();
+  g.fillStyle = "#06070a"; g.fillRect(cx - 1, top, 2, bottom - top);
+  FLAP_NAMES.forEach((n, c) => { line(g, cx + 2, yAt(c), cx + 4, yAt(c), 0.3, ink); text(g, n, cx + 5, yAt(c), 2.1, ink, "left"); });
+  text(g, "FLAPS", cx - 5, top + 2, 1.9, ink);
+  g.fillStyle = shade(120, 124, 130, Math.max(body, 0.5)); g.beginPath(); g.roundRect(cx - 4, yAt(P.flapCfg) - 1.8, 8, 3.6, 1.2); g.fill();
 }
 
 /** Gasshåndtak med Airbus-sperrene. Stillingen følger gassen trinnløst. */
@@ -372,10 +407,20 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
     hdg: t.trueHeadingDeg(P.hdg),
     raFt: Math.max(0, P.alt - Math.max(0, t.heightAt(P.x, P.y))) * FT,
     thr: P.thr,
+    stallKt: stallSpeed(P) * KT,
+    limitKt: speedLimit(P) * KT,
+    plane: P,
+    warnings: [],
     arpNm: (Math.hypot(arp.x - P.x, arp.y - P.y) * t.cell) / NM,
     // peiling i rutenettet + meridiankonvergens = sann peiling
     arpBearing: (((Math.atan2(arp.x - P.x, -(arp.y - P.y)) * DEG + t.meta.gridConvergenceDeg) % 360) + 360) % 360,
   };
+  if (P.state === "fly") {
+    if (d.kt > d.limitKt + 4) d.warnings.push("OVERSPEED", ` MAX ${Math.round(d.limitKt)} KT`);
+    if (d.kt < d.stallKt) d.warnings.push("STALL");
+    // understellsvarsel: lavt, og understellet ikke nede og låst
+    if (d.raFt < 750 && P.gear < 1) d.warnings.push("L/G GEAR NOT DOWN");
+  }
   g.save();
 
   // stolper på hver side av frontruta
@@ -405,10 +450,11 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
   lcd(g, 111, ROW + 26, 22, 8, "UTC", `${pad(utc.getUTCHours(), 2)}:${pad(utc.getUTCMinutes(), 2)}`, GREEN, body);
   lcd(g, 111, ROW + 37, 22, 8, "LOKAL", `${pad(lt.hour, 2)}:${pad(lt.minute, 2)}`, GREEN, body);
   ewd(g, 137, ROW, d, body);
-  gearPanel(g, 187, ROW, body);
+  gearPanel(g, 187, ROW, P, body);
   nd(g, 214, ROW, d, t, game, body);
   pfd(g, 264, ROW, d, body);
-  thrustLevers(g, 160, ROW + DU + 6, P.thr, body);
+  thrustLevers(g, 152, ROW + DU + 6, P.thr, body);
+  flapLever(g, 186, ROW + DU + 6, P, body);
 
   g.restore();
 }

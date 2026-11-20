@@ -133,6 +133,14 @@ og hva som ble endret.
   man flyr mot. Oppdaget i skjermbilde (rullebanen var borte); fjernet.
   Lærdom: «realistisk» detalj kopiert uten å tenke på hvor øyet står.
 
+**17. Tester som antok landingsoppsett og 50 m-rutenett**
+- Da klaffer og understell fikk virkning, steilet flyet i to brutester
+  (gass 11 % holdt ikke farten med full klaff), og to nye tester plasserte
+  flyet i celle (600, 300) - utenfor 50 m-flisen, som bare er 512 celler bred.
+  Flyet ble satt til «utenfor kartet» i første steg, og testen målte ingenting.
+- Oppdaget: testene feilet. Den siste er samme feil som regelen i CLAUDE.md
+  advarer mot: jeg tenkte i 10 m-celler mens testen brukte 50 m-flisen.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

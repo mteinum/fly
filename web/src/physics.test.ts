@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { onRunway, runwayOffset, startApproach, update } from "./physics";
+import { APPROACH_DIST_M, moveFlaps, onRunway, runwayOffset, speedLimit, stallSpeed, startApproach, toggleGear, update } from "./physics";
 import { newPlane } from "./plane";
 import { BRIDGE, BUILDING } from "./terrain";
 import { loadTestTerrain } from "./testTerrain";
@@ -29,14 +29,14 @@ describe("rullebanen", () => {
 
 describe("innflyging", () => {
   for (const end of rw.ends) {
-    it(`bane ${end.ident}: starter 4 km ute på forlenget senterlinje med kurs mot banen`, () => {
+    it(`bane ${end.ident}: starter 8 km ute på forlenget senterlinje med kurs mot banen`, () => {
       const P = newPlane();
       startApproach(P, t, end);
       const { along, cross } = runwayOffset(t, rw, P.x, P.y);
       expect(Math.abs(cross)).toBeLessThan(1);
       // avstand langs banen måles fra ende 03; rutenettlengden er ~6 m lengre enn publisert lengde
       const gridLen = runwayOffset(t, rw, he.x, he.y).along;
-      expect(end === le ? along : along - gridLen).toBeCloseTo(end === le ? -4000 : 4000, 0);
+      expect(end === le ? along : along - gridLen).toBeCloseTo(end === le ? -APPROACH_DIST_M : APPROACH_DIST_M, 0);
       expect(t.inBounds(P.x, P.y)).toBe(true);
       expect(P.alt - t.heightAt(P.x, P.y)).toBeGreaterThan(100);
       // flyr rett fram i 20 s: avstanden til baneenden skal minke
@@ -80,7 +80,7 @@ describe("bakkekontakt", () => {
     const cross = (alt: number) => {
       const P = newPlane();
       // på tvers av brua (brua går øst-vest): fly nordover fra 100 m sør for cella
-      Object.assign(P, { x: cx, y: cy + 2, alt, hdg: 0, spd: 60, pitch: 0, thr: 0.11 });
+      Object.assign(P, { x: cx, y: cy + 2, alt, hdg: 0, spd: 60, pitch: 0, thr: 0.4 });
       let said = "";
       for (let i = 0; i < 160 && P.state === "fly"; i++) update(P, t, airport, {}, 0.02, (m) => { said = m; });
       return { P, said };
@@ -125,5 +125,81 @@ describe("bakkekontakt", () => {
     Object.assign(P, { x: 1, y: 100, alt: 800, hdg: (270 * Math.PI) / 180, spd: 80, thr: 0.2 });
     for (let i = 0; i < 100 && P.state === "fly"; i++) update(P, t, airport, {}, 0.05, quiet);
     expect(P.state).toBe("outside");
+  });
+});
+
+describe("klaffer og understell", () => {
+  const level = (setup: (P: ReturnType<typeof newPlane>) => void, seconds: number, thr: number) => {
+    const P = newPlane();
+    Object.assign(P, { x: 250, y: 400, alt: 1200, hdg: 0, spd: 80, pitch: 0, thr });
+    setup(P);
+    for (let i = 0; i < seconds * 50 && P.state === "fly"; i++) { P.pitch = 0; update(P, t, airport, {}, 0.02, quiet); }
+    return P;
+  };
+
+  it("innflygingen starter med klaff 2 og understellet oppe, og holder farten", () => {
+    const P = newPlane();
+    startApproach(P, t, le);
+    expect([P.flapCfg, P.flaps, P.gearDown, P.gear]).toEqual([2, 2, false, 0]);
+    const v0 = P.spd;
+    for (let i = 0; i < 250; i++) { P.pitch = 0; update(P, t, airport, {}, 0.02, quiet); }
+    expect(Math.abs(P.spd - v0)).toBeLessThan(0.5);
+    expect(P.spd).toBeGreaterThan(stallSpeed(P) + 10);
+    expect(P.spd).toBeLessThan(speedLimit(P));
+  });
+
+  it("understellet bruker 8 s på å gå ned, og kan ikke betjenes på bakken", () => {
+    const P = level((p) => { p.gearDown = false; p.gear = 0; }, 0, 0.5);
+    toggleGear(P, quiet);
+    for (let i = 0; i < 200; i++) update(P, t, airport, {}, 0.02, quiet);
+    expect(P.gear).toBeCloseTo(0.5, 1);
+    for (let i = 0; i < 250; i++) update(P, t, airport, {}, 0.02, quiet);
+    expect(P.gear).toBe(1);
+    P.state = "landed";
+    toggleGear(P, quiet);
+    expect(P.gearDown).toBe(true);
+  });
+
+  it("klaffspaken går ett hakk om gangen mellom 0 og FULL", () => {
+    const P = newPlane();
+    let said = "";
+    moveFlaps(P, 1, (m) => { said = m; });
+    expect(P.flapCfg).toBe(4);
+    expect(said).toBe("");
+    moveFlaps(P, -1, (m) => { said = m; });
+    expect([P.flapCfg, said]).toEqual([3, "Klaff 3"]);
+    for (let i = 0; i < 9; i++) moveFlaps(P, -1, quiet);
+    expect(P.flapCfg).toBe(0);
+  });
+
+  it("mer klaff gir lavere steilefart, lavere fartsgrense og mer motstand", () => {
+    const P = newPlane();
+    let prevStall = Infinity, prevLimit = Infinity, prevSpeed = Infinity;
+    for (let c = 0; c <= 4; c++) {
+      P.flapCfg = P.flaps = c;
+      expect(stallSpeed(P)).toBeLessThan(prevStall);
+      expect(speedLimit(P)).toBeLessThanOrEqual(prevLimit);
+      const v = level((p) => { p.flapCfg = p.flaps = c; p.gearDown = false; p.gear = 0; }, 60, 0.6).spd;
+      expect(v).toBeLessThan(prevSpeed);
+      [prevStall, prevLimit, prevSpeed] = [stallSpeed(P), speedLimit(P), v];
+    }
+  });
+
+  it("understellet bremser, og begrenser farten til 280 kt uten klaff", () => {
+    const up = level((p) => { p.flapCfg = p.flaps = 0; p.gearDown = false; p.gear = 0; }, 60, 0.6);
+    const down = level((p) => { p.flapCfg = p.flaps = 0; }, 60, 0.6);
+    expect(down.spd).toBeLessThan(up.spd - 4);
+    expect(speedLimit(up) * 1.943844).toBeCloseTo(350, 0);
+    expect(speedLimit(down) * 1.943844).toBeCloseTo(280, 0);
+  });
+
+  it("landing med understellet oppe er buklanding", () => {
+    const P = newPlane();
+    const x = le.x + 0.3 * (he.x - le.x), y = le.y + 0.3 * (he.y - le.y);
+    Object.assign(P, { x, y, alt: t.heightAt(x, y) + 2, hdg: (le.headingGridDeg * Math.PI) / 180, spd: 62, pitch: -0.03, thr: 0.3, gearDown: false, gear: 0 });
+    let said = "";
+    for (let i = 0; i < 100 && P.state === "fly"; i++) update(P, t, airport, {}, 0.02, (m) => { said = m; });
+    expect(P.state).toBe("crash");
+    expect(said).toMatch(/^Buklanding/);
   });
 });
