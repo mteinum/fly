@@ -130,22 +130,40 @@ SSR_POINT_MIN_SIZE = 8.5
 SSR_URL = "https://ws.geonorge.no/stedsnavn/v1/sted"
 
 
-def ssr_point(stedsnummer: int, raw_dir: Path) -> tuple[float, float] | None:
-    """Stedets representasjonspunkt (øst, nord i EPSG:25833) fra Sentralt stedsnavnregister. Caches."""
-    import json
+SSR_POINTS = Path(__file__).resolve().parents[3] / "data" / "ssr_points.json"
 
-    path = raw_dir / "ssr" / f"{stedsnummer}.json"
-    if not path.exists():
-        r = requests.get(SSR_URL, params={"stedsnummer": stedsnummer, "utkoordsys": 25833}, headers={"User-Agent": USER_AGENT}, timeout=60)
-        r.raise_for_status()
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(r.text, encoding="utf-8")
-    hits = json.loads(path.read_text(encoding="utf-8")).get("navn", [])
-    if not hits or "representasjonspunkt" not in hits[0]:
-        return None
-    p = hits[0]["representasjonspunkt"]
-    assert p.get("koordsys") == 25833, p
-    return float(p["øst"]), float(p["nord"])
+
+def ssr_point(stedsnummer: int, raw_dir: Path) -> tuple[float, float] | None:
+    """Stedets representasjonspunkt (øst, nord i EPSG:25833) fra Sentralt stedsnavnregister.
+
+    Punktene ligger i data/ssr_points.json, som er i git: bygget skal ikke stoppe fordi et API
+    er nede (det skjedde: tjenesten svarte 503 til GitHub Actions mens den virket lokalt).
+    Et stedsnummer som mangler der slås opp og legges til i fila.
+    """
+    import json
+    import time
+
+    store = json.loads(SSR_POINTS.read_text(encoding="utf-8")) if SSR_POINTS.exists() else {"points": {}}
+    key = str(stedsnummer)
+    if key not in store["points"]:
+        for attempt in range(4):
+            r = requests.get(SSR_URL, params={"stedsnummer": stedsnummer, "utkoordsys": 25833}, headers={"User-Agent": USER_AGENT}, timeout=60)
+            if r.status_code == 200:
+                break
+            time.sleep(2 * (attempt + 1))
+        else:
+            raise RuntimeError(
+                f"Stedsnavn-API-et svarte {r.status_code} for stedsnummer {stedsnummer}. "
+                "Kjør bygget lokalt, så legges punktet i data/ssr_points.json, og sjekk fila inn."
+            )
+        hits = r.json().get("navn", [])
+        p = hits[0].get("representasjonspunkt") if hits else None
+        assert p is None or p.get("koordsys") == 25833, p
+        store["points"][key] = [round(float(p["øst"]), 2), round(float(p["nord"]), 2)] if p else None
+        store["points"] = dict(sorted(store["points"].items(), key=lambda kv: int(kv[0])))
+        SSR_POINTS.write_text(json.dumps(store, ensure_ascii=False, indent=0), encoding="utf-8")
+    point = store["points"][key]
+    return (point[0], point[1]) if point else None
 
 
 def load_names(county: str, grid: GridSpec, raw_dir: Path) -> list[dict]:

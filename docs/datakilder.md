@@ -70,7 +70,7 @@ kartteksten sin, som står *ved siden av* stedet. De 262 største navnene er
 derfor flyttet til stedets eget punkt, hentet fra
 `https://ws.geonorge.no/stedsnavn/v1/sted?stedsnummer=&utkoordsys=25833`
 (Sentralt stedsnavnregister, CC BY 4.0, verifisert 2026-11-21) og lagret i
-`data/raw/ssr/`. Brunavn er flyttet til nærmeste punkt på brudekket. Mindre
+`data/ssr_points.json`, som ligger i git. Brunavn er flyttet til nærmeste punkt på brudekket. Mindre
 navn står fortsatt der kartet har trykket dem, opptil noen hundre meter unna.
 Hvor langt unna et navn vises, og at navn bak en ås skjules, er valgt i
 spillet (`web/src/labels.ts`).

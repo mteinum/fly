@@ -232,6 +232,15 @@ og hva som ble endret.
 - Oppdaget av en ny test som sammenligner fila med høydekartet.
 - Rettet: avrund først, slå opp etterpå.
 
+**29. Bygget avhang av et API som ikke svarte fra GitHub**
+- Stedets punkt ble slått opp i stedsnavn-API-et under bygging, med cache i
+  en mappe som ikke er i git. Lokalt gikk det fint. I GitHub Actions svarte
+  API-et 503, og publiseringen stoppet (nettsiden ble stående uendret).
+- Jeg hadde skrevet «pipeline skal være reproduserbar» i CLAUDE.md og
+  likevel lagt inn 262 nettkall uten reserve.
+- Rettet: punktene ligger i en fil i git. API-et brukes bare for steder som
+  mangler der, med nye forsøk og en feilmelding som sier hva man skal gjøre.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

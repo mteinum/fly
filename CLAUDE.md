@@ -108,7 +108,8 @@ cd web && npm test && npm run typecheck
 - Ikke finn på API-endepunkter. Sjekk GetCapabilities/OpenAPI eller spør.
   Verifiserte endepunkter står i docs/datakilder.md.
 - Pipeline skal være reproduserbar: ingen manuelle steg, deterministisk
-  utdata (fast støyfrø), rådata caches i data/raw/.
+  utdata (fast støyfrø), rådata caches i data/raw/. Små oppslag mot API-er som kan være
+  nede eller sperre GitHub (stedsnavn) lagres i git, se data/ssr_points.json.
 - Stol ikke på at en tjeneste leverte det du ba om: sjekk CRS, størrelse og
   georeferering på det som kommer tilbake (se asserts i dtm.py).
 - Nye datakilder: lisens og kreditering inn i docs/datakilder.md og i
