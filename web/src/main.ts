@@ -2,7 +2,7 @@ import { createGame, runLoop } from "./game";
 import { GlRenderer } from "./glRenderer";
 import { drawHud, drawMessage } from "./hud";
 import { drawPanel } from "./panel";
-import { H, W } from "./screen";
+import { H, setScreen, TOP, W } from "./screen";
 import { loadTerrain } from "./terrain";
 import { towerView } from "./tower";
 import { drawTower } from "./towerPanel";
@@ -15,9 +15,12 @@ async function main(): Promise<void> {
   // Skjermtekst og instrumentpanel tegnes på et eget lerret oppå 3D-bildet
   const overlay = document.getElementById("screen") as HTMLCanvasElement;
   const g = overlay.getContext("2d")!;
+  let scale = 1; // lerretspiksler per logisk enhet
   const fit = () => {
-    overlay.width = Math.round(overlay.clientWidth * Math.min(devicePixelRatio, 2));
-    overlay.height = Math.round((overlay.width * H) / W);
+    const dpr = Math.min(devicePixelRatio, 2), unit = setScreen(overlay.clientWidth, overlay.clientHeight);
+    overlay.width = Math.round(overlay.clientWidth * dpr);
+    overlay.height = Math.round(overlay.clientHeight * dpr);
+    scale = unit * dpr;
   };
   new ResizeObserver(fit).observe(overlay);
   fit();
@@ -28,6 +31,10 @@ async function main(): Promise<void> {
 
   const renderer = new GlRenderer(document.getElementById("gl") as HTMLCanvasElement, terrain, assets);
   const game = createGame(terrain, overlay);
+  document.getElementById("fullscreen")!.onclick = () => {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void document.documentElement.requestFullscreen();
+  };
   document.getElementById("info")!.textContent =
     `Kart ${((terrain.width * terrain.cell) / 1000).toFixed(1)} km · celle ${terrain.cell} m · ${renderer.buildingCount} bygningsceller · ${terrain.bridges.length} bruer · ${terrain.meta.crs}`;
   document.getElementById("credits")!.textContent = terrain.meta.attribution.join(" · ");
@@ -35,15 +42,14 @@ async function main(): Promise<void> {
   runLoop((dt) => {
     game.step(dt);
     renderer.render(game.P, game.cam, game.env);
-    const s = overlay.width / W;
-    g.setTransform(s, 0, 0, s, 0, 0);
-    g.clearRect(0, 0, W, H);
+    g.setTransform(scale, 0, 0, scale, 0, -TOP * scale); // logisk TOP ligger i overkanten av vinduet
+    g.clearRect(0, TOP, W, H - TOP);
     if (game.cam === "tower") {
       drawTower(g, terrain, map, game, towerView(terrain, game.P));
-      drawMessage(g, game, 20);
+      drawMessage(g, game, TOP + 20);
     } else if (game.cam === "cockpit") {
       drawPanel(g, terrain, game);
-      drawMessage(g, game, 20);
+      drawMessage(g, game, TOP + 20);
     } else {
       drawHud(g, terrain, map, game);
     }
@@ -51,6 +57,10 @@ async function main(): Promise<void> {
 }
 
 main().catch((err) => {
+  document.getElementById("fullscreen")!.onclick = () => {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void document.documentElement.requestFullscreen();
+  };
   document.getElementById("info")!.textContent = `Feil: ${err.message}. Har du kjørt pipeline (uv run flypipe build ${AREA})?`;
   throw err;
 });

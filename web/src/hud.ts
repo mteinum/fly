@@ -3,7 +3,7 @@
 import { formatOslo } from "./clock";
 import type { Game } from "./game";
 import { FLAP_NAMES } from "./physics";
-import { H, W } from "./screen";
+import { TOP, W } from "./screen";
 import type { Terrain } from "./terrain";
 
 const pad3 = (deg: number): string => String(Math.round(deg) % 360).padStart(3, "0");
@@ -52,12 +52,12 @@ export function drawHud(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImag
   ];
   g.save();
   g.font = `7px ${FONT}`; g.textAlign = "left";
-  g.fillStyle = "rgba(0,0,0,.45)"; g.fillRect(3, 3, 138, 6 + lines.length * 9);
+  g.fillStyle = "rgba(0,0,0,.45)"; g.fillRect(3, TOP + 3, 138, 6 + lines.length * 9);
   g.fillStyle = "#ffe9b0";
-  lines.forEach((l, i) => g.fillText(l, 6, 12 + i * 9));
-  const m = 52, mx = W - m - 4, my = 4;
+  lines.forEach((l, i) => g.fillText(l, 6, TOP + 12 + i * 9));
+  const m = 52, mx = W - m - 4, my = TOP + 4;
   g.fillStyle = "#000"; g.fillRect(mx - 1, my - 1, m + 2, m + 2);
   drawMap(g, t, map, game, mx, my, m);
   g.restore();
-  drawMessage(g, game, H * 0.3);
+  drawMessage(g, game, TOP + 60);
 }

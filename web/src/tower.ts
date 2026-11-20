@@ -1,7 +1,7 @@
 /* Tårnkameraet: du står i kontrolltårnet og følger flyet med blikket.
  * Felles geometri for 3D-bildet (glRenderer) og interiøret som tegnes oppå (towerPanel). */
 import type { Plane } from "./plane";
-import { H, W } from "./screen";
+import { ASPECT, W } from "./screen";
 import type { Terrain } from "./terrain";
 
 /** Loddrett synsvinkel for utsikten gjennom vinduene (grader). */
@@ -42,6 +42,6 @@ export function azimuthToScreenX(azimuth: number, yaw: number): number | null {
   let d = azimuth - yaw;
   d = Math.atan2(Math.sin(d), Math.cos(d));
   if (Math.abs(d) > 1.2) return null;
-  const halfH = Math.tan((TOWER_FOV * Math.PI) / 360) * (W / H);
+  const halfH = Math.tan((TOWER_FOV * Math.PI) / 360) * ASPECT;
   return W / 2 + (Math.tan(d) / halfH) * (W / 2);
 }

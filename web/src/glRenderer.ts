@@ -16,7 +16,7 @@ import type { Plane } from "./plane";
 import type { RGB } from "./sky";
 import { BUILDING, type Terrain, type TerrainAssets } from "./terrain";
 import { SCOPE, TOWER_FOV, towerView } from "./tower";
-import { H as SCREEN_H, W as SCREEN_W } from "./screen";
+import { H as SCREEN_H, horizonShift, OX, PANEL_TOP, TOP, TOWER_SILL } from "./screen";
 
 const CHUNK = 128; // celler per side i en terrengrute
 const LOD_STEPS = [1, 2, 4, 8, 16]; // celler mellom hvert punkt i nettet
@@ -25,8 +25,6 @@ const REBUILDS_PER_FRAME = 6;
 const DECK_THICKNESS = 2.5;
 const RELIEF = 1.5; // overdrivelse av helningen i normalkartet, så lavt terreng får synlig skygge
 const SKY_RADIUS = 60000;
-/** Hvor mye bildet forskyves i cockpit, som andel av høyden, så horisonten havner midt i frontruta. */
-const COCKPIT_SHIFT = 0.23;
 
 const WARM_WHITE: RGB = [255, 236, 200], GREEN: RGB = [60, 255, 120], STREET: RGB = [255, 190, 120];
 
@@ -485,7 +483,7 @@ export class GlRenderer {
     this.camera.updateProjectionMatrix();
     if (view) {
       // Blikket følger flyet rundt, men holdes over benken. Bildet forskyves så horisonten ligger midt i vinduene.
-      this.camera.setViewOffset(this.size.x, this.size.y, 0, this.size.y * 0.17, this.size.x, this.size.y);
+      this.camera.setViewOffset(this.size.x, this.size.y, 0, this.size.y * horizonShift(TOWER_SILL), this.size.x, this.size.y);
       this.camera.position.set(...view.eye);
       this.camera.rotation.order = "YXZ";
       this.camera.rotation.set(view.headPitch, -view.yaw, 0);
@@ -496,7 +494,7 @@ export class GlRenderer {
       this.camera.lookAt(x + fx * 70, P.alt + 3, z + fz * 70);
     } else {
       // instrumentpanelet dekker nedre del: flytt bildet opp så horisonten ligger midt i frontruta
-      this.camera.setViewOffset(this.size.x, this.size.y, 0, this.size.y * COCKPIT_SHIFT, this.size.x, this.size.y);
+      this.camera.setViewOffset(this.size.x, this.size.y, 0, this.size.y * horizonShift(PANEL_TOP), this.size.x, this.size.y);
       // pilotens øye: 15 m foran flyets midtpunkt og 5 m over hjulene
       this.camera.position.set(x + fx * 15, P.alt + 5, z + fz * 15);
       this.camera.rotation.order = "YXZ";
@@ -511,9 +509,9 @@ export class GlRenderer {
 
   /** Kikkertkameraet: flyet sett fra tårnet med lang brennvidde, tegnet inn i skjermen på benken. */
   private renderScope(eye: [number, number, number], x: number, y: number, z: number, fov: number): void {
-    const buf = this.renderer.getDrawingBufferSize(new THREE.Vector2()), s = buf.x / SCREEN_W / this.renderer.getPixelRatio();
     // logiske enheter (y ned) -> WebGL-visningsfelt (y opp), i CSS-piksler slik three.js vil ha det
-    const vx = SCOPE.x * s, vy = (SCREEN_H - SCOPE.y - SCOPE.h) * s, vw = SCOPE.w * s, vh = SCOPE.h * s;
+    const s = this.size.y / (SCREEN_H - TOP);
+    const vx = (SCOPE.x + OX) * s, vy = (SCREEN_H - SCOPE.y - SCOPE.h) * s, vw = SCOPE.w * s, vh = SCOPE.h * s;
     this.scopeCamera.fov = fov;
     this.scopeCamera.updateProjectionMatrix();
     this.scopeCamera.position.set(...eye);

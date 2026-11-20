@@ -16,11 +16,8 @@ import { osloTime } from "./clock";
 import type { Game } from "./game";
 import { FLAP_NAMES, speedLimit, stallSpeed, verticalSpeed } from "./physics";
 import type { Plane } from "./plane";
-import { H, W } from "./screen";
+import { H, OX, PANEL_TOP, TOP, W } from "./screen";
 import type { Terrain } from "./terrain";
-
-/** Øvre kant av panelet (logisk y). Over dette er frontruta. */
-export const PANEL_TOP = 106;
 
 const KT = 1.943844, FT = 3.28084, NM = 1852, DEG = 180 / Math.PI;
 const SANS = '"Helvetica Neue", Helvetica, Arial, sans-serif';
@@ -425,9 +422,9 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
 
   // stolper på hver side av frontruta
   g.fillStyle = shade(30, 33, 40, body);
-  g.beginPath(); g.moveTo(0, 0); g.lineTo(8, 0); g.lineTo(18, PANEL_TOP + 2); g.lineTo(0, PANEL_TOP + 2); g.fill();
-  g.beginPath(); g.moveTo(W, 0); g.lineTo(W - 8, 0); g.lineTo(W - 18, PANEL_TOP + 2); g.lineTo(W, PANEL_TOP + 2); g.fill();
-  g.fillRect(0, 0, W, 2.5);
+  g.beginPath(); g.moveTo(0, TOP); g.lineTo(8, TOP); g.lineTo(18, PANEL_TOP + 2); g.lineTo(0, PANEL_TOP + 2); g.fill();
+  g.beginPath(); g.moveTo(W, TOP); g.lineTo(W - 8, TOP); g.lineTo(W - 18, PANEL_TOP + 2); g.lineTo(W, PANEL_TOP + 2); g.fill();
+  g.fillRect(0, TOP, W, 2.5);
   // Ingen midtstolpe: kameraet står i flyets midtlinje, og en stolpe der ville skjult rullebanen
 
   // panelplate i Airbus-blågrått
@@ -441,6 +438,7 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
   const shadow = g.createLinearGradient(0, PANEL_TOP + 16, 0, PANEL_TOP + 22);
   shadow.addColorStop(0, "rgba(0,0,0,.5)"); shadow.addColorStop(1, "rgba(0,0,0,0)");
   g.fillStyle = shadow; g.fillRect(0, PANEL_TOP + 16, W, 6);
+  g.translate(OX, 0); // instrumentene har fast oppsett og står midt på panelet
   fcu(g, body);
 
   pfd(g, 10, ROW, d, body);

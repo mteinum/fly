@@ -32,6 +32,9 @@ Du starter 8 km ute med klaff 2 og understellet oppe. Ta ut understellet og
 full klaff, brems til ca. 140 kt, og land. Landing med understellet oppe er
 buklanding.
 
+Spillet fyller hele nettleservinduet. «Hjelp» øverst viser tastene og har en knapp
+for fullskjerm.
+
 Taster: piltaster styrer, `W`/`S` gass, `G` understell, `F`/`V` klaff ut/inn,
 `C` bytter mellom utvendig kamera, cockpit og tårn, `R` ny innflyging, `T` bytt bane (03/21), `Q`/`E` stiller klokka en
 halvtime bakover/framover.

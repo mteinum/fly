@@ -116,6 +116,8 @@ cd web && npm test && npm run typecheck
   som syntetisk i koden og i docs/datakilder.md.
 - Begge flissett har samme format og samme bbox. Kode som leser fliser skal
   ikke anta cellestørrelse: regn i meter og del på `terrain.cell`.
-- Skjermtekst og panel tegnes i 320 x 200 logiske enheter og skaleres opp.
+- Spillet fyller hele vinduet. Skjermtekst, panel og tårninteriør tegnes i logiske enheter
+  (grunnflate 320 x 200, se web/src/screen.ts): bruk `W` og `TOP` for det som skal følge
+  vinduskanten, og `OX` for å sentrere faste oppsett. Ikke anta 16:10.
 - Commit per logisk steg, uten Co-Authored-By.
 - Arbeidet går i faser (se README.md). Gjør én fase, stopp for gjennomgang.

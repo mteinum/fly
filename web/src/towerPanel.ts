@@ -8,11 +8,10 @@
  */
 import type { Game } from "./game";
 import { FLAP_NAMES } from "./physics";
-import { H, W } from "./screen";
+import { H, OX, TOP, TOWER_SILL as SILL, W } from "./screen";
 import type { Terrain } from "./terrain";
 import { azimuthToScreenX, SCOPE, type TowerView } from "./tower";
 
-const SILL = 136; // overkant av benken
 const SANS = '"Helvetica Neue", Helvetica, Arial, sans-serif';
 const MONO = "ui-monospace, Menlo, Consolas, monospace";
 const NM = 1852, KT = 1.943844, FT = 3.28084;
@@ -118,12 +117,12 @@ export function drawTower(g: G2D, t: Terrain, map: CanvasImageSource, game: Game
   for (let k = 0; k < 16; k++) {
     const x = azimuthToScreenX((k * Math.PI) / 8 + 0.2, view.yaw);
     if (x === null) continue;
-    g.beginPath(); g.moveTo(x - 2.2, 0); g.lineTo(x + 2.2, 0); g.lineTo(x + 3.2, SILL); g.lineTo(x - 3.2, SILL); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(x - 2.2, TOP); g.lineTo(x + 2.2, TOP); g.lineTo(x + 3.2, SILL); g.lineTo(x - 3.2, SILL); g.closePath(); g.fill();
   }
-  g.fillRect(0, 0, W, 7); // overkarm
-  const blind = g.createLinearGradient(0, 7, 0, 16);
+  g.fillRect(0, TOP, W, 7); // overkarm
+  const blind = g.createLinearGradient(0, TOP + 7, 0, TOP + 16);
   blind.addColorStop(0, "rgba(0,0,0,.35)"); blind.addColorStop(1, "rgba(0,0,0,0)");
-  g.fillStyle = blind; g.fillRect(0, 7, W, 9); // solskjerm
+  g.fillStyle = blind; g.fillRect(0, TOP + 7, W, 9); // solskjerm
 
   // benk langs vinduet
   g.fillStyle = frame; g.fillRect(0, SILL - 3, W, 4);
@@ -132,6 +131,7 @@ export function drawTower(g: G2D, t: Terrain, map: CanvasImageSource, game: Game
   g.fillStyle = top; g.fillRect(0, SILL + 1, W, H - SILL);
   g.fillStyle = "rgba(0,0,0,.3)"; g.fillRect(0, SILL + 1, W, 3);
 
+  g.translate(OX, 0); // utstyret har fast oppsett og står midt på benken
   const ink = shade(214, 220, 228, Math.max(body, 0.55)), P = game.P, utc = new Date(game.time);
   radar(g, 40, 166, 24, t, map, game, body);
 
