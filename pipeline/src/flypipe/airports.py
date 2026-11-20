@@ -78,3 +78,41 @@ def load_airport(icao: str, raw_dir: Path, grid: GridSpec | None = None) -> dict
         "arp": _point(float(ap["longitude_deg"]), float(ap["latitude_deg"]), grid),
         "runways": runways,
     }
+
+
+# Matrikkelens bygningstype 411: ekspedisjonsbygning, flyterminal, kontrolltårn
+TERMINAL_BUILDING_TYPE = 411
+TOWER_EYE_HEIGHT = 32.0  # m over bakken. ANTATT: verken N50 eller OurAirports har tårnhøyde
+
+
+def tower_position(airport: dict, building_areas, hgt, grid: GridSpec) -> dict:
+    """Hvor kontrolltårnet står: N50-bygningen av type 411 nærmest flyplassens referansepunkt.
+
+    Dataene sier bare at bygningen er terminal ELLER tårn. Hvor på bygningen tårnet står,
+    og hvor høyt det er, vet vi ikke: punktet legges på den delen av bygningen som er
+    nærmest rullebanen, og øyehøyden er antatt. Uten N50-bygning plasseres tårnet syntetisk
+    250 m til side for banens midtpunkt.
+    """
+    from shapely.geometry import LineString, Point
+    from shapely.ops import nearest_points
+
+    arp = Point(airport["arp"]["east"], airport["arp"]["north"])
+    le, he = airport["runways"][0]["ends"]
+    runway = LineString([(le["east"], le["north"]), (he["east"], he["north"])])
+    source = "syntetisk: 250 m til side for banens midtpunkt"
+    mid = runway.interpolate(0.5, normalized=True)
+    dx, dy = (he["east"] - le["east"]) / runway.length, (he["north"] - le["north"]) / runway.length
+    point = Point(mid.x - dy * 250, mid.y + dx * 250)
+    if building_areas is not None and len(building_areas):
+        terminals = building_areas[building_areas["bygningstype"] == TERMINAL_BUILDING_TYPE]
+        terminals = terminals[terminals.distance(arp) < 2000]
+        if len(terminals):
+            building = terminals.geometry.iloc[terminals.distance(arp).argmin()]
+            point = nearest_points(building, runway)[0]
+            source = f"N50 bygning type {TERMINAL_BUILDING_TYPE} nærmest referansepunktet; plassering på bygningen og høyde er antatt"
+    x, y = grid.utm_to_grid(point.x, point.y)
+    ground = max(0.0, float(hgt[int(y), int(x)]))
+    return {
+        "east": round(point.x, 2), "north": round(point.y, 2), "x": round(x, 4), "y": round(y, 4),
+        "groundM": round(ground, 1), "eyeM": round(ground + TOWER_EYE_HEIGHT, 1), "source": source,
+    }

@@ -93,3 +93,18 @@ def test_surface_overlays_road_and_runway_on_landcover(any_tiles):
         assert surface[int(y), int(x)] == runway
     for c in meta["surface"]["classes"]:
         assert len(c["color"]) == 3 and all(0 <= v <= 255 for v in c["color"])
+
+
+def test_tower_stands_on_the_terminal_building_beside_the_runway(any_tiles):
+    """Tårnet plasseres på N50-bygningen av type 411 (terminal/kontrolltårn) ved flyplassen."""
+    meta, hgt, grid = any_tiles
+    tower = meta["airports"][0]["tower"]
+    assert "411" in tower["source"]
+    assert grid.utm_to_grid(tower["east"], tower["north"]) == pytest.approx((tower["x"], tower["y"]), abs=1e-3)
+    le, he = meta["airports"][0]["runways"][0]["ends"]
+    # avstand fra banens senterlinje: tårnet står ved siden av banen, ikke på den
+    ux, uy = he["east"] - le["east"], he["north"] - le["north"]
+    cross = abs((tower["east"] - le["east"]) * uy - (tower["north"] - le["north"]) * ux) / np.hypot(ux, uy)
+    assert 100 < cross < 700
+    assert tower["groundM"] == pytest.approx(max(0, hgt[int(tower["y"]), int(tower["x"])]), abs=0.06)
+    assert tower["eyeM"] - tower["groundM"] == 32.0  # antatt høyde, se airports.TOWER_EYE_HEIGHT

@@ -32,6 +32,8 @@ export interface Airport {
   elevationM: number;
   arp: { lon: number; lat: number; east: number; north: number; x: number; y: number };
   runways: Runway[];
+  /** Kontrolltårnet: posisjon fra N50 (terminalbygningen), øyehøyde antatt. Høyder i m (NN2000). */
+  tower: { east: number; north: number; x: number; y: number; groundM: number; eyeM: number; source: string };
 }
 
 export interface TerrainMeta {

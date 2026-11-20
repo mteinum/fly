@@ -367,7 +367,16 @@
             }
           ]
         }
-      ]
+      ],
+      "tower": {
+        "east": 93380.0,
+        "north": 6472122.94,
+        "x": 242.6,
+        "y": 259.5412,
+        "groundM": 12.5,
+        "eyeM": 44.5,
+        "source": "N50 bygning type 411 nærmest referansepunktet; plassering på bygningen og høyde er antatt"
+      }
     }
   ],
   "attribution": [

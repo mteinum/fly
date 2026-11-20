@@ -4,6 +4,8 @@ import { drawHud, drawMessage } from "./hud";
 import { drawPanel } from "./panel";
 import { H, W } from "./screen";
 import { loadTerrain } from "./terrain";
+import { towerView } from "./tower";
+import { drawTower } from "./towerPanel";
 
 const AREA = "kjevik10";
 
@@ -36,7 +38,10 @@ async function main(): Promise<void> {
     const s = overlay.width / W;
     g.setTransform(s, 0, 0, s, 0, 0);
     g.clearRect(0, 0, W, H);
-    if (game.cam === "cockpit") {
+    if (game.cam === "tower") {
+      drawTower(g, terrain, map, game, towerView(terrain, game.P));
+      drawMessage(g, game, 20);
+    } else if (game.cam === "cockpit") {
       drawPanel(g, terrain, game);
       drawMessage(g, game, 20);
     } else {

@@ -77,6 +77,7 @@ def build(area: Area) -> Path:
         items, bridge_lines, features = structures.build_structures(
             vectors, n50.rasterize_features(vectors, grid), hgt, grid, raw, ndsm
         )
+    airport["tower"] = airports.tower_position(airport, vectors["buildingAreas"] if area.n50_county else None, hgt, grid)
     flat_light = np.ones_like(shade)
     rgb = terrain.colormap(hgt, area.cell, shade if area.bake_hillshade else flat_light, lc, features, steep_slope=area.steep_slope)
     on_runway = runway_mask(airport, grid)

@@ -141,6 +141,12 @@ og hva som ble endret.
 - Oppdaget: testene feilet. Den siste er samme feil som regelen i CLAUDE.md
   advarer mot: jeg tenkte i 10 m-celler mens testen brukte 50 m-flisen.
 
+**18. Skjermen på tårnbenken var tom**
+- Kikkertbildet tegnes av 3D-rendereren i et utsnitt, og 2D-laget oppå
+  skulle ha et hull der. Jeg lot bare rammen stå igjen rundt hullet, men
+  benken var alt tegnet over hele flaten.
+- Oppdaget i skjermbilde. Rettet med `clearRect` før rammen tegnes.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

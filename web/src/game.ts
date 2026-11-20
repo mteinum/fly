@@ -6,8 +6,9 @@ import { type SkyState, skyState } from "./sky";
 import { sunPosition } from "./sun";
 import type { Airport, Terrain } from "./terrain";
 
-/** Utvendig kamera følger flyet bakfra; cockpit ser ut gjennom frontruta. */
-export type Camera = "external" | "cockpit";
+/** Utvendig kamera følger flyet bakfra; cockpit ser ut gjennom frontruta; tårn ser flyet fra kontrolltårnet. */
+export type Camera = "external" | "cockpit" | "tower";
+const CAMERAS: Camera[] = ["external", "cockpit", "tower"];
 
 export interface Message {
   text: string;
@@ -61,7 +62,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   const time = startTime(params, Date.now());
   const game: Game = {
     P, airport, msg, time,
-    cam: params.get("cam") === "cockpit" ? "cockpit" : "external",
+    cam: CAMERAS.find((c) => c === params.get("cam")) ?? "external",
     env: environment(time),
     step(dt) {
       game.time += dt * 1000;
@@ -70,7 +71,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
       if (update(P, terrain, airport, K, dt, say)) reset();
     },
   };
-  const toggleCam = () => { game.cam = game.cam === "external" ? "cockpit" : "external"; };
+  const toggleCam = () => { game.cam = CAMERAS[(CAMERAS.indexOf(game.cam) + 1) % CAMERAS.length]; };
 
   addEventListener("keydown", (e) => {
     K[e.code] = true;

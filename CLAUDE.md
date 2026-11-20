@@ -13,7 +13,7 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     grid.py       GridSpec: UTM-meter <-> rutenettceller
     areas.py      definisjon av utsnitt (kjevik10 = 10 m, kjevik = 50 m)
     dtm.py        Kartverket DTM og DOM via WCS, cache i data/raw/
-    airports.py   OurAirports: flyplass + rullebaner
+    airports.py   OurAirports: flyplass + rullebaner; tårnposisjon fra N50-bygning type 411
     n50.py        N50 Kartdata: veier, bruer, bygninger -> feature-raster
     landcover.py  N50 Arealdekke -> palettindeks per celle
     structures.py bruer (dekkhøyde fra DOM) og bygninger som egen liste
@@ -34,6 +34,8 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     runwayDecal.ts   rullebanen som skarp flate med merking (merkingen er syntetisk)
     hud.ts         skjermtekst og kart (utvendig kamera)
     panel.ts       A320-instrumentpanel (cockpit): PFD, ND med terreng, E/WD, FCU
+    tower.ts       tårnkameraets geometri (blikkretning, kikkertkamera)
+    towerPanel.ts  tårnets interiør: sprosser, benk med radar, stripe, værpanel
 data/raw/        cache av nedlastede rådata (ikke i git)
 data/processed/  GeoTIFF-kopier for kontroll i QGIS (ikke i git)
 tests/fixtures/  fasitpunkter fra Kartverkets API-er, delt av pytest og vitest
@@ -106,7 +108,7 @@ cd web && npm test && npm run typecheck
 - Vann avgjøres av arealdekket (`Terrain.isWater`), ikke av høyde <= 0.
 - Sann målestokk, ingen vertikal overdrivelse. three.js brukes bare til
   tegning; fysikk og terrengoppslag er ren TypeScript og testes uten nettleser.
-- Kameraene heter «utvendig» og «cockpit» (ikke «jakt»).
+- Kameraene heter «utvendig», «cockpit» og «tårn» (ikke «jakt»).
 - Tid: spillklokka er UTC i ms, vises i norsk tid. Solas asimut er sann og må
   korrigeres med meridiankonvergensen før den brukes i rutenettet (game.ts).
 - Skill mellom ekte og syntetisk: det som er plassert etter mønster og ikke

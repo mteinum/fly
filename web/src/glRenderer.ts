@@ -15,6 +15,8 @@ import { buildRunwayDecal } from "./runwayDecal";
 import type { Plane } from "./plane";
 import type { RGB } from "./sky";
 import { BUILDING, type Terrain, type TerrainAssets } from "./terrain";
+import { SCOPE, TOWER_FOV, towerView } from "./tower";
+import { H as SCREEN_H, W as SCREEN_W } from "./screen";
 
 const CHUNK = 128; // celler per side i en terrengrute
 const LOD_STEPS = [1, 2, 4, 8, 16]; // celler mellom hvert punkt i nettet
@@ -48,6 +50,8 @@ export class GlRenderer {
   private buildingMat = new THREE.MeshLambertMaterial({ emissive: 0xffc27a, emissiveIntensity: 0 });
   private plane: THREE.Group;
   private gear = new THREE.Group();
+  private towerMesh = new THREE.Group();
+  private scopeCamera = new THREE.PerspectiveCamera(10, SCOPE.w / SCOPE.h, 5, 150000);
   private shadow: THREE.Mesh;
   private fog = new THREE.Fog(0, 3000, 28000);
   private sun = new THREE.DirectionalLight(0xffffff, 0);
@@ -134,7 +138,8 @@ export class GlRenderer {
       new THREE.CircleGeometry(16, 24).rotateX(-Math.PI / 2).scale(1, 1, 1.1),
       new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }),
     );
-    this.scene.add(this.runwayLights, this.lamps, this.plane, this.shadow);
+    this.buildTower();
+    this.scene.add(this.runwayLights, this.lamps, this.plane, this.shadow, this.towerMesh);
 
     new ResizeObserver(() => this.resize()).observe(canvas);
     this.resize();
@@ -352,6 +357,19 @@ export class GlRenderer {
     return g;
   }
 
+  /** Kontrolltårnet sett utenfra: skaft og glasskabin. Formen er antatt; bare plasseringen har datagrunnlag. */
+  private buildTower(): void {
+    const tw = this.t.meta.airports[0].tower, cell = this.t.cell, height = tw.eyeM - tw.groundM;
+    const shaft = new THREE.Mesh(new THREE.CylinderGeometry(3.2, 3.8, height - 3, 12), new THREE.MeshLambertMaterial({ color: 0xc9cdd2 }));
+    shaft.position.y = (height - 3) / 2;
+    const cab = new THREE.Mesh(new THREE.CylinderGeometry(6.2, 4.6, 5, 12), new THREE.MeshLambertMaterial({ color: 0x223040 }));
+    cab.position.y = height - 0.5;
+    const roof = new THREE.Mesh(new THREE.CylinderGeometry(6.6, 6.6, 0.6, 12), new THREE.MeshLambertMaterial({ color: 0xe6e8ea }));
+    roof.position.y = height + 2.3;
+    this.towerMesh.add(shaft, cab, roof);
+    this.towerMesh.position.set(tw.x * cell, tw.groundM, tw.y * cell);
+  }
+
   /* ---------- himmel og lys ---------- */
 
   private buildStars(): THREE.Points {
@@ -449,19 +467,29 @@ export class GlRenderer {
     // Kurs om Y (med klokka sett ovenfra = negativ vinkel), nese opp om X, høyre vinge ned om Z
     this.plane.position.set(x, P.alt, z);
     this.plane.rotation.set(P.pitch, -P.hdg, -P.roll);
-    this.plane.visible = cam === "external";
+    this.plane.visible = cam !== "cockpit";
+    this.towerMesh.visible = cam !== "tower"; // i tårnkameraet står vi inne i det
     this.gear.visible = P.gear > 0.02;
     this.gear.scale.y = Math.max(P.gear, 0.02);
 
     const ground = Math.max(0, this.t.heightAt(P.x, P.y));
     this.shadow.position.set(x, ground + 0.6, z);
-    this.shadow.visible = cam === "external" && P.alt - ground < 800 && env.sky.night < 0.5;
+    this.shadow.visible = cam !== "cockpit" && P.alt - ground < 800 && env.sky.night < 0.5;
 
     // landingslys: forover og litt ned
     this.landingLight.position.set(x, P.alt, z);
     this.landingLight.target.position.set(x + fx * 300, P.alt - 45 + Math.sin(P.pitch) * 300, z + fz * 300);
 
-    if (cam === "external") {
+    const view = cam === "tower" ? towerView(this.t, P) : null;
+    this.camera.fov = view ? TOWER_FOV : 60;
+    this.camera.updateProjectionMatrix();
+    if (view) {
+      // Blikket følger flyet rundt, men holdes over benken. Bildet forskyves så horisonten ligger midt i vinduene.
+      this.camera.setViewOffset(this.size.x, this.size.y, 0, this.size.y * 0.17, this.size.x, this.size.y);
+      this.camera.position.set(...view.eye);
+      this.camera.rotation.order = "YXZ";
+      this.camera.rotation.set(view.headPitch, -view.yaw, 0);
+    } else if (cam === "external") {
       this.camera.clearViewOffset();
       this.camera.position.set(x - fx * 88, P.alt + 22, z - fz * 88);
       this.camera.rotation.order = "XYZ";
@@ -478,5 +506,23 @@ export class GlRenderer {
     this.groundDetail.setTime(performance.now() / 1000);
     this.updateLod();
     this.renderer.render(this.scene, this.camera);
+    if (view) this.renderScope(view.eye, x, P.alt + 3.6, z, view.scopeFov);
+  }
+
+  /** Kikkertkameraet: flyet sett fra tårnet med lang brennvidde, tegnet inn i skjermen på benken. */
+  private renderScope(eye: [number, number, number], x: number, y: number, z: number, fov: number): void {
+    const buf = this.renderer.getDrawingBufferSize(new THREE.Vector2()), s = buf.x / SCREEN_W / this.renderer.getPixelRatio();
+    // logiske enheter (y ned) -> WebGL-visningsfelt (y opp), i CSS-piksler slik three.js vil ha det
+    const vx = SCOPE.x * s, vy = (SCREEN_H - SCOPE.y - SCOPE.h) * s, vw = SCOPE.w * s, vh = SCOPE.h * s;
+    this.scopeCamera.fov = fov;
+    this.scopeCamera.updateProjectionMatrix();
+    this.scopeCamera.position.set(...eye);
+    this.scopeCamera.lookAt(x, y, z);
+    this.renderer.setScissorTest(true);
+    this.renderer.setViewport(vx, vy, vw, vh);
+    this.renderer.setScissor(vx, vy, vw, vh);
+    this.renderer.render(this.scene, this.scopeCamera);
+    this.renderer.setScissorTest(false);
+    this.renderer.setViewport(0, 0, this.size.x, this.size.y);
   }
 }
