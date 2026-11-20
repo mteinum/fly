@@ -1,5 +1,5 @@
 /* Enkel flymodell, landing og krasj. Posisjon i rutenettceller, høyde og fart i meter. */
-import type { Plane } from "./plane";
+import type { Plane, Touchdown } from "./plane";
 import { type Airport, BRIDGE, BUILDING, type Runway, type RunwayEnd, type Terrain } from "./terrain";
 
 export const MAX_ALT = 1500;
@@ -74,6 +74,27 @@ export function onRunway(t: Terrain, airport: Airport, x: number, y: number): bo
   });
 }
 
+/** Mål landingen: hvilken bane, hvor på banen, hvor fort og hvor hardt. */
+function measureTouchdown(t: Terrain, airport: Airport, P: Plane, vs: number): Touchdown | null {
+  for (const rw of airport.runways) {
+    const { along, cross } = runwayOffset(t, rw, P.x, P.y);
+    const length = Math.hypot(rw.ends[1].x - rw.ends[0].x, rw.ends[1].y - rw.ends[0].y) * t.cell;
+    if (along < 0 || along > length || Math.abs(cross) > rw.widthM / 2 + t.cell / 2) continue;
+    // landingsretning: den baneenden flyets kurs passer best med
+    const forward = Math.cos(P.hdg - (rw.ends[0].headingGridDeg * Math.PI) / 180) >= 0;
+    const end = forward ? rw.ends[0] : rw.ends[1];
+    return {
+      runway: end.ident,
+      kt: P.spd * KT,
+      fpm: -vs * 196.85,
+      crossM: Math.abs(cross),
+      pastThresholdM: (forward ? along : length - along) - end.displacedThresholdM,
+      flaps: P.flapCfg,
+    };
+  }
+  return null;
+}
+
 /** Sett flyet på 3° innflyging, 8 km før baneenden: klaff 2, understell oppe, 160 kt. Resten må piloten gjøre. */
 export function startApproach(P: Plane, t: Terrain, end: RunwayEnd): void {
   const hdg = (end.headingGridDeg * Math.PI) / 180, d = APPROACH_DIST_M / t.cell;
@@ -82,7 +103,7 @@ export function startApproach(P: Plane, t: Terrain, end: RunwayEnd): void {
     y: end.y + Math.cos(hdg) * d,
     alt: t.heightAt(end.x, end.y) + APPROACH_DIST_M * GLIDE_SLOPE,
     hdg, spd: APPROACH_SPEED, pitch: -0.05, roll: 0, thr: 0,
-    gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, state: "fly", t: 0,
+    gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, state: "fly", t: 0, touchdown: null,
   } satisfies Plane);
   // gass som holder startfarten i flat flyging
   P.thr = (APPROACH_SPEED - 40) / (targetSpeed(P, 1) - 40);
@@ -113,7 +134,8 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
       P.x += (Math.sin(P.hdg) * P.spd * dt) / t.cell;
       P.y -= (Math.cos(P.hdg) * P.spd * dt) / t.cell;
     }
-    return P.t <= 0;
+    // etter landing blir flyet stående til piloten selv ber om ny innflyging (diplomet vises imens)
+    return P.state !== "landed" && P.t <= 0;
   }
   const rollT = (K.ArrowRight ? 0.75 : 0) - (K.ArrowLeft ? 0.75 : 0);
   P.roll += (rollT - P.roll) * Math.min(1, 3 * dt);
@@ -163,6 +185,7 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
       P.state = "crash"; P.t = 3; P.alt = gh + 1;
       say("Buklanding! Understellet var ikke nede.", 3);
     } else if (onRunway(t, airport, P.x, P.y) && vs > -4 && Math.abs(P.roll) < 0.2 && P.spd < MAX_LANDING_SPEED) {
+      P.touchdown = measureTouchdown(t, airport, P, vs);
       P.state = "landed"; P.t = 5; P.alt = gh + 1; P.pitch = 0; P.roll = 0;
       say(`Landet! ${(P.spd * 1.944) | 0} kt, ${vs.toFixed(1)} m/s`, 5);
     } else {

@@ -1,7 +1,7 @@
 # teinum-fly
 
 Flysimulator over ekte norsk terreng: innflyging med Airbus A320 til Kjevik (ENCN),
-Sola (ENZV), Flesland (ENBR) eller Gardermoen (ENGM). Hver flyplass har et kartutsnitt
+Sola (ENZV), Flesland (ENBR), Gardermoen (ENGM) eller Bodø (ENBO). Hver flyplass har et kartutsnitt
 på 25,6 x 25,6 km i 10 m-celler. WebGL, sann målestokk, bygninger
 og bruer som geometri, sol og mørke etter klokka, og cockpit med instrumentpanel.
 
@@ -13,7 +13,7 @@ Forutsetninger: [uv](https://docs.astral.sh/uv/) og Node 22.
 # 1. Pipeline: hent data og skriv fliser (laster ned ca. 280 MB første gang, deretter fra cache)
 cd pipeline
 uv run flypipe build all        # alle flyplasser (42 MB hver, ikke i git; ca. 1 GB nedlasting første gang)
-uv run flypipe build kjevik10   # eller bare én: kjevik10, sola10, flesland10, gardermoen10
+uv run flypipe build kjevik10   # eller bare én: kjevik10, sola10, flesland10, gardermoen10, bodo10
 uv run pytest
 
 # 2. Spill
@@ -45,8 +45,17 @@ baneender på flyplassen.
 
 URL-parametre: `?apt=ENGM`, `?cam=cockpit` eller `?cam=tower`, `?rwy=21`, `?cfg=full` (start med understell nede
 og full klaff), `?time=22:00` og `?date=2026-06-21`
-(norsk tid; uten dem brukes klokka nå), og `?pos=øst,nord,høyde,kurs` (UTM 33,
+(norsk tid; uten dem starter spillet kl. 09:00 i dag), og `?pos=øst,nord,høyde,kurs` (UTM 33,
 meter, sann kurs), f.eks. `?pos=91725,6468775,70,174` for Varoddbrua.
+
+## Diplom
+
+Når flyet står stille etter en landing, vises et diplom med karakter (1–5 stjerner) og det
+som ble målt i landingsøyeblikket: fart, synkerate, avstand fra senterlinja og hvor på
+banen hjulene tok bakken. Bakgrunnen er 3D-bildet fra landingen. «Del» bruker telefonens
+eller nettleserens delingsmeny med bildet vedlagt; «Last ned bilde» gir en PNG på
+1200 x 630. Facebook tar bare imot en lenke fra en nettside, så diplomet må legges ved
+innlegget for hånd. Navnet lagres bare i nettleseren.
 
 ## Publisering
 

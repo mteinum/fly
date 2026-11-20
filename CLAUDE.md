@@ -11,7 +11,7 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
   src/flypipe/
     crs.py        ALL koordinattransformasjon (WGS84 <-> UTM 33), konvergens
     grid.py       GridSpec: UTM-meter <-> rutenettceller
-    areas.py      definisjon av utsnitt: 10 m rundt ENCN, ENZV, ENBR og ENGM, og 50 m for Kjevik
+    areas.py      definisjon av utsnitt: 10 m rundt ENCN, ENZV, ENBR, ENGM og ENBO, og 50 m for Kjevik
     dtm.py        Kartverket DTM og DOM via WCS, cache i data/raw/
     airports.py   OurAirports: flyplass + rullebaner; tårnposisjon fra N50-bygning type 411
     n50.py        N50 Kartdata: veier, bruer, bygninger -> feature-raster
@@ -34,6 +34,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     groundDetail.ts  prosedyrale bakkedetaljer per overflateklasse (shader, syntetisk)
     runwayDecal.ts   rullebanen som skarp flate med merking (merkingen er syntetisk)
     audio.ts       lydmotor: motor, vind, hendelser, utrop, flygeleder
+    diploma.ts     diplom etter landing: karakter, bilde til deling, deleknapper
     hud.ts         skjermtekst og kart (utvendig kamera)
     panel.ts       A320-instrumentpanel (cockpit): PFD, ND med terreng, E/WD, FCU
     tower.ts       tårnkameraets geometri (blikkretning, kikkertkamera)
@@ -61,7 +62,7 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 
 ```bash
 cd pipeline && uv run flypipe build all        # alle utsnitt (ca. 1 GB nedlasting første gang)
-cd pipeline && uv run flypipe build sola10     # ett utsnitt: kjevik10, sola10, flesland10, gardermoen10 (42 MB hver, ikke i git)
+cd pipeline && uv run flypipe build sola10     # ett utsnitt: kjevik10, sola10, flesland10, gardermoen10, bodo10 (42 MB hver, ikke i git)
 cd pipeline && uv run flypipe build kjevik     # 50 m-fliser: grovt nivå, brukes av testene (i git)
 cd pipeline && uv run pytest                   # tester (krever bygde fliser)
 cd pipeline && uv run flypipe audio            # generer manglende lydfiler (bruker ElevenLabs-kvote)
@@ -82,8 +83,8 @@ cd web && npm test && npm run typecheck
 4. Kurs i spillet er **rutenettretning** (radianer, 0 = rutenett-nord, med
    klokka): `x += sin(hdg)`, `y -= cos(hdg)`.
 5. Rutenett-nord er ikke sann nord. `sann = rutenett + gridConvergenceDeg`.
-   Konvergensen er -5,89° ved Kjevik, -8,03° på Sola, -8,52° på Flesland og -3,39° på
-   Gardermoen. Den står i hvert utsnitts metadata.json; bruk aldri én verdi for flere utsnitt.
+   Konvergensen er -5,89° ved Kjevik, -8,03° på Sola, -8,52° på Flesland, -3,39° på
+   Gardermoen og -0,59° i Bodø. Den står i hvert utsnitts metadata.json; bruk aldri én verdi for flere utsnitt.
    Retninger fra kilder (rullebane, vind, sol) er sanne og må korrigeres;
    rullebaneretning regnes helst direkte fra transformerte endepunkter.
    I rendereren er verden høyrehendt i meter: X = øst, Y = opp, Z = sør
@@ -115,7 +116,8 @@ cd web && npm test && npm run typecheck
 - Sann målestokk, ingen vertikal overdrivelse. three.js brukes bare til
   tegning; fysikk og terrengoppslag er ren TypeScript og testes uten nettleser.
 - Kameraene heter «utvendig», «cockpit» og «tårn» (ikke «jakt»).
-- Tid: spillklokka er UTC i ms, vises i norsk tid. Solas asimut er sann og må
+- Tid: spillet starter kl. 09:00 norsk tid samme dag (kan overstyres med ?time og ?date).
+  Spillklokka er UTC i ms, vises i norsk tid. Solas asimut er sann og må
   korrigeres med meridiankonvergensen før den brukes i rutenettet (game.ts).
 - Skill mellom ekte og syntetisk: det som er plassert etter mønster og ikke
   etter data (nattlys, rullebanelys, bakkedetaljer, banemerking, stjerner, himmelfarger) skal merkes

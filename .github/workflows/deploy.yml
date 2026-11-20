@@ -92,6 +92,6 @@ jobs:
         run: |
           curl -fsS -o /dev/null -w 'index %{http_code}\n' https://fly.teinum.no/
           curl -fsS https://fly.teinum.no/data/kjevik10/metadata.json | python3 -c "import json,sys; m=json.load(sys.stdin); assert m['id']=='kjevik10' and m['cellSize']==10, m['id']; print('fliser', m['id'])"
-          for area in sola10 flesland10 gardermoen10; do curl -fsS -o /dev/null -w "$area %{http_code}\n" "https://fly.teinum.no/data/$area/metadata.json"; done
+          for area in sola10 flesland10 gardermoen10 bodo10; do curl -fsS -o /dev/null -w "$area %{http_code}\n" "https://fly.teinum.no/data/$area/metadata.json"; done
           curl -fsS -o /dev/null -w 'lyd %{http_code}\n' https://fly.teinum.no/audio/manifest.json
           test "$(curl -s -o /dev/null -w '%{http_code}' http://fly.teinum.no/)" = 301

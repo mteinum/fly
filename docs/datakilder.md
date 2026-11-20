@@ -40,7 +40,7 @@ mindre enn 3 m klaring til terrenget tegnes som vanlig vei.
 
 | | |
 |---|---|
-| Fil | `https://nedlasting.geonorge.no/geonorge/Basisdata/N50Kartdata/FGDB/Basisdata_<fylke>_25833_N50Kartdata_FGDB.zip`. Verifisert for `42_Agder` (256 MB), `11_Rogaland` (187 MB), `46_Vestland` (490 MB) og `32_Akershus` (53 MB) |
+| Fil | `https://nedlasting.geonorge.no/geonorge/Basisdata/N50Kartdata/FGDB/Basisdata_<fylke>_25833_N50Kartdata_FGDB.zip`. Verifisert for `42_Agder` (256 MB), `11_Rogaland` (187 MB), `46_Vestland` (490 MB), `32_Akershus` (53 MB) og `18_Nordland` (481 MB) |
 | Format | Esri filgeodatabase, EPSG:25833. Leses med geopandas/pyogrio (GDAL OpenFileGDB) |
 | Lisens | Creative Commons BY 4.0 |
 | Kreditering | © Kartverket |
@@ -86,6 +86,7 @@ Flyplassene i spillet (2026-11-20), alle sentrert på referansepunktet fra OurAi
 | ENZV Sola | `sola10` | Rogaland | 10/28, 18/36 | -8,03° | 6 punkter langs banene: terreng = Rullebane, høyde innenfor 2 m |
 | ENBR Flesland | `flesland10` | Vestland | 17/35 | -8,52° | 3 punkter, som over |
 | ENGM Gardermoen | `gardermoen10` | Akershus | 01L/19R, 01R/19L | -3,39° | 6 punkter, som over |
+| ENBO Bodø | `bodo10` | Nordland | 07/25 | -0,59° | 3 punkter, som over |
 
 Alle utsnittene ligger innenfor ett fylke (andel celler uten arealdekke er 0),
 så én N50-fil per flyplass holder. Det er kontrollert per utsnitt, ikke antatt.
@@ -137,6 +138,7 @@ regulert vannstand over regulerte innsjøer (`innsjohoyde`). Bare punkter med
 | Stjerner, måne | 1400 tilfeldige punkter; fast, svakt «månelys» ovenfra | Ingen stjernekatalog, ingen månefase |
 | Instrumentpanel (A320) | `web/src/panel.ts`. Eget oppsett tegnet etter hvordan hovedpanelet i en A320 er bygget opp; ingen grafikk er hentet fra plakater eller produsent | Ekte fra flymodell og kart: fart, høyde, stigning, kurs, stilling, radiohøyde, peiling og avstand til ENCN, terrengbildet på ND (høydekartet, farget etter høyde i forhold til flyet), klokke. Klaff- og understellsvisning, landingsmemoets linjer for understell og klaff, og varslene OVERSPEED, STALL og L/G GEAR NOT DOWN følger flymodellen. Syntetisk: motorverdiene på E/WD (regnet rett fra gasshåndtaket), memolinjene SIGNS/CABIN/SPLRS (alltid grønne), FOB. FCU-vinduene er tomme fordi det ikke finnes autopilot. Høydebåndet viser høyde over havet (NN2000) uten trykkorreksjon, og kursen er sann, ikke magnetisk |
 | Kontrolltårnet | Posisjon fra pipeline (`airports.tower_position`), interiør i `web/src/towerPanel.ts` | Ekte: tårnet står på N50-bygningen med bygningstype 411 (ekspedisjonsbygning, flyterminal, kontrolltårn) nærmest referansepunktet. Typen sier ikke om bygningen er terminal eller tårn, og ikke hvor på den tårnet står. Antatt: punktet på bygningen nærmest rullebanen, øyehøyde 32 m over bakken, tårnets form. Radarbildet viser flyets faktiske posisjon, høyde og fart. Syntetisk: kallesignalet TFY320, vind (alltid vindstille, flymodellen har ingen), QNH, lyspanelet og hele innredningen |
+| Diplom | `web/src/diploma.ts` | Tallene er det flymodellen målte i landingsøyeblikket. Karaktergrensene (synkerate 250/500 fot/min, 8 m fra senterlinja, 900 m etter terskel, 155 kt, klaff 3) er valgt for spillet, ikke hentet fra flyoperative krav. Diplomet er en spillpremie, ikke et sertifikat |
 | Flymodell | `web/src/physics.ts` | Prototypens enkle fartsmodell, styrt av tabeller per klaffstilling: steilefart 145/125/116/110/105 kt, fartsgrense 350/230/200/185/177 kt, og lavere toppfart jo mer klaff. Understellet bruker 8 s, bremser, og har grense 280 kt. Tallene er i A320-størrelse, satt etter hukommelsen og ikke slått opp i flyets håndbok. Ingen aerodynamikk, vekt eller vind. Å overskride en fartsgrense gir bare varsel, ingen skade |
 | Flyet i 3D | `web/src/glRenderer.ts` | Riktige hovedmål (37,6 m langt, 34 m vingespenn), ellers enkle former og nøytral bemaling |
 

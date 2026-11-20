@@ -183,6 +183,16 @@ og hva som ble endret.
 - Oppdaget i skjermbilde (en stor, jevn grønn flate). Rettet: flaten ligger
   under kartets laveste punkt.
 
+**23. Et redigeringsskript stoppet halvveis, og jeg så det ikke først**
+- Jeg gjør flere endringer i ett skript som stopper ved første tekst som ikke
+  finnes. Det hendte to ganger i denne runden: én gang fordi teksten jeg lette
+  etter var formatert annerledes enn jeg husket, én gang fordi en
+  nettverkssjekk foran skriptet fikk tidsavbrudd. Endringene etter stoppet ble
+  ikke gjort, mens de neste kommandoene kjørte videre.
+- Oppdaget av typesjekken og testene (manglende felt, flyplass som ikke fantes).
+- Lærdom: at en kommando «gikk» sier ikke at alle delene gikk. Typesjekk og
+  tester rett etterpå fanget begge.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

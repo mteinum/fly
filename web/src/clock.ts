@@ -29,12 +29,14 @@ export function formatOslo(utcMs: number): string {
   return `${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}`;
 }
 
-/** Starttid: ?time=HH:MM og ?date=YYYY-MM-DD (norsk tid). Uten parametre: nå. */
+export const DEFAULT_HOUR = 9;
+
+/** Starttid: ?time=HH:MM og ?date=YYYY-MM-DD (norsk tid). Uten parametre: i dag kl. 09:00. */
 export function startTime(params: URLSearchParams, nowMs: number): number {
   const t = osloTime(nowMs);
   const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(params.get("date") ?? "");
   const time = /^(\d{1,2}):(\d{2})$/.exec(params.get("time") ?? "");
-  if (!date && !time) return nowMs;
+  [t.hour, t.minute] = [DEFAULT_HOUR, 0];
   if (date) [t.year, t.month, t.day] = [Number(date[1]), Number(date[2]), Number(date[3])];
   if (time) [t.hour, t.minute] = [Number(time[1]), Number(time[2])];
   return osloToUtc(t);

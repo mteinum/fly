@@ -246,6 +246,24 @@
       "kind": "speech",
       "voice": "Eric",
       "text": "Teinum three two zero, welcome to Oslo. Vacate when able."
+    },
+    "cleared_ENBO_07": {
+      "file": "cleared_ENBO_07.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Bodø tower. Runway zero seven, cleared to land. Wind calm."
+    },
+    "cleared_ENBO_25": {
+      "file": "cleared_ENBO_25.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Bodø tower. Runway two five, cleared to land. Wind calm."
+    },
+    "welcome_ENBO": {
+      "file": "welcome_ENBO.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, welcome to Bodø. Vacate when able."
     }
   }
 }

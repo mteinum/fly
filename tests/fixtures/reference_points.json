@@ -55,6 +55,14 @@
         "lat": 60.193901,
         "east": 283847.91085,
         "north": 6679392.18748
+      },
+      {
+        "name": "ENBO referansepunkt",
+        "origin": "OurAirports airports.csv (longitude_deg, latitude_deg)",
+        "lon": 14.3653,
+        "lat": 67.269203,
+        "east": 472632.24996,
+        "north": 7461530.426
       }
     ]
   },
@@ -200,6 +208,26 @@
           "east": 284972.59,
           "north": 6679715.19,
           "z": 206.07
+        }
+      ],
+      "bodo": [
+        {
+          "name": "ENBO bane 07/25, 15 % fra ende 07",
+          "east": 471099.42,
+          "north": 7461218.36,
+          "z": 5.06
+        },
+        {
+          "name": "ENBO bane 07/25, 50 % fra ende 07",
+          "east": 472262.56,
+          "north": 7461456.09,
+          "z": 8.46
+        },
+        {
+          "name": "ENBO bane 07/25, 85 % fra ende 07",
+          "east": 473425.7,
+          "north": 7461693.82,
+          "z": 13.03
         }
       ]
     },

@@ -69,12 +69,14 @@ describe("klokke", () => {
     expect(osloToUtc(osloTime(t))).toBe(t);
   });
 
-  it("leser ?time og ?date som norsk tid, og bruker nå ellers", () => {
+  it("leser ?time og ?date som norsk tid, og starter kl. 09:00 samme dag ellers", () => {
     const now = utc("2026-11-17T14:00:00");
-    expect(startTime(new URLSearchParams(""), now)).toBe(now);
+    expect(startTime(new URLSearchParams(""), now)).toBe(utc("2026-11-17T08:00:00")); // vintertid
+    expect(startTime(new URLSearchParams(""), utc("2026-06-21T22:30:00"))).toBe(utc("2026-06-22T07:00:00")); // 00:30 norsk tid neste dag
+    expect(startTime(new URLSearchParams("date=2026-06-21"), now)).toBe(utc("2026-06-21T07:00:00"));
     expect(startTime(new URLSearchParams("time=23:00"), now)).toBe(utc("2026-11-17T22:00:00"));
     expect(startTime(new URLSearchParams("date=2026-06-21&time=12:00"), now)).toBe(utc("2026-06-21T10:00:00"));
-    expect(startTime(new URLSearchParams("time=tull"), now)).toBe(now);
+    expect(startTime(new URLSearchParams("time=tull"), now)).toBe(utc("2026-11-17T08:00:00"));
   });
 });
 

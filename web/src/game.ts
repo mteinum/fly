@@ -34,6 +34,8 @@ export interface Game {
   approach: { count: number; ident: string };
   /** Ett steg: klokke, fysikk, meldinger og ny innflyging når det trengs. */
   step(dt: number): void;
+  /** Start en ny innflyging til samme bane. */
+  restart(): void;
 }
 
 const TIME_STEP_MS = 30 * 60 * 1000;
@@ -70,6 +72,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     P, airport, msg, time, approach,
     cam: CAMERAS.find((c) => c === params.get("cam")) ?? "external",
     env: environment(time),
+    restart: () => reset(),
     step(dt) {
       game.time += dt * 1000;
       game.env = environment(game.time);
@@ -79,7 +82,9 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   };
   const toggleCam = () => { game.cam = CAMERAS[(CAMERAS.indexOf(game.cam) + 1) % CAMERAS.length]; };
 
+  const typing = (e: Event) => e.target instanceof HTMLInputElement;
   addEventListener("keydown", (e) => {
+    if (typing(e)) return; // navnefeltet på diplomet
     K[e.code] = true;
     if (e.code === "KeyQ") game.time -= TIME_STEP_MS;
     if (e.code === "KeyE") game.time += TIME_STEP_MS;

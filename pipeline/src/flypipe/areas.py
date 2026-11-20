@@ -49,4 +49,5 @@ AREAS = {
     "sola10": _airport_10m("sola10", "Stavanger lufthavn, Sola", "ENZV", "11_Rogaland"),
     "flesland10": _airport_10m("flesland10", "Bergen lufthavn, Flesland", "ENBR", "46_Vestland"),
     "gardermoen10": _airport_10m("gardermoen10", "Oslo lufthavn, Gardermoen", "ENGM", "32_Akershus"),
+    "bodo10": _airport_10m("bodo10", "Bodø lufthavn", "ENBO", "18_Nordland"),
 }

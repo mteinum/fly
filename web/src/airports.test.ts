@@ -7,7 +7,7 @@ import { newPlane } from "./plane";
 import { hasTiles, loadReference, loadTestTerrain } from "./testTerrain";
 import { towerView } from "./tower";
 
-const AREAS = ["kjevik10", "sola10", "flesland10", "gardermoen10"];
+const AREAS = ["kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10"];
 const audioDir = fileURLToPath(new URL("../public/audio/", import.meta.url));
 const ref = loadReference();
 

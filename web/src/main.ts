@@ -1,4 +1,5 @@
 import { GameAudio } from "./audio";
+import { createDiplomaUi } from "./diploma";
 import { createGame, runLoop } from "./game";
 import { GlRenderer } from "./glRenderer";
 import { drawHud, drawMessage } from "./hud";
@@ -75,7 +76,7 @@ async function main(): Promise<void> {
   document.body.classList.toggle("clean", clean);
   const audio = new GameAudio(`${import.meta.env.BASE_URL}audio`, game.airport);
   addEventListener("keydown", (e) => {
-    if (e.code === "KeyM" && !e.repeat) { game.msg.text = audio.toggleMute() ? "Lyd av" : "Lyd på"; game.msg.t = 1.5; }
+    if (e.code === "KeyM" && !e.repeat && !(e.target instanceof HTMLInputElement)) { game.msg.text = audio.toggleMute() ? "Lyd av" : "Lyd på"; game.msg.t = 1.5; }
   });
 
   // ?selftest (kun i utviklingsmodus): start lyden uten tastetrykk og skriv tilstanden til <body data-audio>.
@@ -85,10 +86,28 @@ async function main(): Promise<void> {
     setInterval(() => { document.body.dataset.audio = JSON.stringify(audio.status); }, 500);
   }
 
+  // Diplom etter landing: bildet tas i landingsøyeblikket, diplomet vises når flyet står stille
+  const diploma = createDiplomaUi("https://fly.teinum.no/"), glCanvas = document.getElementById("gl") as HTMLCanvasElement;
+  let landingPhoto: HTMLCanvasElement | null = null, wasLanded = false;
+  addEventListener("keydown", (e) => { if (e.code === "KeyR" || e.code === "KeyT") diploma.hide(); });
+
   runLoop((dt) => {
     game.step(dt);
     audio.update(game, terrain);
     renderer.render(game.P, game.cam, game.env);
+    const landed = game.P.state === "landed";
+    if (landed && !wasLanded) {
+      // WebGL-bildet må kopieres i samme ramme som det ble tegnet, ellers er det tomt
+      landingPhoto = document.createElement("canvas");
+      landingPhoto.width = glCanvas.width;
+      landingPhoto.height = glCanvas.height;
+      landingPhoto.getContext("2d")!.drawImage(glCanvas, 0, 0);
+    }
+    if (landed && game.P.spd === 0 && game.P.touchdown && !diploma.open && !clean && landingPhoto) {
+      diploma.show({ airportName: chosen.name, icao: chosen.icao, touchdown: game.P.touchdown }, landingPhoto, () => { diploma.hide(); game.restart(); });
+      landingPhoto = null;
+    }
+    wasLanded = landed;
     g.setTransform(scale, 0, 0, scale, 0, -TOP * scale); // logisk TOP ligger i overkanten av vinduet
     g.clearRect(0, TOP, W, H - TOP);
     if (clean) return;

@@ -45,6 +45,19 @@
     <button id="fullscreen">Fullskjerm av/på</button>
   </div>
 </details>
+<div id="diploma" hidden>
+  <div class="sheet">
+    <canvas id="diplomaCanvas" width="1200" height="630"></canvas>
+    <label>Navn på diplomet <input id="pilotName" type="text" maxlength="40" placeholder="Skriv navnet ditt" autocomplete="name"></label>
+    <div class="actions">
+      <button id="diplomaShare">Del</button>
+      <button id="diplomaDownload">Last ned bilde</button>
+      <button id="diplomaFacebook">Del lenke på Facebook</button>
+      <button id="diplomaAgain">Ny innflyging</button>
+    </div>
+    <div class="muted" id="diplomaNote"></div>
+  </div>
+</div>
 <div id="credits"></div>
 <script type="module" src="/src/main.ts"></script>
 </body>
