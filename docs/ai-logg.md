@@ -209,6 +209,14 @@ og hva som ble endret.
   viste med et skjermbilde at resultatet ikke var godt nok.
 - Rettet: delingsside som tegner diplomet fra tallene i adressen.
 
+**26. Oversatt tekst ble stående på norsk hos brukeren**
+- Flyplassnavn og kreditering kommer fra metadata-filer. Jeg hadde gitt dem
+  en times levetid i nettleseren, så etter oversettelsen viste spillet gamle
+  navn mens serveren hadde nye. Jeg sjekket bare hva serveren leverte.
+- Oppdaget i brukerens skjermbilde: «Oslo lufthavn» i spillet, «Oslo Airport»
+  i Facebook-bildet fra serveren.
+- Rettet: metadata og fliser sjekkes alltid mot serveren.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal
