@@ -123,7 +123,9 @@ regulert vannstand over regulerte innsjøer (`innsjohoyde`). Bare punkter med
 | Bakkedetaljer | `web/src/groundDetail.ts`: mønster per overflateklasse (trekroner, furer, bølger, korn) og uregelmessige klassegrenser, regnet i shaderen | Hvilken klasse som ligger hvor er ekte (N50, `surface.bin`). Mønsteret er ikke: trærne står ikke der trær står, og grensene er forskjøvet opptil ca. 6 m med støy |
 | Rullebanemerking | `web/src/runwayDecal.ts`: terskelstriper, banenummer, siktepunkt, midt- og kantlinjer | Baneender, bredde og forskjøvne terskler er ekte (OurAirports). Selve oppmerkingen følger vanlig mønster, ikke ENCNs |
 | Stjerner, måne | 1400 tilfeldige punkter; fast, svakt «månelys» ovenfra | Ingen stjernekatalog, ingen månefase |
-| Instrumenter | Fart, høyde og stigning fra flymodellen | Høydemåleren er alltid stilt til 1013 hPa-visning uten trykkorreksjon; kursgyroen viser sann kurs, ikke magnetisk |
+| Instrumentpanel (A320) | `web/src/panel.ts`. Eget oppsett tegnet etter hvordan hovedpanelet i en A320 er bygget opp; ingen grafikk er hentet fra plakater eller produsent | Ekte fra flymodell og kart: fart, høyde, stigning, kurs, stilling, radiohøyde, peiling og avstand til ENCN, terrengbildet på ND (høydekartet, farget etter høyde i forhold til flyet), klokke. Syntetisk: motorverdiene på E/WD (regnet rett fra gasshåndtaket), landingsmemo, klaff- og understellsvisning, FOB. FCU-vinduene er tomme fordi det ikke finnes autopilot. Høydebåndet viser høyde over havet (NN2000) uten trykkorreksjon, og kursen er sann, ikke magnetisk |
+| Flymodell | `web/src/physics.ts` | Prototypens enkle fartsmodell med fartsgrenser i A320-størrelse (steiling 107 kt, maks 350 kt, innflyging ca. 138 kt). Ingen aerodynamikk, vekt, klaffer, understell eller vind |
+| Flyet i 3D | `web/src/glRenderer.ts` | Riktige hovedmål (37,6 m langt, 34 m vingespenn), ellers enkle former og nøytral bemaling |
 
 ## Undersøkt, ikke i bruk: bilde som bakketekstur (2026-11-20)
 

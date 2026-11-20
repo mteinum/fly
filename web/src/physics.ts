@@ -3,9 +3,12 @@ import type { Plane } from "./plane";
 import { type Airport, BRIDGE, BUILDING, type Runway, type RunwayEnd, type Terrain } from "./terrain";
 
 export const MAX_ALT = 1500;
-export const STALL_SPEED = 45; // m/s: under dette synker nesa
-export const MAX_LANDING_SPEED = 85; // m/s
-export const MAX_SPEED = 220; // m/s ved full gass i flat flyging
+// Tall i samme størrelsesorden som en Airbus A320 i landingsoppsett. Modellen er fortsatt
+// prototypens enkle fartsmodell, ikke aerodynamikk: ingen klaffer, understell eller vekt.
+export const STALL_SPEED = 55; // m/s (107 kt): under dette synker nesa
+export const MAX_LANDING_SPEED = 85; // m/s (165 kt)
+export const MAX_SPEED = 180; // m/s (350 kt, VMO) ved full gass i flat flyging
+const APPROACH_THRUST = 0.22; // gir ca. 71 m/s (138 kt) i flat flyging
 const G = 9.81;
 const TURN_GAIN = 1.8; // svinger raskere enn en koordinert sving skulle tilsi (arv fra prototypen)
 const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
@@ -44,7 +47,7 @@ export function startApproach(P: Plane, t: Terrain, end: RunwayEnd): void {
     x: end.x - Math.sin(hdg) * d,
     y: end.y + Math.cos(hdg) * d,
     alt: t.heightAt(end.x, end.y) + APPROACH_DIST_M * GLIDE_SLOPE,
-    hdg, spd: 72, pitch: -0.05, roll: 0, thr: 0.15, state: "fly", t: 0,
+    hdg, spd: 72, pitch: -0.05, roll: 0, thr: APPROACH_THRUST, state: "fly", t: 0,
   } satisfies Plane);
 }
 

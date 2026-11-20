@@ -37,7 +37,7 @@ async function main(): Promise<void> {
     g.setTransform(s, 0, 0, s, 0, 0);
     g.clearRect(0, 0, W, H);
     if (game.cam === "cockpit") {
-      drawPanel(g, terrain, map, game);
+      drawPanel(g, terrain, game);
       drawMessage(g, game, 20);
     } else {
       drawHud(g, terrain, map, game);

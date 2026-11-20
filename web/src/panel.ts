@@ -1,321 +1,414 @@
-/* Instrumentpanel for cockpit: klassisk «six-pack» med kartskjerm, klokke, effektmåler og gasshåndtak.
+/* Instrumentpanel for cockpit: Airbus A320 hovedinstrumentpanel (glasscockpit), forenklet.
  *
- *   fartsmåler      kunstig horisont   høydemåler
- *   svingindikator  kursgyro           variometer
+ *   [ FCU på blendingsskjermen ]
+ *   PFD  ND   reserve/klokke   E/WD   understell   ND  PFD
+ *                          gasshåndtak
  *
- * Tegnes i 320 x 200 logiske enheter (main.ts skalerer). Enheter som i et ekte fly:
- * knop, fot og fot per minutt. Kursgyroen viser sann kurs, ikke magnetisk.
+ * Tegnes i 320 x 200 logiske enheter (main.ts skalerer). Hver skjerm tegnes i egne 100 x 100 enheter.
+ *
+ * Ekte verdier: fart, høyde, stigning, kurs, stilling, radiohøyde, avstand og peiling til ENCN,
+ * terrenget på ND (fra høydekartet), klokke.
+ * Syntetisk: motorverdiene (regnet rett fra gasshåndtaket), landingsmemo, klaff- og understellsvisning
+ * (flymodellen har verken klaffer eller understell), tomme FCU-vinduer (ingen autopilot).
  */
-import { formatOslo } from "./clock";
+import { osloTime } from "./clock";
 import type { Game } from "./game";
-import { drawMap } from "./hud";
-import { MAX_LANDING_SPEED, MAX_SPEED, STALL_SPEED, turnRate, verticalSpeed } from "./physics";
+import { MAX_SPEED, STALL_SPEED, verticalSpeed } from "./physics";
 import { H, W } from "./screen";
 import type { Terrain } from "./terrain";
 
 /** Øvre kant av panelet (logisk y). Over dette er frontruta. */
-export const PANEL_TOP = 114;
+export const PANEL_TOP = 106;
 
-const KT = 1.943844, FT = 3.28084, DEG = 180 / Math.PI;
+const KT = 1.943844, FT = 3.28084, NM = 1852, DEG = 180 / Math.PI;
 const SANS = '"Helvetica Neue", Helvetica, Arial, sans-serif';
-const R = 19; // instrumentradius
-const COLS = [118, 160, 202], ROWS = [137, 178];
+const MONO = "ui-monospace, Menlo, Consolas, monospace";
+const DU = 46; // skjermstørrelse i logiske enheter
+const ROW = 124;
+const ND_RANGE_NM = 10;
+
+// Airbus-fargene på skjermene
+const GREEN = "#2fe04a", CYAN = "#35d6f0", AMBER = "#ffa218", MAGENTA = "#ff5cf4", YELLOW = "#ffe93b", RED = "#ff3030", WHITE = "#f2f2f2";
+const TAPE = "#4d5157", SKY = "#2f93e0", EARTH = "#8a5a2c";
 
 type G2D = CanvasRenderingContext2D;
 
-interface Look {
-  /** Lys på selve panelet: 1 om dagen, lavt om natta. */
-  body: number;
-  /** Farge på skalaer og tall: hvitt om dagen, varmt instrumentlys om natta. */
-  ink: string;
-  dim: string;
-  night: number;
-}
-
-const rad = (deg: number): number => ((deg - 90) * Math.PI) / 180; // 0° = klokka 12, med klokka
 const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
 const shade = (r: number, g: number, b: number, f: number): string => `rgb(${(r * f) | 0},${(g * f) | 0},${(b * f) | 0})`;
+const pad = (v: number, n: number): string => String(Math.round(v)).padStart(n, "0");
 
-function tick(g: G2D, cx: number, cy: number, deg: number, r0: number, r1: number, width: number, color: string): void {
-  const a = rad(deg), c = Math.cos(a), s = Math.sin(a);
-  g.strokeStyle = color; g.lineWidth = width;
-  g.beginPath(); g.moveTo(cx + c * r0, cy + s * r0); g.lineTo(cx + c * r1, cy + s * r1); g.stroke();
-}
-
-function text(g: G2D, str: string, x: number, y: number, size: number, color: string, weight = 600): void {
-  g.font = `${weight} ${size}px ${SANS}`; g.fillStyle = color; g.textAlign = "center"; g.textBaseline = "middle";
+function text(g: G2D, str: string, x: number, y: number, size: number, color: string, align: CanvasTextAlign = "center", font = SANS, weight = 500): void {
+  g.font = `${weight} ${size}px ${font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "middle";
   g.fillText(str, x, y);
 }
 
-function dialText(g: G2D, str: string, cx: number, cy: number, deg: number, r: number, size: number, color: string): void {
-  const a = rad(deg);
-  text(g, str, cx + Math.cos(a) * r, cy + Math.sin(a) * r, size, color);
-}
-
-function arc(g: G2D, cx: number, cy: number, r: number, deg0: number, deg1: number, width: number, color: string): void {
+function line(g: G2D, x0: number, y0: number, x1: number, y1: number, width: number, color: string): void {
   g.strokeStyle = color; g.lineWidth = width;
-  g.beginPath(); g.arc(cx, cy, r, rad(deg0), rad(deg1)); g.stroke();
+  g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
 }
 
-/** Viser: smal trekant fra navet, med kort hale. */
-function needle(g: G2D, cx: number, cy: number, deg: number, len: number, width: number, color: string, tail = 3): void {
+/** Flydata i de enhetene skjermene bruker. */
+interface Data {
+  kt: number; altFt: number; vsFpm: number; pitch: number; roll: number; hdg: number; raFt: number;
+  thr: number; arpNm: number; arpBearing: number;
+}
+
+/** Åpner en skjerm: ramme, svart flate, og koordinater 0-100 klippet til skjermen. */
+function beginDisplay(g: G2D, x: number, y: number, size: number, body: number): void {
+  g.fillStyle = shade(34, 38, 44, Math.max(body, 0.45));
+  g.beginPath(); g.roundRect(x - 1.6, y - 1.6, size + 3.2, size + 3.2, 1.4); g.fill();
   g.save();
-  g.translate(cx, cy); g.rotate(rad(deg) + Math.PI / 2);
-  g.fillStyle = color;
-  g.beginPath(); g.moveTo(-width / 2, tail); g.lineTo(-width / 2, -len * 0.55); g.lineTo(0, -len); g.lineTo(width / 2, -len * 0.55); g.lineTo(width / 2, tail);
-  g.closePath(); g.fill();
-  g.restore();
+  g.translate(x, y); g.scale(size / 100, size / 100);
+  g.beginPath(); g.rect(0, 0, 100, 100); g.clip();
+  g.fillStyle = "#020304"; g.fillRect(0, 0, 100, 100);
 }
 
-function hub(g: G2D, cx: number, cy: number, r = 1.6): void {
-  g.fillStyle = "#16181c"; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
-  g.strokeStyle = "#3a3e46"; g.lineWidth = 0.3; g.stroke();
-}
+/* ---------- PFD: primært flygedisplay ---------- */
 
-/** Ramme med fire skruer og svart skive. */
-function bezel(g: G2D, cx: number, cy: number, r: number, look: Look): void {
-  for (const d of [45, 135, 225, 315]) {
-    const a = rad(d), x = cx + Math.cos(a) * (r + 3.6), y = cy + Math.sin(a) * (r + 3.6);
-    g.fillStyle = shade(120, 124, 132, look.body); g.beginPath(); g.arc(x, y, 0.9, 0, 7); g.fill();
-    g.strokeStyle = shade(30, 32, 36, look.body); g.lineWidth = 0.25;
-    g.beginPath(); g.moveTo(x - 0.6, y - 0.3); g.lineTo(x + 0.6, y + 0.3); g.stroke();
-  }
-  const ring = g.createLinearGradient(cx, cy - r - 2, cx, cy + r + 2);
-  ring.addColorStop(0, shade(104, 108, 118, look.body));
-  ring.addColorStop(1, shade(22, 24, 28, look.body));
-  g.fillStyle = ring; g.beginPath(); g.arc(cx, cy, r + 2, 0, 7); g.fill();
-  g.fillStyle = "#07080a"; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
-}
-
-/** Svak refleks i glasset, bare synlig i dagslys. */
-function glass(g: G2D, cx: number, cy: number, r: number, look: Look): void {
-  const a = 0.1 * (1 - look.night);
-  if (a < 0.01) return;
-  const grad = g.createLinearGradient(cx - r, cy - r, cx + r * 0.3, cy + r * 0.3);
-  grad.addColorStop(0, `rgba(255,255,255,${a})`);
-  grad.addColorStop(0.5, "rgba(255,255,255,0)");
-  g.fillStyle = grad; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill();
-}
-
-/* ---------- de seks instrumentene ---------- */
-
-function airspeed(g: G2D, cx: number, cy: number, kt: number, look: Look): void {
-  const MAX = 450, deg = (v: number) => 20 + (clamp(v, 0, MAX) / MAX) * 320;
-  bezel(g, cx, cy, R, look);
-  const stall = STALL_SPEED * KT, land = MAX_LANDING_SPEED * KT, vmax = MAX_SPEED * KT;
-  arc(g, cx, cy, R - 1.2, deg(stall), deg(vmax * 0.7), 1.3, "#2f9e44"); // normalområde
-  arc(g, cx, cy, R - 1.2, deg(vmax * 0.7), deg(vmax), 1.3, "#e0b020"); // varsomhet
-  arc(g, cx, cy, R - 2.8, deg(stall), deg(land), 1.1, "#e8e8e8"); // landingsområde
-  tick(g, cx, cy, deg(vmax), R - 4, R, 0.9, "#e03131"); // aldri over
-  for (let v = 0; v <= MAX; v += 10) tick(g, cx, cy, deg(v), v % 50 ? R - 2 : R - 3.6, R - 0.3, v % 50 ? 0.25 : 0.5, look.ink);
-  for (let v = 50; v <= MAX; v += 50) dialText(g, String(v), cx, cy, deg(v), R - 6.6, 3, look.ink);
-  text(g, "KNOP", cx, cy + 6, 2.2, look.dim, 500);
-  needle(g, cx, cy, deg(kt), R - 3, 1.5, "#f4f4f0");
-  hub(g, cx, cy);
-  glass(g, cx, cy, R, look);
-}
-
-function attitude(g: G2D, cx: number, cy: number, pitch: number, roll: number, look: Look): void {
-  const PX = R / 26; // enheter per grad stigning
-  bezel(g, cx, cy, R, look);
+function attitudeBall(g: G2D, cx: number, cy: number, hw: number, r: number, d: Data, px: number): void {
   g.save();
-  g.beginPath(); g.arc(cx, cy, R - 0.4, 0, 7); g.clip();
-  g.translate(cx, cy); g.rotate(-roll);
+  // Airbus-formen: sirkel kuttet rett av på sidene
+  g.beginPath(); g.rect(cx - hw, cy - r, 2 * hw, 2 * r); g.clip();
+  g.beginPath(); g.arc(cx, cy, r, 0, 7); g.clip();
+  g.translate(cx, cy); g.rotate(-d.roll);
   g.save();
-  g.translate(0, pitch * DEG * PX); // nese opp: horisonten synker
-  g.fillStyle = "#3f8fd6"; g.fillRect(-3 * R, -6 * R, 6 * R, 6 * R);
-  g.fillStyle = "#7b5330"; g.fillRect(-3 * R, 0, 6 * R, 6 * R);
-  g.strokeStyle = "#fff"; g.lineWidth = 0.45;
-  g.beginPath(); g.moveTo(-3 * R, 0); g.lineTo(3 * R, 0); g.stroke();
-  for (const p of [-20, -15, -10, -5, 5, 10, 15, 20]) {
-    const w = p % 10 ? 2.4 : 5, y = -p * PX;
-    g.lineWidth = 0.35;
-    g.beginPath(); g.moveTo(-w, y); g.lineTo(w, y); g.stroke();
-    if (p % 10 === 0) { text(g, String(Math.abs(p)), -w - 2.6, y, 2.4, "#fff"); text(g, String(Math.abs(p)), w + 2.6, y, 2.4, "#fff"); }
+  g.translate(0, d.pitch * DEG * px); // nese opp: horisonten synker
+  g.fillStyle = SKY; g.fillRect(-200, -400, 400, 400);
+  g.fillStyle = EARTH; g.fillRect(-200, 0, 400, 400);
+  line(g, -200, 0, 200, 0, 0.7, WHITE);
+  for (let p = -30; p <= 30; p += 2.5) {
+    if (p === 0) continue;
+    const w = p % 10 === 0 ? 8 : p % 5 === 0 ? 4 : 2, y = -p * px;
+    line(g, -w, y, w, y, 0.5, WHITE);
+    if (p % 10 === 0) { text(g, String(Math.abs(p)), -w - 4, y, 4.4, WHITE); text(g, String(Math.abs(p)), w + 4, y, 4.4, WHITE); }
   }
   g.restore();
-  // krengeskala følger horisonten
-  for (const b of [-60, -30, -20, -10, 0, 10, 20, 30, 60]) tick(g, 0, 0, b, R - (b % 30 ? 2.2 : 3.6), R - 0.6, 0.4, "#fff");
+  // krengeindeks følger horisonten
+  g.fillStyle = YELLOW;
+  g.beginPath(); g.moveTo(0, -r + 3.2); g.lineTo(-2.4, -r + 7.2); g.lineTo(2.4, -r + 7.2); g.closePath(); g.fill();
   g.restore();
-  // fast: krengepeker og flysymbol
-  g.fillStyle = "#ffb020";
-  g.beginPath(); g.moveTo(cx, cy - R + 3.8); g.lineTo(cx - 1.5, cy - R + 6.4); g.lineTo(cx + 1.5, cy - R + 6.4); g.closePath(); g.fill();
-  g.strokeStyle = "#ffb020"; g.lineWidth = 1; g.lineCap = "round";
-  g.beginPath(); g.moveTo(cx - 10, cy); g.lineTo(cx - 4, cy); g.lineTo(cx - 4, cy + 1.6); g.moveTo(cx + 10, cy); g.lineTo(cx + 4, cy); g.lineTo(cx + 4, cy + 1.6); g.stroke();
-  g.lineCap = "butt";
-  g.fillStyle = "#ffb020"; g.beginPath(); g.arc(cx, cy, 0.8, 0, 7); g.fill();
-  glass(g, cx, cy, R, look);
+  // fast krengeskala
+  for (const b of [-45, -30, -20, -10, 10, 20, 30, 45]) {
+    const a = ((b - 90) * Math.PI) / 180, r0 = r - (Math.abs(b) % 30 === 0 ? 0 : 0.4), r1 = r + (Math.abs(b) === 30 || Math.abs(b) === 45 ? 3.4 : 2);
+    line(g, cx + Math.cos(a) * r0, cy + Math.sin(a) * r0, cx + Math.cos(a) * r1, cy + Math.sin(a) * r1, 0.6, WHITE);
+  }
+  g.fillStyle = YELLOW;
+  g.beginPath(); g.moveTo(cx, cy - r + 0.2); g.lineTo(cx - 2.2, cy - r - 3.4); g.lineTo(cx + 2.2, cy - r - 3.4); g.closePath(); g.fill();
+  // fast flysymbol: svart med gul kant
+  g.lineJoin = "miter";
+  for (const s of [-1, 1]) {
+    g.beginPath(); g.moveTo(cx + s * 19, cy - 1); g.lineTo(cx + s * 8, cy - 1); g.lineTo(cx + s * 8, cy + 4); g.lineTo(cx + s * 10, cy + 4); g.lineTo(cx + s * 10, cy + 1); g.lineTo(cx + s * 19, cy + 1); g.closePath();
+    g.fillStyle = "#000"; g.fill(); g.strokeStyle = YELLOW; g.lineWidth = 0.6; g.stroke();
+  }
+  g.fillStyle = "#000"; g.fillRect(cx - 1.1, cy - 1.1, 2.2, 2.2); g.strokeStyle = YELLOW; g.lineWidth = 0.5; g.strokeRect(cx - 1.1, cy - 1.1, 2.2, 2.2);
 }
 
-function altimeter(g: G2D, cx: number, cy: number, feet: number, look: Look): void {
-  bezel(g, cx, cy, R, look);
-  for (let i = 0; i < 50; i++) tick(g, cx, cy, i * 7.2, i % 5 ? R - 2 : R - 3.6, R - 0.3, i % 5 ? 0.25 : 0.5, look.ink);
-  for (let n = 0; n < 10; n++) dialText(g, String(n), cx, cy, n * 36, R - 6.4, 3.4, look.ink);
-  text(g, "100 FOT", cx, cy - 6.2, 2, look.dim, 500);
-  // trykkinnstilling (fast: standardatmosfære)
-  g.fillStyle = "#101216"; g.fillRect(cx + 5.2, cy - 1.7, 8.2, 3.4);
-  g.strokeStyle = "#3a3e46"; g.lineWidth = 0.25; g.strokeRect(cx + 5.2, cy - 1.7, 8.2, 3.4);
-  text(g, "1013", cx + 9.3, cy + 0.1, 2.5, look.ink, 500);
-  needle(g, cx, cy, (feet / 10000) * 360, R - 9, 2.2, "#f4f4f0", 2); // tusen fot
-  needle(g, cx, cy, ((feet % 1000) / 1000) * 360, R - 3, 1.3, "#f4f4f0"); // hundre fot
-  hub(g, cx, cy);
-  glass(g, cx, cy, R, look);
-}
+function pfd(g: G2D, x: number, y: number, d: Data, body: number): void {
+  beginDisplay(g, x, y, DU, body);
+  const CY = 52, TOP = 26, BOT = 78;
 
-function turnCoordinator(g: G2D, cx: number, cy: number, rateDegS: number, look: Look): void {
-  bezel(g, cx, cy, R, look);
-  // merker for vinger i vater og for standardsving (3°/s = 360° på 2 min)
-  for (const d of [90, 110, 270, 250]) tick(g, cx, cy, d, R - 4.4, R - 0.8, 1, look.ink);
-  text(g, "V", cx - 12.5, cy + 8.2, 2.8, look.ink);
-  text(g, "H", cx + 12.5, cy + 8.2, 2.8, look.ink);
-  text(g, "2 MIN", cx, cy + 15.8, 2, look.dim, 500);
+  // FMA: fem kolonner, tomme fordi verken autopilot, autothrust eller flight director finnes
+  for (const fx of [20, 40, 60, 80]) line(g, fx, 2, fx, 14, 0.4, WHITE);
+
+  attitudeBall(g, 46, CY, 21, 25, d, 1.9);
+  if (d.raFt < 2500) text(g, String(Math.round(d.raFt / (d.raFt < 50 ? 1 : 10)) * (d.raFt < 50 ? 1 : 10)), 46, 74.6, 5.6, d.raFt < 400 ? AMBER : GREEN, "center", SANS, 600);
+
+  // fartsbånd
   g.save();
-  g.translate(cx, cy - 1); g.rotate((clamp(rateDegS / 3, -2, 2) * 20) / DEG);
-  g.strokeStyle = "#f4f4f0"; g.fillStyle = "#f4f4f0"; g.lineCap = "round";
-  g.lineWidth = 1.3; g.beginPath(); g.moveTo(-13, 0); g.lineTo(13, 0); g.stroke();
-  g.lineWidth = 0.8; g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -4.4); g.moveTo(-3.4, -2.6); g.lineTo(3.4, -2.6); g.stroke();
-  g.beginPath(); g.arc(0, 0, 2, 0, 7); g.fill();
-  g.lineCap = "butt";
+  g.beginPath(); g.rect(2, TOP, 22, BOT - TOP); g.clip();
+  g.fillStyle = TAPE; g.fillRect(4, TOP, 15, BOT - TOP);
+  const kpx = 0.62, ys = (v: number) => CY - (v - d.kt) * kpx;
+  for (let v = Math.max(30, Math.floor((d.kt - 45) / 10) * 10); v <= d.kt + 45; v += 10) {
+    line(g, 16, ys(v), 19, ys(v), 0.5, WHITE);
+    if (v % 20 === 0) text(g, String(v), 15, ys(v), 5.4, WHITE, "right");
+  }
+  const stall = STALL_SPEED * KT, vmax = MAX_SPEED * KT;
+  g.fillStyle = RED; g.fillRect(19.6, ys(stall), 1.8, 200); // under steilefart
+  g.fillStyle = AMBER; g.fillRect(19.6, ys(stall * 1.13), 0.8, ys(stall) - ys(stall * 1.13)); // laveste valgbare fart
+  for (let v = vmax; v < vmax + 80; v += 3) { g.fillStyle = (v / 3) % 2 < 1 ? RED : "#000"; g.fillRect(19.6, ys(v + 3), 1.8, ys(v) - ys(v + 3)); } // over maksfart
   g.restore();
-  // kule: flymodellen svinger alltid koordinert, så den ligger i midten
-  const by = cy + 10.2;
-  g.fillStyle = shade(214, 212, 196, 1 - 0.45 * look.night);
-  g.beginPath(); g.roundRect(cx - 8, by - 2.2, 16, 4.4, 2.2); g.fill();
-  g.strokeStyle = "#111"; g.lineWidth = 0.35;
-  g.beginPath(); g.moveTo(cx - 2.5, by - 2.2); g.lineTo(cx - 2.5, by + 2.2); g.moveTo(cx + 2.5, by - 2.2); g.lineTo(cx + 2.5, by + 2.2); g.stroke();
-  g.fillStyle = "#0a0a0a"; g.beginPath(); g.arc(cx, by, 1.9, 0, 7); g.fill();
-  glass(g, cx, cy, R, look);
-}
+  line(g, 4, TOP, 21, TOP, 0.5, WHITE); line(g, 4, BOT, 21, BOT, 0.5, WHITE);
+  line(g, 2, CY, 21, CY, 0.8, YELLOW);
+  g.fillStyle = YELLOW; g.beginPath(); g.moveTo(21, CY); g.lineTo(24, CY - 1.8); g.lineTo(24, CY + 1.8); g.closePath(); g.fill();
 
-function headingIndicator(g: G2D, cx: number, cy: number, hdgDeg: number, look: Look): void {
-  bezel(g, cx, cy, R, look);
+  // høydebånd
   g.save();
-  g.beginPath(); g.arc(cx, cy, R - 0.3, 0, 7); g.clip();
-  g.translate(cx, cy); g.rotate(-hdgDeg / DEG); // skiva dreier, flyet står stille
-  for (let d = 0; d < 360; d += 5) tick(g, 0, 0, d, d % 10 ? R - 2 : R - 3.4, R - 0.3, d % 10 ? 0.25 : 0.45, look.ink);
-  for (let d = 0; d < 360; d += 30) {
-    g.save();
-    g.rotate(d / DEG);
-    const cardinal = d % 90 === 0;
-    text(g, cardinal ? "NØSV"[d / 90] : String(d / 10), 0, -(R - 6.6), cardinal ? 3.8 : 3, look.ink);
-    g.restore();
+  g.beginPath(); g.rect(72, TOP, 16, BOT - TOP); g.clip();
+  g.fillStyle = TAPE; g.fillRect(72, TOP, 14, BOT - TOP);
+  const fpx = 0.026, ya = (a: number) => CY - (a - d.altFt) * fpx;
+  for (let a = Math.floor((d.altFt - 1100) / 100) * 100; a <= d.altFt + 1100; a += 100) {
+    line(g, 72, ya(a), 74.2, ya(a), 0.5, WHITE);
+    if (a % 500 === 0) text(g, pad(Math.abs(a) / 100, 3), 85, ya(a), 4.8, WHITE, "right");
   }
   g.restore();
-  for (const d of [45, 90, 135, 180, 225, 270, 315]) tick(g, cx, cy, d, R - 0.2, R + 1.4, 0.4, look.dim);
-  g.fillStyle = "#ffb020";
-  g.beginPath(); g.moveTo(cx, cy - R + 0.4); g.lineTo(cx - 1.4, cy - R - 1.8); g.lineTo(cx + 1.4, cy - R - 1.8); g.closePath(); g.fill();
-  // flysilhuett sett ovenfra
-  g.strokeStyle = "#ffb020"; g.lineWidth = 0.7; g.lineCap = "round";
-  g.beginPath();
-  g.moveTo(cx, cy - 6.5); g.lineTo(cx, cy + 5.5);
-  g.moveTo(cx - 5.5, cy - 0.6); g.lineTo(cx + 5.5, cy - 0.6);
-  g.moveTo(cx - 2.2, cy + 4.6); g.lineTo(cx + 2.2, cy + 4.6);
-  g.stroke();
-  g.lineCap = "butt";
-  glass(g, cx, cy, R, look);
+  line(g, 72, TOP, 88, TOP, 0.5, WHITE); line(g, 72, BOT, 88, BOT, 0.5, WHITE);
+  g.fillStyle = "#000"; g.fillRect(69.5, CY - 5, 20.5, 10);
+  g.strokeStyle = YELLOW; g.lineWidth = 0.6; g.strokeRect(69.5, CY - 5, 20.5, 10);
+  text(g, String(Math.round(d.altFt / 20) * 20), 88.6, CY + 0.2, 6.6, GREEN, "right", SANS, 600);
+  text(g, "QNH", 74, 84.5, 4, WHITE, "left"); text(g, "1013", 83, 84.5, 4.6, CYAN, "left");
+
+  // variometer
+  g.fillStyle = TAPE; g.beginPath(); g.moveTo(91.5, 30); g.lineTo(95.5, 30); g.lineTo(99, 40); g.lineTo(99, 64); g.lineTo(95.5, 74); g.lineTo(91.5, 74); g.closePath(); g.fill();
+  for (const v of [-2, -1, 1, 2]) { line(g, 91.5, CY - v * 9.5, 93.6, CY - v * 9.5, 0.5, WHITE); text(g, String(Math.abs(v)), 90.4, CY - v * 9.5, 3.4, WHITE, "right"); }
+  line(g, 91.5, CY, 94.5, CY, 0.8, YELLOW);
+  const vy = CY - clamp(d.vsFpm / 1000, -2.3, 2.3) * 9.5;
+  line(g, 99.5, CY, 92.4, vy, 0.9, GREEN);
+  if (Math.abs(d.vsFpm) > 200) {
+    g.fillStyle = "#000"; g.fillRect(92.6, vy + (d.vsFpm > 0 ? -6.4 : 1.6), 7, 4.8);
+    text(g, pad(Math.abs(d.vsFpm) / 100, 2), 96.1, vy + (d.vsFpm > 0 ? -4 : 4), 4.2, Math.abs(d.vsFpm) > 6000 ? AMBER : GREEN);
+  }
+
+  // kursbånd
+  g.save();
+  g.beginPath(); g.rect(22, 86, 48, 11); g.clip();
+  g.fillStyle = TAPE; g.fillRect(22, 88, 48, 9);
+  const hpx = 1.15;
+  for (let h = Math.floor(d.hdg / 5) * 5 - 25; h <= d.hdg + 25; h += 5) {
+    const hx = 46 + (h - d.hdg) * hpx, n = ((h % 360) + 360) % 360;
+    line(g, hx, 88, hx, n % 10 === 0 ? 90.6 : 89.4, 0.5, WHITE);
+    if (n % 10 === 0) text(g, String(n / 10), hx, 93.8, n % 30 === 0 ? 5 : 4, WHITE);
+  }
+  g.restore();
+  line(g, 22, 88, 70, 88, 0.5, WHITE);
+  line(g, 46, 83.5, 46, 89.5, 0.9, YELLOW);
+  g.restore();
 }
 
-function verticalSpeedIndicator(g: G2D, cx: number, cy: number, fpm: number, look: Look): void {
-  const MAX = 6, deg = (v: number) => 270 + (clamp(v, -MAX, MAX) / MAX) * 172; // 0 står klokka 9
-  bezel(g, cx, cy, R, look);
-  for (let v = -MAX; v <= MAX + 1e-9; v += 0.5) tick(g, cx, cy, deg(v), Number.isInteger(v) ? R - 3.6 : R - 2, R - 0.3, Number.isInteger(v) ? 0.5 : 0.25, look.ink);
-  for (const v of [-6, -4, -2, 0, 2, 4, 6]) dialText(g, String(Math.abs(v)), cx, cy, deg(v), R - 6.6, 3.2, look.ink);
-  text(g, "OPP", cx - 6, cy - 5.4, 2, look.dim, 500);
-  text(g, "NED", cx - 6, cy + 5.6, 2, look.dim, 500);
-  text(g, "1000 FOT/MIN", cx + 5.4, cy + 4.4, 1.6, look.dim, 500);
-  needle(g, cx, cy, deg(fpm / 1000), R - 3, 1.5, "#f4f4f0");
-  hub(g, cx, cy);
-  glass(g, cx, cy, R, look);
+/* ---------- ND: navigasjonsdisplay i buemodus med terreng ---------- */
+
+function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body: number): void {
+  beginDisplay(g, x, y, DU, body);
+  const AX = 50, AY = 84, R = 64; // flyets plass og radius for ytterste bue (= ND_RANGE_NM)
+  const P = game.P, sinH = Math.sin(P.hdg), cosH = Math.cos(P.hdg), unit = (ND_RANGE_NM * NM) / R / t.cell; // celler per skjermenhet
+  // skjerm (til høyre, forover) -> rutenett. Kartet er rutenettkurs opp; forskjellen fra sann kurs er 6° og ses ikke her.
+  const toGrid = (rx: number, fy: number): [number, number] => [P.x + (rx * cosH + fy * sinH) * unit, P.y - (-rx * sinH + fy * cosH) * unit];
+  const toScreen = (gx: number, gy: number): [number, number] => {
+    const e = (gx - P.x) / unit, n = -(gy - P.y) / unit;
+    return [AX + e * cosH - n * sinH, AY - (e * sinH + n * cosH)];
+  };
+
+  // Terreng som på et EGPWS-bilde: farge etter høyde i forhold til flyet
+  const STEP = 2.5, altM = P.alt;
+  for (let sy = 18; sy < AY + 6; sy += STEP) for (let sx = 0; sx < 100; sx += STEP) {
+    const rx = sx + STEP / 2 - AX, fy = AY - (sy + STEP / 2);
+    if (rx * rx + fy * fy > R * R) continue;
+    const [gx, gy] = toGrid(rx, fy);
+    if (!t.inBounds(gx, gy)) continue;
+    let c: string;
+    if (t.isWater(gx, gy)) c = "#0b3f5c";
+    else {
+      const rel = (t.heightAt(gx, gy) - altM) * FT;
+      if (rel > 2000) c = "#c01818"; else if (rel > -500) c = "#b98a12"; else if (rel > -2000) c = "#1d7a2c"; else continue;
+    }
+    g.fillStyle = c; g.fillRect(sx + 0.25, sy + 0.25, STEP - 0.5, STEP - 0.5);
+  }
+
+  // avstandsbuer
+  g.setLineDash([2, 2]);
+  for (const f of [0.25, 0.5, 0.75]) { g.strokeStyle = WHITE; g.lineWidth = 0.35; g.beginPath(); g.arc(AX, AY, R * f, Math.PI * 1.13, Math.PI * 1.87); g.stroke(); }
+  g.setLineDash([]);
+  text(g, String(ND_RANGE_NM / 2), AX - R * 0.5 * 0.86, AY - R * 0.5 * 0.42, 4, CYAN);
+  // kompassbue
+  g.strokeStyle = WHITE; g.lineWidth = 0.6; g.beginPath(); g.arc(AX, AY, R, Math.PI * 1.13, Math.PI * 1.87); g.stroke();
+  for (let h = Math.floor(d.hdg / 5) * 5 - 60; h <= d.hdg + 60; h += 5) {
+    const rel = h - d.hdg;
+    if (Math.abs(rel) > 62) continue;
+    const a = ((rel - 90) * Math.PI) / 180, n = ((h % 360) + 360) % 360, len = n % 10 === 0 ? 3 : 1.6;
+    line(g, AX + Math.cos(a) * R, AY + Math.sin(a) * R, AX + Math.cos(a) * (R + len), AY + Math.sin(a) * (R + len), 0.5, WHITE);
+    if (n % 30 === 0) text(g, String(n / 10), AX + Math.cos(a) * (R + 7), AY + Math.sin(a) * (R + 7), 4.6, WHITE);
+  }
+  line(g, AX, AY - R - 4, AX, AY - R + 2, 0.9, YELLOW);
+
+  // flyplass og rullebane
+  for (const rw of game.airport.runways) {
+    const [ax, ay] = toScreen(rw.ends[0].x, rw.ends[0].y), [bx, by] = toScreen(rw.ends[1].x, rw.ends[1].y);
+    line(g, ax, ay, bx, by, 1.6, WHITE); line(g, ax, ay, bx, by, 0.7, "#000");
+  }
+  const [px, py] = toScreen(game.airport.arp.x, game.airport.arp.y);
+  if (Math.hypot(px - AX, py - AY) < R) {
+    g.strokeStyle = MAGENTA; g.lineWidth = 0.6;
+    g.beginPath(); for (let i = 0; i < 4; i++) { const a = (i * Math.PI) / 4; g.moveTo(px - Math.cos(a) * 2.4, py - Math.sin(a) * 2.4); g.lineTo(px + Math.cos(a) * 2.4, py + Math.sin(a) * 2.4); } g.stroke();
+    text(g, game.airport.icao, px + 4, py - 3.4, 4, MAGENTA, "left");
+  }
+
+  // flysymbol
+  line(g, AX, AY - 4, AX, AY + 5, 0.9, YELLOW); line(g, AX - 5, AY, AX + 5, AY, 0.9, YELLOW); line(g, AX - 2, AY + 4, AX + 2, AY + 4, 0.9, YELLOW);
+
+  // datafelt
+  g.fillStyle = "rgba(0,0,0,.6)"; g.fillRect(0, 0, 100, 13);
+  text(g, "GS", 2, 4, 3.8, WHITE, "left"); text(g, String(Math.round(d.kt)), 9, 4, 4.6, GREEN, "left");
+  text(g, "TAS", 19, 4, 3.8, WHITE, "left"); text(g, String(Math.round(d.kt)), 28, 4, 4.6, GREEN, "left");
+  text(g, "---°/---", 2, 9.6, 4, GREEN, "left"); // vind: flymodellen har ingen
+  text(g, game.airport.icao, 98, 4, 4.4, WHITE, "right");
+  text(g, `${pad(d.arpBearing, 3)}°`, 78, 9.6, 4.4, GREEN, "right");
+  text(g, d.arpNm.toFixed(1), 93, 9.6, 4.4, GREEN, "right"); text(g, "NM", 98, 9.8, 3.2, CYAN, "right");
+  text(g, "TERR", 98, 96, 3.6, CYAN, "right");
+  g.restore();
 }
 
-/* ---------- utstyr rundt ---------- */
+/* ---------- E/WD: motor- og varseldisplay ---------- */
 
-function powerGauge(g: G2D, cx: number, cy: number, thr: number, look: Look): void {
-  const r = 14, deg = (v: number) => 225 + clamp(v, 0, 1) * 270;
-  bezel(g, cx, cy, r, look);
-  arc(g, cx, cy, r - 1.1, deg(0.2), deg(0.9), 1.1, "#2f9e44");
-  arc(g, cx, cy, r - 1.1, deg(0.9), deg(1), 1.1, "#e03131");
-  for (let v = 0; v <= 10; v++) tick(g, cx, cy, deg(v / 10), v % 2 ? r - 1.8 : r - 3.2, r - 0.3, v % 2 ? 0.25 : 0.45, look.ink);
-  for (const v of [0, 20, 40, 60, 80, 100]) dialText(g, String(v), cx, cy, deg(v / 100), r - 5.6, 2.5, look.ink);
-  text(g, "EFFEKT %", cx, cy - 4.6, 1.9, look.dim, 500);
-  needle(g, cx, cy, deg(thr), r - 2.6, 1.3, "#f4f4f0");
-  hub(g, cx, cy, 1.3);
-  glass(g, cx, cy, r, look);
+function arcGauge(g: G2D, cx: number, cy: number, r: number, frac: number, redFrom: number): void {
+  const a0 = Math.PI * 0.75, sweep = Math.PI * 1.2, ang = (f: number) => a0 + sweep * f;
+  g.strokeStyle = WHITE; g.lineWidth = 0.6; g.beginPath(); g.arc(cx, cy, r, ang(0), ang(redFrom)); g.stroke();
+  g.strokeStyle = RED; g.lineWidth = 1.1; g.beginPath(); g.arc(cx, cy, r, ang(redFrom), ang(1)); g.stroke();
+  for (const f of [0, 0.25, 0.5, 0.75]) line(g, cx + Math.cos(ang(f)) * (r - 1.6), cy + Math.sin(ang(f)) * (r - 1.6), cx + Math.cos(ang(f)) * r, cy + Math.sin(ang(f)) * r, 0.5, WHITE);
+  const a = ang(clamp(frac, 0, 1));
+  line(g, cx, cy, cx + Math.cos(a) * (r + 1.4), cy + Math.sin(a) * (r + 1.4), 0.9, GREEN);
 }
 
-function throttleLever(g: G2D, x: number, top: number, bottom: number, thr: number, look: Look): void {
-  g.fillStyle = "#06070a"; g.beginPath(); g.roundRect(x - 1.6, top, 3.2, bottom - top, 1.6); g.fill();
-  g.strokeStyle = shade(96, 100, 110, look.body); g.lineWidth = 0.3; g.stroke();
-  const y = bottom - 4 - thr * (bottom - top - 8);
-  g.fillStyle = shade(150, 152, 158, look.body); g.fillRect(x - 0.7, y, 1.4, bottom - y - 1.5);
-  const knob = g.createLinearGradient(x - 5, y - 4, x + 5, y + 4);
-  knob.addColorStop(0, shade(70, 72, 78, Math.max(look.body, 0.45)));
-  knob.addColorStop(1, shade(12, 12, 14, 1));
-  g.fillStyle = knob; g.beginPath(); g.roundRect(x - 5, y - 3.4, 10, 6.8, 2.2); g.fill();
-  text(g, "GASS", x, top - 3, 1.9, look.dim, 500);
+function ewd(g: G2D, x: number, y: number, d: Data, body: number): void {
+  beginDisplay(g, x, y, DU, body);
+  // Syntetisk: alle motorverdier er regnet rett fra gasshåndtaket, like for begge motorer
+  const n1 = 19.5 + d.thr * 80.5, egt = 390 + d.thr * 520, n2 = 59 + d.thr * 41, ff = 320 + d.thr * 2700;
+  for (const cx of [25, 59]) {
+    arcGauge(g, cx, 17, 11, n1 / 110, 0.92);
+    g.strokeStyle = "#8a8f96"; g.lineWidth = 0.4; g.strokeRect(cx + 0.5, 17.5, 15, 7);
+    text(g, n1.toFixed(1), cx + 14.6, 21.2, 5.4, GREEN, "right", SANS, 600);
+    arcGauge(g, cx, 44, 7.5, egt / 1000, 0.9);
+    text(g, String(Math.round(egt)), cx + 9, 48.5, 5, GREEN, "right", SANS, 600);
+    text(g, n2.toFixed(1), cx + 9, 58, 5, GREEN, "right", SANS, 600);
+    text(g, String(Math.round(ff / 10) * 10), cx + 9, 66, 5, GREEN, "right", SANS, 600);
+  }
+  text(g, "N1", 42, 10, 4, WHITE); text(g, "%", 42, 14.4, 3.4, CYAN);
+  text(g, "EGT", 42, 40, 4, WHITE); text(g, "°C", 42, 44.4, 3.4, CYAN);
+  text(g, "N2", 42, 56.6, 4, WHITE); text(g, "%", 42, 60.4, 3.2, CYAN);
+  text(g, "FF", 42, 64.6, 4, WHITE); text(g, "KG/H", 42, 68.4, 2.8, CYAN);
+  // høyre kolonne: klaffer (fast landingsoppsett)
+  text(g, "FLAP", 86, 34, 3.8, WHITE);
+  line(g, 78, 41, 86, 41, 0.6, WHITE); line(g, 86, 41, 96, 46, 0.6, GREEN);
+  g.fillStyle = GREEN; g.beginPath(); g.moveTo(96, 46); g.lineTo(93, 43.6); g.lineTo(92.4, 46.4); g.closePath(); g.fill();
+  text(g, "FULL", 87, 52, 4.2, GREEN);
+  text(g, "FOB", 80, 62, 3.6, WHITE); text(g, "5400", 96, 66.6, 4.6, GREEN, "right"); text(g, "KG", 98, 62.2, 3, CYAN, "right");
+  // landingsmemo
+  line(g, 2, 73, 98, 73, 0.4, WHITE); line(g, 62, 74, 62, 99, 0.4, WHITE);
+  ["LDG  LDG GEAR DN", "       SIGNS ON", "       CABIN READY", "       SPLRS ARM", "       FLAPS FULL"].forEach((m, i) => text(g, m, 3, 77.6 + i * 4.8, 3.9, GREEN, "left", MONO));
+  g.restore();
 }
 
-function lcd(g: G2D, x: number, y: number, w: number, h: number, value: string, caption: string, look: Look): void {
-  g.fillStyle = shade(26, 28, 32, look.body); g.beginPath(); g.roundRect(x - 1, y - 1, w + 2, h + 2, 1.2); g.fill();
-  g.fillStyle = "#0c1410"; g.fillRect(x, y, w, h);
-  g.font = `600 ${h * 0.72}px ui-monospace, Menlo, Consolas, monospace`;
-  g.fillStyle = "#7dffa0"; g.textAlign = "right"; g.textBaseline = "middle";
-  g.fillText(value, x + w - 2, y + h / 2 + 0.2);
-  g.font = `500 2px ${SANS}`; g.fillStyle = "#4f9f66"; g.textAlign = "left";
-  g.fillText(caption, x + 1.6, y + h / 2 + 0.2);
+/* ---------- mindre utstyr ---------- */
+
+/** Reserveinstrument: horisont med fart og høyde som tall. */
+function standby(g: G2D, x: number, y: number, size: number, d: Data, body: number): void {
+  beginDisplay(g, x, y, size, body);
+  attitudeBall(g, 50, 52, 30, 34, d, 1.5);
+  g.fillStyle = "rgba(0,0,0,.75)"; g.fillRect(0, 0, 100, 16);
+  text(g, String(Math.round(d.kt)), 4, 8.5, 12, GREEN, "left", SANS, 600);
+  text(g, String(Math.round(d.altFt / 10) * 10), 96, 8.5, 12, GREEN, "right", SANS, 600);
+  g.restore();
 }
 
-export function drawPanel(g: G2D, t: Terrain, map: CanvasImageSource, game: Game): void {
-  const P = game.P, night = game.env.sky.night;
-  const look: Look = {
-    night,
-    body: 1 - 0.8 * night,
-    ink: night > 0.5 ? "#ffd9a0" : "#f0f0ea",
-    dim: night > 0.5 ? "#c9a878" : "#b9bcc2",
+function lcd(g: G2D, x: number, y: number, w: number, h: number, caption: string, value: string, color: string, body: number): void {
+  g.fillStyle = shade(30, 33, 38, Math.max(body, 0.45)); g.beginPath(); g.roundRect(x - 0.8, y - 0.8, w + 1.6, h + 1.6, 0.8); g.fill();
+  g.fillStyle = "#07090a"; g.fillRect(x, y, w, h);
+  text(g, caption, x + 1, y + 1.7, 1.9, "#9aa3ad", "left");
+  text(g, value, x + w - 1, y + h / 2 + 1, h * 0.58, color, "right", MONO, 600);
+}
+
+/** FCU: vinduene viser streker fordi ingen verdier kan velges (ingen autopilot). */
+function fcu(g: G2D, body: number): void {
+  const x = 106, y = 109, w = 108, h = 11.5;
+  g.fillStyle = shade(52, 60, 70, body); g.beginPath(); g.roundRect(x, y, w, h, 1.2); g.fill();
+  g.strokeStyle = shade(20, 23, 28, body); g.lineWidth = 0.4; g.stroke();
+  const win = (wx: number, ww: number, label: string, value: string) => {
+    g.fillStyle = "#06080a"; g.fillRect(wx, y + 3.4, ww, 6);
+    text(g, label, wx + 0.8, y + 1.9, 2, WHITE, "left");
+    text(g, value, wx + ww - 1, y + 6.6, 4.4, "#ffb347", "right", MONO, 600);
+  };
+  win(x + 5, 19, "SPD", "---●"); win(x + 29, 19, "HDG", "---●"); win(x + 56, 24, "ALT", "-----"); win(x + 84, 19, "V/S", "-----");
+  // EFIS-kontrollpanel på hver side: trykkinnstilling
+  for (const ex of [x - 30, x + w + 4]) {
+    g.fillStyle = shade(52, 60, 70, body); g.beginPath(); g.roundRect(ex, y + 1, 26, h - 2, 1); g.fill();
+    g.fillStyle = "#06080a"; g.fillRect(ex + 9, y + 4, 14, 5);
+    text(g, "QNH", ex + 1.2, y + 6.6, 2.2, WHITE, "left"); text(g, "1013", ex + 22, y + 6.6, 3.8, "#ffb347", "right", MONO, 600);
+  }
+}
+
+/** Understellspanel. Flymodellen har ikke understell: det vises alltid nede og låst. */
+function gearPanel(g: G2D, x: number, y: number, body: number): void {
+  g.fillStyle = shade(86, 100, 114, body); g.beginPath(); g.roundRect(x, y, 22, DU, 1); g.fill();
+  text(g, "LDG GEAR", x + 11, y + 3, 2.2, shade(235, 235, 235, Math.max(body, 0.6)));
+  for (const gx of [x + 4.5, x + 11, x + 17.5]) {
+    g.fillStyle = "#07090a"; g.fillRect(gx - 2.6, y + 5.4, 5.2, 6.4);
+    g.fillStyle = GREEN; g.beginPath(); g.moveTo(gx - 1.8, y + 7); g.lineTo(gx + 1.8, y + 7); g.lineTo(gx, y + 10.4); g.closePath(); g.fill();
+  }
+  text(g, "AUTO/BRK", x + 11, y + 15.4, 2.1, shade(235, 235, 235, Math.max(body, 0.6)));
+  ["LO", "MED", "MAX"].forEach((s, i) => {
+    g.fillStyle = "#101316"; g.fillRect(x + 1.6 + i * 6.6, y + 17.4, 5.6, 5.2);
+    text(g, s, x + 4.4 + i * 6.6, y + 20.1, 2, shade(210, 214, 220, Math.max(body, 0.6)));
+  });
+  // spake: nede
+  g.fillStyle = "#07090a"; g.beginPath(); g.roundRect(x + 9.4, y + 26, 3.2, 17, 1.6); g.fill();
+  g.fillStyle = shade(200, 204, 210, Math.max(body, 0.5)); g.fillRect(x + 10.3, y + 34, 1.4, 6);
+  g.fillStyle = shade(40, 42, 46, 1); g.beginPath(); g.arc(x + 11, y + 40.4, 2.6, 0, 7); g.fill();
+  text(g, "UP", x + 5, y + 28.4, 2, shade(235, 235, 235, Math.max(body, 0.6))); text(g, "DOWN", x + 4.4, y + 40.6, 2, shade(235, 235, 235, Math.max(body, 0.6)));
+}
+
+/** Gasshåndtak med Airbus-sperrene. Stillingen følger gassen trinnløst. */
+function thrustLevers(g: G2D, cx: number, top: number, thr: number, body: number): void {
+  const bottom = H - 1.5, y = bottom - 3 - thr * (bottom - top - 7);
+  g.fillStyle = shade(40, 44, 50, Math.max(body, 0.4)); g.beginPath(); g.roundRect(cx - 21, top - 1.5, 42, bottom - top + 3, 1.4); g.fill();
+  for (const [f, label] of [[1, "TO GA"], [0.84, "FLX MCT"], [0.66, "CL"], [0, "0"]] as const) {
+    const ly = bottom - 3 - f * (bottom - top - 7);
+    line(g, cx - 8, ly, cx + 8, ly, 0.3, shade(180, 184, 190, Math.max(body, 0.5)));
+    text(g, label, cx - 9.4, ly, 2.1, shade(235, 235, 235, Math.max(body, 0.6)), "right");
+  }
+  for (const s of [-1, 1]) {
+    g.fillStyle = "#06070a"; g.fillRect(cx + s * 3.4 - 1, top, 2, bottom - top);
+    g.fillStyle = shade(170, 174, 180, Math.max(body, 0.5)); g.fillRect(cx + s * 3.4 - 0.6, y, 1.2, bottom - y);
+    const knob = g.createLinearGradient(0, y - 2.4, 0, y + 2.4);
+    knob.addColorStop(0, shade(96, 98, 104, Math.max(body, 0.5))); knob.addColorStop(1, "#141518");
+    g.fillStyle = knob; g.beginPath(); g.roundRect(cx + s * 3.4 - 3, y - 2.4, 6, 4.8, 1.4); g.fill();
+  }
+}
+
+export function drawPanel(g: G2D, t: Terrain, game: Game): void {
+  const P = game.P, body = 1 - 0.8 * game.env.sky.night, arp = game.airport.arp;
+  const d: Data = {
+    kt: P.spd * KT,
+    altFt: P.alt * FT,
+    vsFpm: verticalSpeed(P) * FT * 60,
+    pitch: P.pitch, roll: P.roll,
+    hdg: t.trueHeadingDeg(P.hdg),
+    raFt: Math.max(0, P.alt - Math.max(0, t.heightAt(P.x, P.y))) * FT,
+    thr: P.thr,
+    arpNm: (Math.hypot(arp.x - P.x, arp.y - P.y) * t.cell) / NM,
+    // peiling i rutenettet + meridiankonvergens = sann peiling
+    arpBearing: (((Math.atan2(arp.x - P.x, -(arp.y - P.y)) * DEG + t.meta.gridConvergenceDeg) % 360) + 360) % 360,
   };
   g.save();
 
   // stolper på hver side av frontruta
-  g.fillStyle = shade(30, 33, 40, look.body);
-  g.beginPath(); g.moveTo(0, 0); g.lineTo(9, 0); g.lineTo(22, PANEL_TOP + 2); g.lineTo(0, PANEL_TOP + 2); g.fill();
-  g.beginPath(); g.moveTo(W, 0); g.lineTo(W - 9, 0); g.lineTo(W - 22, PANEL_TOP + 2); g.lineTo(W, PANEL_TOP + 2); g.fill();
-  g.fillRect(0, 0, W, 3);
+  g.fillStyle = shade(30, 33, 40, body);
+  g.beginPath(); g.moveTo(0, 0); g.lineTo(8, 0); g.lineTo(18, PANEL_TOP + 2); g.lineTo(0, PANEL_TOP + 2); g.fill();
+  g.beginPath(); g.moveTo(W, 0); g.lineTo(W - 8, 0); g.lineTo(W - 18, PANEL_TOP + 2); g.lineTo(W, PANEL_TOP + 2); g.fill();
+  g.fillRect(0, 0, W, 2.5);
+  // Ingen midtstolpe: kameraet står i flyets midtlinje, og en stolpe der ville skjult rullebanen
 
-  // panelplate
+  // panelplate i Airbus-blågrått
   const plate = g.createLinearGradient(0, PANEL_TOP, 0, H);
-  plate.addColorStop(0, shade(62, 66, 76, look.body));
-  plate.addColorStop(1, shade(40, 43, 50, look.body));
+  plate.addColorStop(0, shade(104, 122, 138, body));
+  plate.addColorStop(1, shade(78, 92, 106, body));
   g.fillStyle = plate; g.fillRect(0, PANEL_TOP, W, H - PANEL_TOP);
-  // blendingsskjerm: mørk, svakt buet kant som kaster skygge på panelet
-  const shadow = g.createLinearGradient(0, PANEL_TOP, 0, PANEL_TOP + 9);
-  shadow.addColorStop(0, "rgba(0,0,0,.55)"); shadow.addColorStop(1, "rgba(0,0,0,0)");
-  g.fillStyle = shadow; g.fillRect(0, PANEL_TOP, W, 9);
-  g.fillStyle = shade(18, 19, 23, Math.max(look.body, 0.5));
-  g.beginPath(); g.moveTo(0, PANEL_TOP + 3); g.quadraticCurveTo(W / 2, PANEL_TOP - 7, W, PANEL_TOP + 3); g.lineTo(W, PANEL_TOP + 5.5);
-  g.quadraticCurveTo(W / 2, PANEL_TOP - 3.5, 0, PANEL_TOP + 5.5); g.closePath(); g.fill();
+  // blendingsskjerm
+  g.fillStyle = shade(20, 22, 26, Math.max(body, 0.5));
+  g.beginPath(); g.moveTo(0, PANEL_TOP + 4); g.quadraticCurveTo(W / 2, PANEL_TOP - 6, W, PANEL_TOP + 4); g.lineTo(W, PANEL_TOP + 16); g.lineTo(0, PANEL_TOP + 16); g.closePath(); g.fill();
+  const shadow = g.createLinearGradient(0, PANEL_TOP + 16, 0, PANEL_TOP + 22);
+  shadow.addColorStop(0, "rgba(0,0,0,.5)"); shadow.addColorStop(1, "rgba(0,0,0,0)");
+  g.fillStyle = shadow; g.fillRect(0, PANEL_TOP + 16, W, 6);
+  fcu(g, body);
 
-  airspeed(g, COLS[0], ROWS[0], P.spd * KT, look);
-  attitude(g, COLS[1], ROWS[0], P.pitch, P.roll, look);
-  altimeter(g, COLS[2], ROWS[0], Math.max(0, P.alt * FT), look);
-  turnCoordinator(g, COLS[0], ROWS[1], turnRate(P) * DEG, look);
-  headingIndicator(g, COLS[1], ROWS[1], t.trueHeadingDeg(P.hdg), look);
-  verticalSpeedIndicator(g, COLS[2], ROWS[1], verticalSpeed(P) * FT * 60, look);
-
-  // kartskjerm til venstre
-  const mx = 26, my = 124, ms = 50;
-  g.fillStyle = shade(22, 24, 28, Math.max(look.body, 0.5)); g.beginPath(); g.roundRect(mx - 3, my - 3, ms + 6, ms + 6, 2); g.fill();
-  g.fillStyle = "#000"; g.fillRect(mx, my, ms, ms);
-  g.globalAlpha = 1 - 0.3 * night; // skjermen dempes om natta
-  drawMap(g, t, map, game, mx, my, ms);
-  g.globalAlpha = 1;
-  const dist = (Math.hypot(game.airport.arp.x - P.x, game.airport.arp.y - P.y) * t.cell) / 1852;
-  lcd(g, mx - 2, my + ms + 6, 26, 7, dist.toFixed(1), `${game.airport.icao} NM`, look);
-  lcd(g, mx + 28, my + ms + 6, 24, 7, formatOslo(game.time), "KL", look);
-
-  powerGauge(g, 252, 134, P.thr, look);
-  throttleLever(g, 291, 126, 192, P.thr, look);
-  lcd(g, 236, 158, 32, 7, String(Math.round(P.alt)), "ALT M", look);
-  lcd(g, 236, 170, 32, 7, String(Math.round(Math.max(0, P.alt - Math.max(0, t.heightAt(P.x, P.y))))), "RADAR M", look);
+  pfd(g, 10, ROW, d, body);
+  nd(g, 60, ROW, d, t, game, body);
+  standby(g, 111, ROW, 22, d, body);
+  const utc = new Date(game.time), lt = osloTime(game.time);
+  lcd(g, 111, ROW + 26, 22, 8, "UTC", `${pad(utc.getUTCHours(), 2)}:${pad(utc.getUTCMinutes(), 2)}`, GREEN, body);
+  lcd(g, 111, ROW + 37, 22, 8, "LOKAL", `${pad(lt.hour, 2)}:${pad(lt.minute, 2)}`, GREEN, body);
+  ewd(g, 137, ROW, d, body);
+  gearPanel(g, 187, ROW, body);
+  nd(g, 214, ROW, d, t, game, body);
+  pfd(g, 264, ROW, d, body);
+  thrustLevers(g, 160, ROW + DU + 6, P.thr, body);
 
   g.restore();
 }

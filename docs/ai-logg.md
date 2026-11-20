@@ -127,6 +127,12 @@ og hva som ble endret.
 - Kontrollert i skjermbilde fra cockpit over terskelen: «03» leses riktig.
   «21» er tegnet etter samme resonnement, men ikke sett.
 
+**16. Midtstolpe i frontruta skjulte rullebanen**
+- Jeg tegnet midtstolpen fordi A320 har en. Men kameraet står i flyets
+  midtlinje, ikke i kapteinssetet, så stolpen dekket nøyaktig det punktet
+  man flyr mot. Oppdaget i skjermbilde (rullebanen var borte); fjernet.
+  Lærdom: «realistisk» detalj kopiert uten å tenke på hvor øyet står.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

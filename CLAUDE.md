@@ -25,7 +25,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     main.ts        laster fliser, kobler sammen og kjører løkka
     game.ts        spilltilstand, klokke, inndata
     terrain.ts     laster fliser; heightAt, isWater, utmToGrid, sann kurs
-    physics.ts     flymodell, landing, kollisjon
+    physics.ts     flymodell (enkel, med A320-lignende fartsgrenser), landing, kollisjon
     sun.ts         solas posisjon fra tid og sted
     sky.ts         himmelfarger og lysstyrke fra solhøyden
     clock.ts       norsk tid <-> UTC
@@ -33,7 +33,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     groundDetail.ts  prosedyrale bakkedetaljer per overflateklasse (shader, syntetisk)
     runwayDecal.ts   rullebanen som skarp flate med merking (merkingen er syntetisk)
     hud.ts         skjermtekst og kart (utvendig kamera)
-    panel.ts       instrumentpanel (cockpit)
+    panel.ts       A320-instrumentpanel (cockpit): PFD, ND med terreng, E/WD, FCU
 data/raw/        cache av nedlastede rådata (ikke i git)
 data/processed/  GeoTIFF-kopier for kontroll i QGIS (ikke i git)
 tests/fixtures/  fasitpunkter fra Kartverkets API-er, delt av pytest og vitest

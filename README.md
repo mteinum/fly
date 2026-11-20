@@ -1,7 +1,7 @@
 # teinum-fly
 
-Flysimulator over ekte norsk terreng: innflyging til Kristiansand lufthavn,
-Kjevik (ENCN), 25,6 x 25,6 km i 10 m-celler. WebGL, sann målestokk, bygninger
+Flysimulator over ekte norsk terreng: innflyging med Airbus A320 til Kristiansand
+lufthavn, Kjevik (ENCN), 25,6 x 25,6 km i 10 m-celler. WebGL, sann målestokk, bygninger
 og bruer som geometri, sol og mørke etter klokka, og cockpit med instrumentpanel.
 
 ## Kjøre

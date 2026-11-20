@@ -24,7 +24,7 @@ const DECK_THICKNESS = 2.5;
 const RELIEF = 1.5; // overdrivelse av helningen i normalkartet, så lavt terreng får synlig skygge
 const SKY_RADIUS = 60000;
 /** Hvor mye bildet forskyves i cockpit, som andel av høyden, så horisonten havner midt i frontruta. */
-const COCKPIT_SHIFT = 0.21;
+const COCKPIT_SHIFT = 0.23;
 
 const WARM_WHITE: RGB = [255, 236, 200], GREEN: RGB = [60, 255, 120], STREET: RGB = [255, 190, 120];
 
@@ -130,7 +130,7 @@ export class GlRenderer {
     this.lamps = this.pointLights(this.bridgeLampPositions(), 2.4);
     this.plane = this.buildPlane();
     this.shadow = new THREE.Mesh(
-      new THREE.CircleGeometry(7, 20).rotateX(-Math.PI / 2),
+      new THREE.CircleGeometry(16, 24).rotateX(-Math.PI / 2).scale(1, 1, 1.1),
       new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }),
     );
     this.scene.add(this.runwayLights, this.lamps, this.plane, this.shadow);
@@ -296,29 +296,46 @@ export class GlRenderer {
     this.scene.add(new THREE.Mesh(geo, new THREE.MeshLambertMaterial({ color: 0xdad4c6, side: THREE.DoubleSide })));
   }
 
-  /** Enkelt fly av bokser, i ekte størrelse (vingespenn 15 m). Nesa peker mot -Z. */
+  /** Airbus A320 i ekte størrelse (lengde 37,6 m, vingespenn 34 m), bygget av enkle former. Nesa peker mot -Z. */
   private buildPlane(): THREE.Group {
-    const g = new THREE.Group();
-    const box = (w: number, h: number, d: number, c: number, x: number, y: number, z: number) => {
-      const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color: c }));
+    const g = new THREE.Group(), body = new THREE.Group();
+    const white = new THREE.MeshLambertMaterial({ color: 0xf2f4f6 }), grey = new THREE.MeshLambertMaterial({ color: 0xb8bec6, side: THREE.DoubleSide });
+    const dark = new THREE.MeshLambertMaterial({ color: 0x1c2733 }), navy = new THREE.MeshLambertMaterial({ color: 0x14365f, side: THREE.DoubleSide });
+    const add = (geo: THREE.BufferGeometry, mat: THREE.Material, x = 0, y = 0, z = 0) => {
+      const m = new THREE.Mesh(geo, mat);
       m.position.set(x, y, z);
-      g.add(m);
+      body.add(m);
     };
-    const lamp = (c: number, x: number, y: number, z: number) => {
-      const m = new THREE.Mesh(new THREE.SphereGeometry(0.28, 8, 6), new THREE.MeshBasicMaterial({ color: c, fog: false }));
-      m.position.set(x, y, z);
-      g.add(m);
+    const R = 1.98; // skrogradius
+    add(new THREE.CylinderGeometry(R, R, 26, 20).rotateX(Math.PI / 2), white, 0, 0, -1); // skrog, z fra -14 til 12
+    add(new THREE.SphereGeometry(R, 20, 12).scale(1, 1, 2.5), white, 0, 0, -14); // nese
+    add(new THREE.CylinderGeometry(R, 0.45, 9.5, 20).rotateX(-Math.PI / 2), white, 0, 0.55, 16.7); // halekon, løftet bak
+    add(new THREE.BoxGeometry(2.5, 0.7, 1.6), dark, 0, 0.95, -16.4); // cockpitvinduer
+
+    // Planform sett ovenfra: [x ut fra midten, z bakover]. Speiles for venstre side.
+    const surface = (pts: [number, number][], thickness: number, mat: THREE.Material, y: number) => {
+      for (const side of [1, -1]) {
+        const shape = new THREE.Shape(pts.map(([px, pz]) => new THREE.Vector2(px * side, pz)));
+        // formen ligger i XY; dreid 90° om X blir formens y til verdens z
+        add(new THREE.ExtrudeGeometry(shape, { depth: thickness, bevelEnabled: false }).rotateX(Math.PI / 2), mat, 0, y, 0);
+      }
     };
-    box(1.5, 1.5, 11, 0xdde2e8, 0, 0, 0); // kropp
-    box(1.3, 0.9, 2.2, 0x3fb7e8, 0, 0.5, -3.2); // cockpitglass
-    box(15, 0.25, 2.2, 0xc9ced6, 0, 0.3, -0.8); // vinger
-    box(1.2, 0.27, 2.2, 0xd23b3b, -6.9, 0.3, -0.8); // vingetipper
-    box(1.2, 0.27, 2.2, 0xd23b3b, 6.9, 0.3, -0.8);
-    box(5.5, 0.2, 1.4, 0xb9bec6, 0, 0.4, 4.7); // haleplan
-    box(0.25, 2.4, 1.8, 0xd23b3b, 0, 1.5, 4.6); // halefinne
-    lamp(0xff2020, -7.6, 0.3, -0.8); // navigasjonslys: rødt på venstre vinge (babord)
-    lamp(0x20ff40, 7.6, 0.3, -0.8); // grønt på høyre (styrbord)
-    lamp(0xffffff, 0, 2.8, 5.4); // hvitt i halen
+    surface([[1.6, -4.2], [17, 4.6], [17, 6.2], [5.6, 3.4], [1.6, 3.6]], 0.45, grey, -0.9); // vinger, 25° pilform
+    surface([[0.6, 15.2], [6.2, 19.4], [6.2, 20.6], [0.6, 19.6]], 0.3, grey, 1.1); // haleplan
+    // halefinne sett fra siden: [z bakover, y opp]
+    const fin = new THREE.Shape([[13.4, 1.6], [18.6, 9.6], [20.8, 9.6], [19.8, 1.6]].map(([pz, py]) => new THREE.Vector2(pz, py)));
+    add(new THREE.ExtrudeGeometry(fin, { depth: 0.4, bevelEnabled: false }).rotateY(-Math.PI / 2), navy, 0.2, 0, 0);
+    for (const side of [1, -1]) { // motorer under vingene
+      add(new THREE.CylinderGeometry(1.15, 1.0, 4.4, 16).rotateX(Math.PI / 2), white, side * 5.75, -2.3, -2.6);
+      add(new THREE.CylinderGeometry(1.0, 1.0, 0.3, 16).rotateX(Math.PI / 2), dark, side * 5.75, -2.3, -4.85);
+    }
+    const lamp = (c: number, x: number, y: number, z: number) => add(new THREE.SphereGeometry(0.35, 8, 6), new THREE.MeshBasicMaterial({ color: c, fog: false }), x, y, z);
+    lamp(0xff2020, -17.1, -1.1, 5.4); // navigasjonslys: rødt på venstre vinge (babord)
+    lamp(0x20ff40, 17.1, -1.1, 5.4); // grønt på høyre (styrbord)
+    lamp(0xffffff, 0, 1.2, 21.6); // hvitt i halen
+    // Flyets posisjon (P.alt) er hjulenes høyde: skrogets akse ligger 3,6 m over
+    body.position.y = 3.6;
+    g.add(body);
     g.rotation.order = "YXZ";
     return g;
   }
@@ -432,13 +449,14 @@ export class GlRenderer {
 
     if (cam === "external") {
       this.camera.clearViewOffset();
-      this.camera.position.set(x - fx * 34, P.alt + 9, z - fz * 34);
+      this.camera.position.set(x - fx * 88, P.alt + 22, z - fz * 88);
       this.camera.rotation.order = "XYZ";
-      this.camera.lookAt(x + fx * 30, P.alt, z + fz * 30);
+      this.camera.lookAt(x + fx * 70, P.alt + 3, z + fz * 70);
     } else {
       // instrumentpanelet dekker nedre del: flytt bildet opp så horisonten ligger midt i frontruta
       this.camera.setViewOffset(this.size.x, this.size.y, 0, this.size.y * COCKPIT_SHIFT, this.size.x, this.size.y);
-      this.camera.position.set(x, P.alt + 1.2, z);
+      // pilotens øye: 15 m foran flyets midtpunkt og 5 m over hjulene
+      this.camera.position.set(x + fx * 15, P.alt + 5, z + fz * 15);
       this.camera.rotation.order = "YXZ";
       this.camera.rotation.set(P.pitch, -P.hdg, -P.roll);
     }
