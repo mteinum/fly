@@ -14,7 +14,7 @@
  */
 import { osloTime } from "./clock";
 import type { Game } from "./game";
-import { FLAP_NAMES, speedLimit, stallSpeed, verticalSpeed } from "./physics";
+import { FLAP_NAMES, speedLimit, stallSpeed, verticalSpeed, warnings } from "./physics";
 import type { Plane } from "./plane";
 import { H, OX, PANEL_TOP, TOP, W } from "./screen";
 import type { Terrain } from "./terrain";
@@ -412,12 +412,10 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
     // peiling i rutenettet + meridiankonvergens = sann peiling
     arpBearing: (((Math.atan2(arp.x - P.x, -(arp.y - P.y)) * DEG + t.meta.gridConvergenceDeg) % 360) + 360) % 360,
   };
-  if (P.state === "fly") {
-    if (d.kt > d.limitKt + 4) d.warnings.push("OVERSPEED", ` MAX ${Math.round(d.limitKt)} KT`);
-    if (d.kt < d.stallKt) d.warnings.push("STALL");
-    // understellsvarsel: lavt, og understellet ikke nede og låst
-    if (d.raFt < 750 && P.gear < 1) d.warnings.push("L/G GEAR NOT DOWN");
-  }
+  const w = warnings(P, d.raFt);
+  if (w.overspeed) d.warnings.push("OVERSPEED", ` MAX ${Math.round(d.limitKt)} KT`);
+  if (w.stall) d.warnings.push("STALL");
+  if (w.gearNotDown) d.warnings.push("L/G GEAR NOT DOWN");
   g.save();
 
   // stolper på hver side av frontruta

@@ -147,6 +147,18 @@ og hva som ble endret.
   benken var alt tegnet over hele flaten.
 - Oppdaget i skjermbilde. Rettet med `clearRect` før rammen tegnes.
 
+**19. Lyd kan ikke kontrolleres slik bilder kan**
+- Jeg kan ikke høre. Kontrollen av lydfilene er derfor målt: varighet,
+  lydstyrke og forløp per fil (tårnrommet var 30 dB svakere enn resten og er
+  forsterket i spillet). Om motoren *låter* som en motor vet jeg ikke.
+- Forsøk på å kjøre spillet i nettleser med simulerte tastetrykk feilet
+  (fjernstyring av Chrome er sperret i dette miljøet), og hodeløs Chrome med
+  virtuell tid stoppet før lydfilene var dekodet, så ingen hendelser ble
+  spilt. Det så ut som en feil i lydmotoren, men var en feil i testoppsettet.
+- Løst ved å teste hendelseslogikken mot en liksom-lydkontekst der testen
+  styrer klokka (`audioEngine.test.ts`): hva som spilles og når er
+  kontrollert, hvordan det høres ut er det ikke.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

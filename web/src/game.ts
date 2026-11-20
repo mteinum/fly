@@ -30,6 +30,8 @@ export interface Game {
   /** Spillklokka, UTC i ms. Går i sanntid; Q/E stiller den en halvtime bakover/framover. */
   time: number;
   env: Environment;
+  /** Gjeldende innflyging: løpenummer (øker for hver ny) og banen det flys mot. */
+  approach: { count: number; ident: string };
   /** Ett steg: klokke, fysikk, meldinger og ny innflyging når det trengs. */
   step(dt: number): void;
 }
@@ -45,8 +47,11 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   const K: Keys = {};
   const msg: Message = { text: "", t: 0 };
   const say = (text: string, t = 3) => { msg.text = text; msg.t = t; };
+  const approach = { count: 0, ident: runway.ends[endIdx].ident };
   const reset = () => {
     startApproach(P, terrain, runway.ends[endIdx]);
+    approach.count++;
+    approach.ident = runway.ends[endIdx].ident;
     say(`Innflyging ${airport.icao} bane ${runway.ends[endIdx].ident}`, 3);
   };
   const environment = (time: number): Environment => {
@@ -61,7 +66,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   };
   const time = startTime(params, Date.now());
   const game: Game = {
-    P, airport, msg, time,
+    P, airport, msg, time, approach,
     cam: CAMERAS.find((c) => c === params.get("cam")) ?? "external",
     env: environment(time),
     step(dt) {

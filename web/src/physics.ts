@@ -27,6 +27,19 @@ export const stallSpeed = (P: Plane): number => table(STALL_KT, P.flaps) / KT;
 /** Høyeste tillatte fart (m/s): strengeste av klaffgrense og understellsgrense. Mens klaffene går ut gjelder grensen for stillingen de er på vei til. */
 export const speedLimit = (P: Plane): number =>
   Math.min(FLAP_LIMIT_KT[Math.ceil(Math.max(P.flaps, P.flapCfg) - 1e-6)], P.gear > 0.01 || P.gearDown ? GEAR_LIMIT_KT : 350) / KT;
+export interface Warnings { overspeed: boolean; stall: boolean; gearNotDown: boolean }
+
+/** Varslene flyet gir nå. `raFt` er radiohøyden i fot. Brukes av både panelet og lyden. */
+export function warnings(P: Plane, raFt: number): Warnings {
+  const flying = P.state === "fly";
+  return {
+    overspeed: flying && P.spd > speedLimit(P) + 2,
+    stall: flying && P.spd < stallSpeed(P),
+    // lavt, og understellet ikke nede og låst
+    gearNotDown: flying && raFt < 750 && P.gear < 1,
+  };
+}
+
 /** Fart (m/s) flyet går mot med gitt gass i flat flyging. */
 const targetSpeed = (P: Plane, thr: number): number => 40 + thr * (table(TOP_SPEED, P.flaps) - GEAR_DRAG * P.gear - 40);
 

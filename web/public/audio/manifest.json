@@ -1,0 +1,173 @@
+{
+  "source": "ElevenLabs (generert, syntetisk)",
+  "sounds": {
+    "engine": {
+      "file": "engine.mp3",
+      "kind": "effect",
+      "loop": true,
+      "prompt": "Steady continuous hum and whine of twin turbofan jet engines heard from inside an airliner cockpit, constant pitch, no voices, no music"
+    },
+    "wind": {
+      "file": "wind.mp3",
+      "kind": "effect",
+      "loop": true,
+      "prompt": "Steady continuous airflow wind noise around an airliner cockpit in flight, constant hiss, no voices"
+    },
+    "tower_room": {
+      "file": "tower_room.mp3",
+      "kind": "effect",
+      "loop": true,
+      "prompt": "Quiet air traffic control tower room tone: soft ventilation and faint electronic equipment hum, no voices"
+    },
+    "gear": {
+      "file": "gear.mp3",
+      "kind": "effect",
+      "loop": false,
+      "prompt": "Aircraft landing gear extending: hydraulic whine, then a heavy mechanical clunk as it locks"
+    },
+    "flaps": {
+      "file": "flaps.mp3",
+      "kind": "effect",
+      "loop": false,
+      "prompt": "Electric motor whirring as aircraft wing flaps move, short, mechanical"
+    },
+    "touchdown": {
+      "file": "touchdown.mp3",
+      "kind": "effect",
+      "loop": false,
+      "prompt": "Airliner main wheels touching down on a runway: brief tyre screech and a low thump with rumble"
+    },
+    "crash": {
+      "file": "crash.mp3",
+      "kind": "effect",
+      "loop": false,
+      "prompt": "Heavy aircraft crash impact: metal crunching and debris, short"
+    },
+    "splash": {
+      "file": "splash.mp3",
+      "kind": "effect",
+      "loop": false,
+      "prompt": "Very large object hitting water at speed: huge splash"
+    },
+    "warning": {
+      "file": "warning.mp3",
+      "kind": "effect",
+      "loop": false,
+      "prompt": "Aircraft cockpit master warning: urgent repetitive electronic chime, three beeps"
+    },
+    "radio": {
+      "file": "radio.mp3",
+      "kind": "effect",
+      "loop": false,
+      "prompt": "Short burst of aviation radio static and a click as a transmission starts"
+    },
+    "alt_1000": {
+      "file": "alt_1000.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "One thousand"
+    },
+    "alt_500": {
+      "file": "alt_500.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Five hundred"
+    },
+    "alt_400": {
+      "file": "alt_400.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Four hundred"
+    },
+    "alt_300": {
+      "file": "alt_300.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Three hundred"
+    },
+    "alt_200": {
+      "file": "alt_200.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Two hundred"
+    },
+    "alt_100": {
+      "file": "alt_100.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "One hundred"
+    },
+    "alt_50": {
+      "file": "alt_50.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Fifty"
+    },
+    "alt_40": {
+      "file": "alt_40.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Forty"
+    },
+    "alt_30": {
+      "file": "alt_30.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Thirty"
+    },
+    "alt_20": {
+      "file": "alt_20.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Twenty"
+    },
+    "alt_10": {
+      "file": "alt_10.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Ten"
+    },
+    "retard": {
+      "file": "retard.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Retard. Retard."
+    },
+    "too_low_gear": {
+      "file": "too_low_gear.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Too low, gear."
+    },
+    "stall": {
+      "file": "stall.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Stall! Stall!"
+    },
+    "cleared_03": {
+      "file": "cleared_03.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Kjevik tower. Runway zero three, cleared to land. Wind calm."
+    },
+    "cleared_21": {
+      "file": "cleared_21.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Kjevik tower. Runway two one, cleared to land. Wind calm."
+    },
+    "welcome": {
+      "file": "welcome.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, welcome to Kjevik. Vacate when able."
+    },
+    "go_around": {
+      "file": "go_around.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, check gear down."
+    }
+  }
+}

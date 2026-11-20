@@ -20,6 +20,7 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     lights.py     nattlys (syntetisk plassert)
     terrain.py    blokkmiddel, hillshade, fargekart
     build.py      setter det sammen og skriver fliser + metadata.json
+    audio.py      lyd generert med ElevenLabs -> web/public/audio/ (krever ELEVENLABS_API_KEY)
 web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
   src/
     main.ts        laster fliser, kobler sammen og kjører løkka
@@ -32,6 +33,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     glRenderer.ts  WebGL: terrengnett med LOD, normalkart, bygninger, bruer, lys
     groundDetail.ts  prosedyrale bakkedetaljer per overflateklasse (shader, syntetisk)
     runwayDecal.ts   rullebanen som skarp flate med merking (merkingen er syntetisk)
+    audio.ts       lydmotor: motor, vind, hendelser, utrop, flygeleder
     hud.ts         skjermtekst og kart (utvendig kamera)
     panel.ts       A320-instrumentpanel (cockpit): PFD, ND med terreng, E/WD, FCU
     tower.ts       tårnkameraets geometri (blikkretning, kikkertkamera)
@@ -60,6 +62,7 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 cd pipeline && uv run flypipe build kjevik10   # 10 m-fliser som spillet bruker (37 MB, ikke i git)
 cd pipeline && uv run flypipe build kjevik     # 50 m-fliser: grovt nivå, brukes av testene (i git)
 cd pipeline && uv run pytest                   # tester (krever bygde fliser)
+cd pipeline && uv run flypipe audio            # generer manglende lydfiler (bruker ElevenLabs-kvote)
 cd web && npm run dev                        # spill på http://localhost:5173
 cd web && npm test && npm run typecheck
 ```
@@ -119,5 +122,8 @@ cd web && npm test && npm run typecheck
 - Spillet fyller hele vinduet. Skjermtekst, panel og tårninteriør tegnes i logiske enheter
   (grunnflate 320 x 200, se web/src/screen.ts): bruk `W` og `TOP` for det som skal følge
   vinduskanten, og `OX` for å sentrere faste oppsett. Ikke anta 16:10.
+- API-nøkler leses fra miljøet i pipeline og skrives aldri til fil, logg eller nettleser.
+- Generert lyd er ikke reproduserbar. `flypipe audio` lager bare filer som mangler;
+  slett en fil for å lage den på nytt. Lydfilene ligger i git.
 - Commit per logisk steg, uten Co-Authored-By.
 - Arbeidet går i faser (se README.md). Gjør én fase, stopp for gjennomgang.

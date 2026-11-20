@@ -1,3 +1,4 @@
+import { GameAudio } from "./audio";
 import { createGame, runLoop } from "./game";
 import { GlRenderer } from "./glRenderer";
 import { drawHud, drawMessage } from "./hud";
@@ -37,10 +38,23 @@ async function main(): Promise<void> {
   };
   document.getElementById("info")!.textContent =
     `Kart ${((terrain.width * terrain.cell) / 1000).toFixed(1)} km · celle ${terrain.cell} m · ${renderer.buildingCount} bygningsceller · ${terrain.bridges.length} bruer · ${terrain.meta.crs}`;
-  document.getElementById("credits")!.textContent = terrain.meta.attribution.join(" · ");
+  document.getElementById("credits")!.textContent = [...terrain.meta.attribution, "Lyd: generert med ElevenLabs"].join(" · ");
+
+  const audio = new GameAudio(`${import.meta.env.BASE_URL}audio`);
+  addEventListener("keydown", (e) => {
+    if (e.code === "KeyM" && !e.repeat) { game.msg.text = audio.toggleMute() ? "Lyd av" : "Lyd på"; game.msg.t = 1.5; }
+  });
+
+  // ?selftest (kun i utviklingsmodus): start lyden uten tastetrykk og skriv tilstanden til <body data-audio>.
+  // Brukes til å kontrollere lydmotoren i hodeløs nettleser, der ingen kan trykke eller høre.
+  if (import.meta.env.DEV && new URLSearchParams(location.search).has("selftest")) {
+    void audio.startNow();
+    setInterval(() => { document.body.dataset.audio = JSON.stringify(audio.status); }, 500);
+  }
 
   runLoop((dt) => {
     game.step(dt);
+    audio.update(game, terrain);
     renderer.render(game.P, game.cam, game.env);
     g.setTransform(scale, 0, 0, scale, 0, -TOP * scale); // logisk TOP ligger i overkanten av vinduet
     g.clearRect(0, TOP, W, H - TOP);

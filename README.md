@@ -37,7 +37,7 @@ for fullskjerm.
 
 Taster: piltaster styrer, `W`/`S` gass, `G` understell, `F`/`V` klaff ut/inn,
 `C` bytter mellom utvendig kamera, cockpit og tårn, `R` ny innflyging, `T` bytt bane (03/21), `Q`/`E` stiller klokka en
-halvtime bakover/framover.
+halvtime bakover/framover, `M` slår lyden av og på. Lyden starter ved første tastetrykk.
 
 URL-parametre: `?cam=cockpit` eller `?cam=tower`, `?rwy=21`, `?cfg=full` (start med understell nede
 og full klaff), `?time=22:00` og `?date=2026-06-21`
