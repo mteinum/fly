@@ -472,7 +472,8 @@ export class GlRenderer {
 
   /* ---------- bilde ---------- */
 
-  render(P: Plane, cam: Camera, env: Environment): void {
+  /** `spectator` er kameraets faste plass i verden når cam er «replay». */
+  render(P: Plane, cam: Camera, env: Environment, spectator?: [number, number, number]): void {
     const { cell } = this.t, x = P.x * cell, z = P.y * cell;
     const fx = Math.sin(P.hdg), fz = -Math.cos(P.hdg);
     // Kurs om Y (med klokka sett ovenfra = negativ vinkel), nese opp om X, høyre vinge ned om Z
@@ -492,9 +493,15 @@ export class GlRenderer {
     this.landingLight.target.position.set(x + fx * 300, P.alt - 45 + Math.sin(P.pitch) * 300, z + fz * 300);
 
     const view = cam === "tower" ? towerView(this.t, P) : null;
-    this.camera.fov = view ? TOWER_FOV : 60;
+    this.camera.fov = view ? TOWER_FOV : cam === "replay" ? 42 : 60;
     this.camera.updateProjectionMatrix();
-    if (view) {
+    if (cam === "replay" && spectator) {
+      // reprise: kameraet står stille og følger flyet med blikket
+      this.camera.clearViewOffset();
+      this.camera.position.set(...spectator);
+      this.camera.rotation.order = "XYZ";
+      this.camera.lookAt(x, P.alt + 3.6, z);
+    } else if (view) {
       // Blikket følger flyet rundt, men holdes over benken. Bildet forskyves så horisonten ligger midt i vinduene.
       this.camera.setViewOffset(this.size.x, this.size.y, 0, this.size.y * horizonShift(TOWER_SILL), this.size.x, this.size.y);
       this.camera.position.set(...view.eye);

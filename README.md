@@ -55,6 +55,11 @@ PFD viser en magenta rombe for glidebanen (til høyre for horisonten) og en for 
 senterlinja og på 3° glidebane. ND viser forlenget senterlinje med et merke per nautiske
 mil. Veiledningen er regnet fra banegeometrien, ikke fra flyplassens faktiske anlegg.
 
+## Reprise
+
+Etter en krasj spilles de siste fem sekundene av på nytt, sett fra et fast punkt ved siden
+av der det endte. Deretter starter en ny innflyging. `R` hopper over reprisen.
+
 ## Diplom
 
 Når flyet står stille etter en landing, vises et diplom med karakter (1–5 stjerner) og det

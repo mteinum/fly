@@ -1,14 +1,22 @@
 /* Spilltilstand, klokke og inndata. */
 import { startTime } from "./clock";
 import { type Keys, moveFlaps, startApproach, toggleGear, update } from "./physics";
+import { Recorder, REPLAY_HOLD } from "./replay";
 import { newPlane, type Plane } from "./plane";
 import { type SkyState, skyState } from "./sky";
 import { sunPosition } from "./sun";
 import type { Airport, Terrain } from "./terrain";
 
-/** Utvendig kamera følger flyet bakfra; cockpit ser ut gjennom frontruta; tårn ser flyet fra kontrolltårnet. */
-export type Camera = "external" | "cockpit" | "tower";
+/** Utvendig kamera følger flyet bakfra; cockpit ser ut gjennom frontruta; tårn ser flyet fra kontrolltårnet.
+ *  «replay» velges ikke av spilleren: det er reprisen etter en krasj, sett fra et fast punkt. */
+export type Camera = "external" | "cockpit" | "tower" | "replay";
 const CAMERAS: Camera[] = ["external", "cockpit", "tower"];
+
+/** Reprisen som spilles nå: flyet slik det var, og hvor kameraet står. */
+export interface Replay {
+  plane: Plane;
+  spectator: [number, number, number];
+}
 
 export interface Message {
   text: string;
@@ -36,6 +44,8 @@ export interface Game {
   step(dt: number): void;
   /** Start en ny innflyging til samme bane. */
   restart(): void;
+  /** Satt mens reprisen etter en krasj spilles av. Fysikken står stille imens. */
+  replay: Replay | null;
 }
 
 const TIME_STEP_MS = 30 * 60 * 1000;
@@ -51,7 +61,11 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   const msg: Message = { text: "", t: 0 };
   const say = (text: string, t = 3) => { msg.text = text; msg.t = t; };
   const approach = { count: 0, ident: ends[endIdx].ident };
+  const recorder = new Recorder();
+  let replayTime = 0;
   const reset = () => {
+    recorder.clear();
+    game.replay = null;
     startApproach(P, terrain, ends[endIdx]);
     approach.count++;
     approach.ident = ends[endIdx].ident;
@@ -73,11 +87,26 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     cam: CAMERAS.find((c) => c === params.get("cam")) ?? "external",
     env: environment(time),
     restart: () => reset(),
+    replay: null,
     step(dt) {
       game.time += dt * 1000;
       game.env = environment(game.time);
+      if (game.replay) {
+        // reprise: spill av opptaket, la siste bilde stå litt, og start så på nytt
+        replayTime += dt;
+        recorder.sample(replayTime, game.replay.plane);
+        if (replayTime > recorder.duration + REPLAY_HOLD) reset();
+        return;
+      }
       if (msg.t > 0) msg.t -= dt;
-      if (update(P, terrain, airport, K, dt, say)) reset();
+      const wasFlying = P.state === "fly";
+      const again = update(P, terrain, airport, K, dt, say);
+      if (wasFlying) recorder.record(P, dt); // også steget der det smalt, så reprisen ender i sammenstøtet
+      if (wasFlying && P.state === "crash" && recorder.duration > 0.5) {
+        replayTime = 0;
+        game.replay = { plane: { ...P, state: "fly" }, spectator: recorder.spectator(terrain) };
+        recorder.sample(0, game.replay.plane);
+      } else if (again) reset();
     },
   };
   const toggleCam = () => { game.cam = CAMERAS[(CAMERAS.indexOf(game.cam) + 1) % CAMERAS.length]; };

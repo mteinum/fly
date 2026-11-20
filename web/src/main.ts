@@ -95,7 +95,8 @@ async function main(): Promise<void> {
   runLoop((dt) => {
     game.step(dt);
     audio.update(game, terrain);
-    renderer.render(game.P, game.cam, game.env);
+    if (game.replay) renderer.render(game.replay.plane, "replay", game.env, game.replay.spectator);
+    else renderer.render(game.P, game.cam, game.env);
     const landed = game.P.state === "landed";
     if (landed && !wasLanded) {
       // WebGL-bildet må kopieres i samme ramme som det ble tegnet, ellers er det tomt
@@ -112,6 +113,15 @@ async function main(): Promise<void> {
     g.setTransform(scale, 0, 0, scale, 0, -TOP * scale); // logisk TOP ligger i overkanten av vinduet
     g.clearRect(0, TOP, W, H - TOP);
     if (clean) return;
+    if (game.replay) {
+      // reprisen vises uten instrumenter: bare merket og hva som skjedde
+      g.font = "bold 9px ui-monospace, Menlo, Consolas, monospace"; g.textAlign = "left"; g.textBaseline = "alphabetic";
+      g.fillStyle = "rgba(0,0,0,.55)"; g.fillRect(6, TOP + 6, 50, 14);
+      g.fillStyle = Math.floor(performance.now() / 500) % 2 ? "#ff4a3d" : "#ffffff"; g.fillText("● REPLAY", 10, TOP + 16.5);
+      game.msg.t = 1; // meldingen om hva som skjedde står gjennom hele reprisen
+      drawMessage(g, game, TOP + 34);
+      return;
+    }
     if (game.cam === "tower") {
       drawTower(g, terrain, map, game, towerView(terrain, game.P));
       drawMessage(g, game, TOP + 20);
