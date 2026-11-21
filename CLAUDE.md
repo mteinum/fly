@@ -27,6 +27,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     game.ts        spilltilstand, klokke, inndata
     terrain.ts     laster fliser; heightAt, isWater, utmToGrid, sann kurs
     physics.ts     flymodell (enkel, med A320-lignende fartsgrenser), landing, kollisjon
+    autopilot.ts   regelstyrt autopilot for innflyging og landing (A), flyr med spillerens kontroller
     guidance.ts    avvik fra senterlinje og 3° glidebane (vises som ILS på PFD, syntetisk)
     replay.ts      opptak av de siste 5 s og reprise utenfra etter krasj
     sun.ts         solas posisjon fra tid og sted

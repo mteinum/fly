@@ -1,5 +1,5 @@
 import { GameAudio } from "./audio";
-import { createDiplomaUi } from "./diploma";
+import { createDiplomaUi, gradeLanding } from "./diploma";
 import { createGame, isTyping, runLoop } from "./game";
 import { GlRenderer } from "./glRenderer";
 import { drawCornerMap, drawHud, drawMessage } from "./hud";
@@ -139,7 +139,12 @@ async function main(): Promise<void> {
       landingPhoto.height = glCanvas.height;
       landingPhoto.getContext("2d")!.drawImage(glCanvas, 0, 0);
     }
-    if (landed && game.P.spd === 0 && game.P.touchdown && !diploma.open && !clean && landingPhoto) {
+    if (landed && game.P.spd === 0 && game.P.touchdown && game.approach.autopilot) {
+      // Autopiloten får karakter, men ikke diplom: det er for den som fløy selv
+      const grade = gradeLanding(game.P.touchdown);
+      game.msg.text = `Autopilot: ${"★".repeat(grade.stars)}${"☆".repeat(5 - grade.stars)} ${grade.title}. Press R and beat it.`;
+      game.msg.t = 1;
+    } else if (landed && game.P.spd === 0 && game.P.touchdown && !diploma.open && !clean && landingPhoto) {
       diploma.show({ airportName: chosen.name, icao: chosen.icao, touchdown: game.P.touchdown }, landingPhoto, () => { diploma.hide(); game.restart(); });
       landingPhoto = null;
     }
@@ -156,6 +161,11 @@ async function main(): Promise<void> {
       game.msg.t = 1; // meldingen om hva som skjedde står gjennom hele reprisen
       drawMessage(g, game, TOP + 34);
       return;
+    }
+    if (game.autopilot) {
+      g.font = "bold 5px ui-monospace, Menlo, Consolas, monospace"; g.textAlign = "center"; g.textBaseline = "alphabetic";
+      g.fillStyle = "rgba(0,0,0,.55)"; g.fillRect(W / 2 - 9, TOP + 9.5, 18, 7);
+      g.fillStyle = "#5dff8a"; g.fillText("AP", W / 2, TOP + 15);
     }
     if (game.cam === "tower") {
       drawTower(g, terrain, map, game, towerView(terrain, game.P));

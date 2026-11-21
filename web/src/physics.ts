@@ -19,6 +19,7 @@ const FLAP_RATE = 0.3; // klaffstillinger per sekund
 const APPROACH_FLAPS = 2;
 const APPROACH_SPEED = 82; // m/s (160 kt)
 
+const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
 const table = (t: number[], flaps: number): number => {
   const i = Math.min(Math.floor(flaps), t.length - 2), f = flaps - i;
   return t[i] + (t[i + 1] - t[i]) * f;
@@ -43,10 +44,11 @@ export function warnings(P: Plane, raFt: number): Warnings {
 
 /** Fart (m/s) flyet går mot med gitt gass i flat flyging. */
 const targetSpeed = (P: Plane, thr: number): number => 40 + thr * (table(TOP_SPEED, P.flaps) - GEAR_DRAG * P.gear - 40);
+/** Gassen (0-1) som holder `speed` (m/s) i flat flyging slik klaffer og understell står nå. */
+export const throttleFor = (P: Plane, speed: number): number => clamp((speed - 40) / (targetSpeed(P, 1) - 40), 0, 1);
 
 const G = 9.81;
 const TURN_GAIN = 1.8; // svinger raskere enn en koordinert sving skulle tilsi (arv fra prototypen)
-const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
 
 /** Svingrate i rad/s (positiv = mot høyre). */
 export const turnRate = (P: Plane): number => ((G * Math.tan(P.roll)) / P.spd) * TURN_GAIN;
@@ -54,7 +56,9 @@ export const turnRate = (P: Plane): number => ((G * Math.tan(P.roll)) / P.spd) *
 export const verticalSpeed = (P: Plane): number => P.spd * Math.sin(P.pitch);
 export const APPROACH_DIST_M = 8000;
 
-export type Keys = Record<string, boolean | undefined>;
+/** Kontrollene: en tast er av/på, autopiloten gir utslag trinnløst (0-1) på de samme kontrollene. */
+export type Keys = Record<string, boolean | number | undefined>;
+const axis = (k: boolean | number | undefined): number => (typeof k === "number" ? clamp(k, 0, 1) : k ? 1 : 0);
 export type Say = (msg: string, seconds?: number) => void;
 
 /** Posisjon relativt til banen: langs (m fra baneende 0) og på tvers (m fra senterlinja). */
@@ -106,7 +110,7 @@ export function startApproach(P: Plane, t: Terrain, end: RunwayEnd): void {
     gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, state: "fly", t: 0, touchdown: null,
   } satisfies Plane);
   // gass som holder startfarten i flat flyging
-  P.thr = (APPROACH_SPEED - 40) / (targetSpeed(P, 1) - 40);
+  P.thr = throttleFor(P, APPROACH_SPEED);
 }
 
 /** Understellsspaken. Virker bare i lufta. */
@@ -137,13 +141,12 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
     // etter landing blir flyet stående til piloten selv ber om ny innflyging (diplomet vises imens)
     return P.state !== "landed" && P.t <= 0;
   }
-  const rollT = (K.ArrowRight ? 0.75 : 0) - (K.ArrowLeft ? 0.75 : 0);
+  const rollT = 0.75 * (axis(K.ArrowRight) - axis(K.ArrowLeft));
   P.roll += (rollT - P.roll) * Math.min(1, 3 * dt);
-  const pin = (K.ArrowDown ? 1 : 0) - (K.ArrowUp ? 1 : 0);
+  const pin = axis(K.ArrowDown) - axis(K.ArrowUp);
   if (pin) P.pitch = clamp(P.pitch + pin * 0.6 * dt, -0.5, 0.5);
   else P.pitch *= 1 - 0.5 * dt;
-  if (K.KeyW) P.thr = Math.min(1, P.thr + 0.4 * dt);
-  if (K.KeyS) P.thr = Math.max(0, P.thr - 0.4 * dt);
+  P.thr = clamp(P.thr + 0.4 * dt * (axis(K.KeyW) - axis(K.KeyS)), 0, 1);
   P.gear = clamp(P.gear + ((P.gearDown ? 1 : -1) * dt) / GEAR_TIME, 0, 1);
   P.flaps += clamp(P.flapCfg - P.flaps, -FLAP_RATE * dt, FLAP_RATE * dt);
   // mer motstand gir også raskere fartsendring

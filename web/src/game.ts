@@ -1,4 +1,5 @@
 /* Spilltilstand, klokke og inndata. */
+import { autopilot } from "./autopilot";
 import { startTime } from "./clock";
 import { type Keys, moveFlaps, startApproach, toggleGear, update } from "./physics";
 import { Recorder, REPLAY_HOLD } from "./replay";
@@ -39,7 +40,9 @@ export interface Game {
   time: number;
   env: Environment;
   /** Gjeldende innflyging: løpenummer (øker for hver ny) og banen det flys mot. */
-  approach: { count: number; ident: string };
+  approach: { count: number; ident: string; autopilot: boolean };
+  /** Autopiloten flyr (A slår den av og på). `approach.autopilot` husker om den har vært brukt på denne innflygingen. */
+  autopilot: boolean;
   /** Ett steg: klokke, fysikk, meldinger og ny innflyging når det trengs. */
   step(dt: number): void;
   /** Start en ny innflyging til samme bane. */
@@ -54,18 +57,38 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   const airport = terrain.meta.airports[0];
   // Alle baneender på flyplassen, i den rekkefølgen T blar gjennom dem
   const ends = airport.runways.flatMap((rw) => rw.ends);
+  const runwayOf = (end: (typeof ends)[number]) => airport.runways.find((rw) => rw.ends.includes(end))!;
   const params = new URLSearchParams(location.search);
   let endIdx = Math.max(0, ends.findIndex((e) => e.ident === params.get("rwy")));
   const P = newPlane();
   const K: Keys = {};
   const msg: Message = { text: "", t: 0 };
   const say = (text: string, t = 3) => { msg.text = text; msg.t = t; };
-  const approach = { count: 0, ident: ends[endIdx].ident };
+  const approach = { count: 0, ident: ends[endIdx].ident, autopilot: false };
+  // Tar piloten i stikka eller gassen, slipper autopiloten (som i flyet)
+  const MANUAL = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "KeyW", "KeyS"];
+  const setAutopilot = (on: boolean, why = "") => {
+    if (on && P.state !== "fly") return;
+    game.autopilot = on;
+    if (on) approach.autopilot = true;
+    say(on ? "Autopilot on" : `Autopilot off${why}`, 2.5);
+  };
+  /** Kontrollene dette steget: pilotens taster, eller autopilotens utslag når den flyr. */
+  const controls = (): Keys => {
+    if (!game.autopilot || P.state !== "fly") return K;
+    if (MANUAL.some((k) => K[k])) { setAutopilot(false); return K; }
+    const cmd = autopilot(P, terrain, runwayOf(ends[endIdx]), ends[endIdx]);
+    if (!cmd) { setAutopilot(false, ": no runway ahead"); return K; }
+    if (cmd.gearDown !== P.gearDown) toggleGear(P, say);
+    if (cmd.flapCfg !== P.flapCfg) moveFlaps(P, Math.sign(cmd.flapCfg - P.flapCfg), say);
+    return cmd.keys;
+  };
   const recorder = new Recorder();
   let replayTime = 0;
   const reset = () => {
     recorder.clear();
     game.replay = null;
+    game.autopilot = approach.autopilot = false;
     startApproach(P, terrain, ends[endIdx]);
     approach.count++;
     approach.ident = ends[endIdx].ident;
@@ -84,6 +107,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   const time = startTime(params, Date.now());
   const game: Game = {
     P, airport, msg, time, approach,
+    autopilot: false,
     cam: CAMERAS.find((c) => c === params.get("cam")) ?? "external",
     env: environment(time),
     restart: () => reset(),
@@ -100,7 +124,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
       }
       if (msg.t > 0) msg.t -= dt;
       const wasFlying = P.state === "fly";
-      const again = update(P, terrain, airport, K, dt, say);
+      const again = update(P, terrain, airport, controls(), dt, say);
+      if (P.state !== "fly") game.autopilot = false;
       if (wasFlying) recorder.record(P, dt); // også steget der det smalt, så reprisen ender i sammenstøtet
       if (wasFlying && P.state === "crash" && recorder.duration > 0.5) {
         replayTime = 0;
@@ -120,6 +145,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     if (e.code === "KeyC") toggleCam();
     if (e.code === "KeyR") reset();
     if (e.code === "KeyT") { endIdx = (endIdx + 1) % ends.length; reset(); }
+    if (e.code === "KeyA") setAutopilot(!game.autopilot);
     if (e.code === "KeyG") toggleGear(P, say);
     if (e.code === "KeyF") moveFlaps(P, 1, say);
     if (e.code === "KeyV") moveFlaps(P, -1, say);
@@ -132,6 +158,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     for (const ev of ["pointerup", "pointerleave", "pointercancel"]) b.addEventListener(ev, () => { K[k] = false; });
   });
   document.getElementById("tCam")!.onclick = toggleCam;
+  document.getElementById("tAuto")!.onclick = () => setAutopilot(!game.autopilot);
   document.getElementById("tGear")!.onclick = () => toggleGear(P, say);
   document.getElementById("tFlapOut")!.onclick = () => moveFlaps(P, 1, say);
   document.getElementById("tFlapIn")!.onclick = () => moveFlaps(P, -1, say);
@@ -148,6 +175,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     P.pitch = 0;
   }
   // ?cfg=full: start ferdig satt opp for landing (understell nede, full klaff)
+  // ?ap: la autopiloten fly fra start
+  if (params.has("ap")) setAutopilot(true);
   if (params.get("cfg") === "full") Object.assign(P, { gearDown: true, gear: 1, flapCfg: 4, flaps: 4 });
   focus.focus();
   return game;
