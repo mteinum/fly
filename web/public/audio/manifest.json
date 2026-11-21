@@ -253,6 +253,24 @@
       "voice": "Eric",
       "text": "Teinum three two zero, welcome to Oslo. Vacate when able."
     },
+    "cleared_ENMH_17": {
+      "file": "cleared_ENMH_17.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Mehamn tower. Runway one seven, cleared to land. Wind calm."
+    },
+    "cleared_ENMH_35": {
+      "file": "cleared_ENMH_35.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Mehamn tower. Runway three five, cleared to land. Wind calm."
+    },
+    "welcome_ENMH": {
+      "file": "welcome_ENMH.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, welcome to Mehamn. Vacate when able."
+    },
     "cleared_ENBO_07": {
       "file": "cleared_ENBO_07.mp3",
       "kind": "speech",

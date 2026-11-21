@@ -63,4 +63,6 @@ AREAS = {
     "flesland10": _airport_10m("flesland10", "Bergen Airport, Flesland", "ENBR", "46_Vestland"),
     "gardermoen10": _airport_10m("gardermoen10", "Oslo Airport, Gardermoen", "ENGM", "32_Akershus"),
     "bodo10": _airport_10m("bodo10", "Bodø Airport", "ENBO", "18_Nordland"),
+    # Mehamn ligger 12,8° øst for sentralmeridianen i UTM 33: konvergensen er +12,15° (de andre er negative)
+    "mehamn10": _airport_10m("mehamn10", "Mehamn Airport", "ENMH", "56_Finnmark"),
 }

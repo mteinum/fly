@@ -421,6 +421,21 @@ og hva som ble endret.
   utenfor kartruta (innenfor 25 nautiske mil, men ikke i ruta). Fasiten
   hadde rett.
 
+**48. Kilden hadde magnetisk kurs der det sto sann**
+- Da Mehamn ble lagt til, feilet testen som sjekker at sann kurs i spillet
+  stemmer med publisert banekurs, med 12,4°.
+- Jeg mistenkte først koden: Mehamn er den eneste flyplassen øst for
+  sentralmeridianen, med positiv konvergens, så en fortegnsfeil var
+  nærliggende. Det var ikke det. Rutenettkursen fra baneendene var riktig.
+- OurAirports har 170° i feltet for sann kurs. Det er banens magnetiske
+  kurs. Geodetisk asimut mellom baneendene er 182,4°, og misvisningen i
+  Finnmark er rundt 12°. På de fem andre flyplassene stemmer feltet innen
+  0,4°, så feilen hadde aldri vist seg uten Mehamn.
+- Prosjektregelen om å regne kurs fra endepunktene gjaldt rutenettkursen.
+  Sann kurs ble fortsatt hentet fra kilden, og brukt i flyloggen og på FCU.
+- Rettet: også sann kurs regnes fra baneendene. Kildens tall beholdes ved
+  siden av, og en test krever at de er enige overalt unntatt på Mehamn.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

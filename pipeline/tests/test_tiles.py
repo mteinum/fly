@@ -77,6 +77,10 @@ def test_runways_are_painted_between_the_thresholds(any_tiles):
         for end in (le, he):
             diff = (end["headingGridDeg"] + meta["gridConvergenceDeg"] - end["headingTrueDeg"] + 180) % 360 - 180
             assert abs(diff) < 0.6, (end["ident"], diff)
+            # Kildens sanne kurs (OurAirports) mot den vi regner fra baneendene. De er enige overalt unntatt på
+            # Mehamn, der kilden har banens MAGNETISKE kurs (170°) i feltet for sann kurs: misvisningen der er 12°.
+            off = abs((end["headingPublishedDeg"] - end["headingTrueDeg"] + 180) % 360 - 180)
+            assert (12 < off < 13) if meta["airports"][0]["icao"] == "ENMH" else off < 0.6, (end["ident"], off)
         # DTM under banen stemmer med publisert banehøyde (OurAirports) innenfor 5 m
         for end, t in ((le, 0.05), (he, 0.95)):
             assert abs(sample_bilinear(hgt, *at(t)) - end["elevationM"]) < 5, end["ident"]
@@ -122,7 +126,7 @@ def test_tower_stands_on_the_terminal_building_beside_the_runway(any_tiles):
         ux, uy = he["east"] - le["east"], he["north"] - le["north"]
         return abs((tower["east"] - le["east"]) * uy - (tower["north"] - le["north"]) * ux) / np.hypot(ux, uy)
 
-    assert 100 < min(cross(rw) for rw in meta["airports"][0]["runways"]) < 1300
+    assert 60 < min(cross(rw) for rw in meta["airports"][0]["runways"]) < 1300  # Mehamn: 88 m, en liten flyplass
     assert tower["groundM"] == pytest.approx(max(0, hgt[int(tower["y"]), int(tower["x"])]), abs=0.06)
     assert tower["eyeM"] - tower["groundM"] == 32.0  # antatt høyde, se airports.TOWER_EYE_HEIGHT
 
@@ -133,7 +137,7 @@ def test_place_names_are_whole_names_inside_the_map(any_tiles):
 
     meta, hgt, grid = any_tiles
     names = json.loads((TILES.parent / meta["id"] / meta["names"]["file"]).read_text(encoding="utf-8"))["items"]
-    assert len(names) == meta["names"]["count"] > 300
+    assert len(names) == meta["names"]["count"] > 200  # færrest ved Mehamn (286)
     assert not [n[0] for n in names if n[0].endswith("-") or not n[0].strip()]
     # tunnelnavn er med (tunnelene tegnes stiplet), og sier selv at de er tunneler
     assert all("tunnel" in n[0].lower() for n in names if n[5] == "tunnel")

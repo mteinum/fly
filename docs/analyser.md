@@ -53,6 +53,9 @@ terrenget med bygninger og bruer fra `structures.json` lagt oppå.
 | Flesland 17 / 35 | 84 m / 94 m | 1,0 km |
 | Gardermoen 01L / 19R / 01R / 19L | 87 / 67 / 72 / 56 m | ca. 1,0 km |
 | Bodø 07 / 25 | 93 m / 51 m | ca. 1,0 km |
+| Mehamn 17 / 35 | 75 m / **9 m** | 1,0 km / 3,4 km |
+
+Mehamn bane 35 er det ene stedet analysen fant noe: glidebanen stryker 9 m over en ås 3,4 km sør for banen.
 
 **Valgene som styrer svaret:**
 - **Hvor målingen starter.** Nær banen skal klaringen gå mot null, så et sted må den begynne.

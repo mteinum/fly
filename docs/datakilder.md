@@ -134,6 +134,21 @@ Flyplassene i spillet (2026-11-20), alle sentrert på referansepunktet fra OurAi
 | ENBR Flesland | `flesland10` | Vestland | 17/35 | -8,52° | 3 punkter, som over |
 | ENGM Gardermoen | `gardermoen10` | Akershus | 01L/19R, 01R/19L | -3,39° | 6 punkter, som over |
 | ENBO Bodø | `bodo10` | Nordland | 07/25 | -0,59° | 3 punkter, som over |
+| ENMH Mehamn | `mehamn10` | Finnmark | 17/35 | +12,15° | 3 punkter, som over. Referansepunktet transformert likt med Kartverket innen 3 mm |
+
+Mehamn ligger 12,8° øst for sentralmeridianen i UTM 33, langt utenfor sonens vanlige bredde. Kartverket
+leverer likevel alt i UTM 33, og projeksjonen virker fint så langt ut: målestokkfaktoren er 1,0022 og
+konvergensen +12,15°, den eneste positive.
+
+**Banekursen i OurAirports er feil for Mehamn.** Feltet for sann kurs sier 170°, som er banens magnetiske
+kurs (bane «17»). Sann kurs, regnet fra baneendene, er 182,4°; misvisningen der er rundt 12°. For de andre
+flyplassene stemmer feltet innen 0,4°. Pipeline regner derfor alltid sann kurs fra endepunktene, og beholder
+kildens tall som `headingPublishedDeg`. At endepunktene er riktige er kontrollert: tre punkter langs linja
+mellom dem ligger på det Kartverket kaller rullebane.
+
+**Innflygingen til bane 35 går tett over terrenget.** En 3° glidebane rett inn fra sør har 9 m klaring over en
+ås 3,4 km før banen (analysen i docs/analyser.md). Spillet flyr den slik likevel. Banen er 880 m og brukes i
+virkeligheten av mindre fly.
 
 Alle utsnittene ligger innenfor ett fylke (andel celler uten arealdekke er 0),
 så én N50-fil per flyplass holder. Det er kontrollert per utsnitt, ikke antatt.

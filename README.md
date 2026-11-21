@@ -1,7 +1,7 @@
 # teinum-fly
 
 Flysimulator over ekte norsk terreng: innflyging med Airbus A320 til Kjevik (ENCN),
-Sola (ENZV), Flesland (ENBR), Gardermoen (ENGM) eller Bodø (ENBO). Hver flyplass har et kartutsnitt
+Sola (ENZV), Flesland (ENBR), Gardermoen (ENGM), Bodø (ENBO) eller Mehamn (ENMH). Hver flyplass har et kartutsnitt
 på 25,6 x 25,6 km i 10 m-celler. WebGL, sann målestokk, bygninger
 og bruer som geometri, sol og mørke etter klokka, og cockpit med instrumentpanel.
 
@@ -93,7 +93,7 @@ Pipeline regner tre ting per flyplass (`pipeline/src/flypipe/analysis.py`), og s
 
 ## Skip
 
-Ved Kjevik, Sola, Flesland og Bodø ser du de skipene som faktisk er der, fra Kystverkets åpne AIS-data.
+Ved Kjevik, Sola, Flesland, Bodø og Mehamn ser du de skipene som faktisk er der, fra Kystverkets åpne AIS-data.
 Spillet henter dem hvert halve minutt fra en liten tjeneste på samme nettsted (`web/public/ais/`), som
 leser Kystverkets strøm. Småbåter er ikke med i de åpne dataene. Svarer ikke tjenesten, er sjøen tom.
 

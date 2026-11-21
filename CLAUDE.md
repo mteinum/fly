@@ -11,7 +11,7 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
   src/flypipe/
     crs.py        ALL koordinattransformasjon (WGS84 <-> UTM 33), konvergens
     grid.py       GridSpec: UTM-meter <-> rutenettceller
-    areas.py      definisjon av utsnitt: 10 m rundt ENCN, ENZV, ENBR, ENGM og ENBO, og 50 m for Kjevik.
+    areas.py      definisjon av utsnitt: 10 m rundt ENCN, ENZV, ENBR, ENGM, ENBO og ENMH, og 50 m for Kjevik.
                   Kjevik-utsnittet er flyttet 3,5 km sørover (center_offset) for å få med hele Flekkerøya
     dtm.py        Kartverket DTM og DOM via WCS, cache i data/raw/
     airports.py   OurAirports: flyplass + rullebaner; tårnposisjon fra N50-bygning type 411
@@ -114,9 +114,11 @@ cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstje
    klokka): `x += sin(hdg)`, `y -= cos(hdg)`.
 5. Rutenett-nord er ikke sann nord. `sann = rutenett + gridConvergenceDeg`.
    Konvergensen er -5,88° i Kjevik-utsnittet (regnet i utsnittets sentrum, som ligger 3,5 km sør for flyplassen), -8,03° på Sola, -8,52° på Flesland, -3,39° på
-   Gardermoen og -0,59° i Bodø. Den står i hvert utsnitts metadata.json; bruk aldri én verdi for flere utsnitt.
+   Gardermoen, -0,59° i Bodø og +12,15° på Mehamn (øst for sentralmeridianen: eneste med positivt fortegn). Den står i hvert utsnitts metadata.json; bruk aldri én verdi for flere utsnitt.
    Retninger fra kilder (rullebane, vind, sol) er sanne og må korrigeres;
-   rullebaneretning regnes helst direkte fra transformerte endepunkter.
+   rullebaneretning regnes ALLTID fra baneendene, både rutenettkurs (headingGridDeg) og sann kurs
+   (headingTrueDeg, geodetisk asimut). Kildens kurs er feil for Mehamn (magnetisk i feltet for sann) og
+   ligger bare med som headingPublishedDeg.
    I rendereren er verden høyrehendt i meter: X = øst, Y = opp, Z = sør
    (nord er -Z). Framover er `(sin hdg, 0, -cos hdg)`, og flyets rotasjon er
    Euler YXZ = `(pitch, -hdg, -roll)`.

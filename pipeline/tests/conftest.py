@@ -32,7 +32,7 @@ def tiles():
     return _load_tiles("kjevik")
 
 
-@pytest.fixture(scope="session", params=["kjevik", "kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10"])
+@pytest.fixture(scope="session", params=["kjevik", "kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10", "mehamn10"])
 def any_tiles(request):
     """Hvert flissett etter tur: 50 m-nivået for Kjevik, og 10 m-flisene for hver flyplass."""
     return _load_tiles(request.param)

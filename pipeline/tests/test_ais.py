@@ -24,7 +24,7 @@ def test_utsnittene_er_de_samme_som_i_flisene():
     from pathlib import Path
 
     tiles = Path(__file__).resolve().parents[2] / "web" / "public" / "data"
-    for area in ("kjevik10", "sola10", "flesland10", "bodo10"):
+    for area in ("kjevik10", "sola10", "flesland10", "bodo10"):  # mehamn10 kom etter opptaket og er ikke i fasiten
         meta_path = tiles / area / "metadata.json"
         if not meta_path.exists():
             continue

@@ -63,6 +63,14 @@
         "lat": 67.269203,
         "east": 472632.24996,
         "north": 7461530.426
+      },
+      {
+        "name": "ENMH referansepunkt",
+        "origin": "OurAirports airports.csv (longitude_deg, latitude_deg)",
+        "lon": 27.8267,
+        "lat": 71.029701,
+        "east": 962302.4020378566,
+        "north": 7929894.981672333
       }
     ]
   },
@@ -228,6 +236,26 @@
           "east": 473425.7,
           "north": 7461693.82,
           "z": 13.03
+        }
+      ],
+      "mehamn": [
+        {
+          "name": "ENMH bane 17/35, 15 % fra ende 17",
+          "east": 962252.94,
+          "north": 7930185.18,
+          "z": 8.57
+        },
+        {
+          "name": "ENMH bane 17/35, 50 % fra ende 17",
+          "east": 962304.73,
+          "north": 7929884.17,
+          "z": 7.43
+        },
+        {
+          "name": "ENMH bane 17/35, 85 % fra ende 17",
+          "east": 962356.53,
+          "north": 7929583.16,
+          "z": 10.98
         }
       ]
     },

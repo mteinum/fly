@@ -397,9 +397,10 @@
               "y": 201.365,
               "ident": "03",
               "elevationM": 12.5,
-              "headingTrueDeg": 35.0,
+              "headingPublishedDeg": 35.0,
               "displacedThresholdM": 120.1,
               "headingGridDeg": 40.84,
+              "headingTrueDeg": 34.94,
               "approach": {
                 "startAltitudeM": 452.3,
                 "lowestClearanceM": 85.5,
@@ -417,9 +418,10 @@
               "y": 170.4735,
               "ident": "21",
               "elevationM": 15.8,
-              "headingTrueDeg": 215.0,
+              "headingPublishedDeg": 215.0,
               "displacedThresholdM": 189.9,
               "headingGridDeg": 220.84,
+              "headingTrueDeg": 214.96,
               "approach": {
                 "startAltitudeM": 461.8,
                 "lowestClearanceM": 73.0,

@@ -11,6 +11,7 @@ import csv
 from pathlib import Path
 
 import requests
+from pyproj import Geod
 
 from . import USER_AGENT
 from .crs import grid_bearing_deg, wgs84_to_utm33
@@ -56,12 +57,17 @@ def load_airport(icao: str, raw_dir: Path, grid: GridSpec | None = None) -> dict
             end = _point(float(rw[f"{side}_longitude_deg"]), float(rw[f"{side}_latitude_deg"]), grid)
             end["ident"] = rw[f"{side}_ident"]
             end["elevationM"] = round(float(rw[f"{side}_elevation_ft"]) * FT, 1)
-            end["headingTrueDeg"] = float(rw[f"{side}_heading_degT"])
+            end["headingPublishedDeg"] = float(rw[f"{side}_heading_degT"])
             end["displacedThresholdM"] = round(float(rw[f"{side}_displaced_threshold_ft"] or 0) * FT, 1)
             ends.append(end)
         le, he = ends
         le["headingGridDeg"] = round(grid_bearing_deg(le["east"], le["north"], he["east"], he["north"]), 2)
         he["headingGridDeg"] = round((le["headingGridDeg"] + 180) % 360, 2)
+        # Sann kurs regnes også fra endepunktene (geodetisk asimut), ikke fra kildens «heading_degT». For Mehamn
+        # står banens magnetiske kurs (170°) i det feltet; sann kurs er 182,4°. Kildens tall beholdes som
+        # headingPublishedDeg, så avviket kan ses.
+        fwd, back, _ = Geod(ellps="GRS80").inv(le["lon"], le["lat"], he["lon"], he["lat"])
+        le["headingTrueDeg"], he["headingTrueDeg"] = round(fwd % 360, 2), round(back % 360, 2)
         runways.append(
             {
                 "ident": f"{le['ident']}/{he['ident']}",
