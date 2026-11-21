@@ -268,7 +268,12 @@ Ikke avklart:
 - Hvor godt OSM-omrissene dekker landsbygda og de andre flyplassene er ikke sjekket.
 - Matrikkelen har adresse- og eiendoms-ID per bygning. De trengs ikke og skal ikke med i flisene.
 
-## Undersøkt, ikke i bruk: bygningsomriss fra OpenStreetMap (2026-11-21)
+## Undersøkt og tatt i bruk for Kjevik: bygningsomriss fra OpenStreetMap (2026-11-21)
+
+I bruk i `kjevik10` som forsøk: 33 037 bygg har form, 2 604 Matrikkel-bygg uten omriss er fortsatt bokser.
+Høyden er målt i DOM for 4 635 bygg (de som dekker minst tre celler), regnet fra etasjetall for 3 263, og
+antatt etter type for 25 139. Alle tak er flate. Kode: `pipeline/src/flypipe/osm.py` og `footprints.py`.
+Lisens og kreditering: `data/osm/LICENSE.md`. De andre utsnittene har fortsatt bokser.
 
 Spørsmålet var om OpenStreetMap kan gi husene form i stedet for bokser, og hva lisensen krever.
 
@@ -305,8 +310,9 @@ til omrissene som vektordata.
 - Skjermbilder og video er «Produced Works»: de trenger kreditering, ikke lisens.
 - OSM Foundation sier selv at veiledningen ikke er juridisk rådgivning.
 
-**Hva det ville kreve teknisk:** nedlasting per utsnitt (Overpass, eller Geofabriks Norge-fil på 1,3 GB),
-omriss som ekstruderte flater i stedet for bokser, og kollisjon mot flatene. Ikke påbegynt.
+**Teknisk løsning:** omrissene hentes med `flypipe osm` (Overpass, for hånd) og lagres i `data/osm/` i git
+(1,2 MB for Kjevik), fordi Overpass ofte svarer 502 og bygget ikke skal avhenge av den. Spillet tegner
+omrissene som vegger og flatt tak. Kollisjon bruker fortsatt 10 m-cellene under byggene.
 
 ### Lyd: ElevenLabs (generert)
 

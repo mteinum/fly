@@ -15,6 +15,7 @@ uv run flypipe build all        # alle utsnitt (ca. 1,3 GB nedlasting første ga
 uv run flypipe build kjevik10   # ett utsnitt
 uv run pytest                   # tester (krever bygde fliser)
 uv run flypipe audio            # generer manglende lydfiler (krever ELEVENLABS_API_KEY)
+uv run flypipe osm kjevik10     # hent bygningsomriss fra OpenStreetMap på nytt (bygget bruker fila i data/osm/)
 uv run flypipe debrief          # hovedtallene for siste flylogg i data/flights/
 uv run --group agent flypipe mcp   # MCP-server for gjennomgang av flylogger (startes vanligvis av Claude Code)
 ```
@@ -64,6 +65,8 @@ Flisformatet er beskrevet i [../CLAUDE.md](../CLAUDE.md).
 | `terrain.py` | Blokkmiddel, hillshade og fargekart |
 | `airports.py` | Flyplass og rullebaner fra OurAirports, og tårnposisjon |
 | `n50.py` | N50 Kartdata: veier, bruer, bygninger og stedsnavn |
+| `osm.py` | Bygningsomriss fra OpenStreetMap: `flypipe osm <utsnitt>` henter til `../data/osm/` (ODbL) |
+| `footprints.py` | Bygg med form: omriss, type og høyde samlet til `buildings.bin` |
 | `matrikkel.py` | Matrikkelen: alle bygninger som punkt med type, brukt i 10 m-flisene |
 | `landcover.py` | N50 Arealdekke til én klasse per celle (flertall) |
 | `structures.py` | Bruer (dekkhøyde fra DOM) og bygninger med høyde |
@@ -96,6 +99,7 @@ nett. De deles med testene i `web/`.
 | `../data/raw/` | Cache av nedlastede rådata | nei |
 | `../data/processed/` | GeoTIFF og GeoPackage for QGIS | nei |
 | `../data/flights/` | Flylogger fra spillet i utviklingsmodus | nei |
+| `../data/osm/` | Bygningsomriss fra OpenStreetMap per utsnitt (ODbL) | ja |
 | `../data/ssr_points.json` | Stedspunkter fra stedsnavnregisteret, så bygget ikke avhenger av API-et | ja |
 | `../web/public/data/` | Flisene spillet leser | bare `kjevik` |
 

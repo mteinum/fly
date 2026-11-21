@@ -12,6 +12,8 @@ def main() -> None:
     b = sub.add_parser("build", help="hent data og skriv fliser til web/public/data/<utsnitt>/")
     b.add_argument("area", nargs="?", default="kjevik10", choices=[*sorted(AREAS), "all"], help="utsnitt, eller «all» for alle")
     sub.add_parser("audio", help="generer lyd med ElevenLabs til web/public/audio/ (krever ELEVENLABS_API_KEY)")
+    o = sub.add_parser("osm", help="hent bygningsomriss fra OpenStreetMap (Overpass) til data/osm/<utsnitt>.npz")
+    o.add_argument("area", choices=sorted(AREAS))
     sub.add_parser("mcp", help="start MCP-serveren for gjennomgang av flylogger (krever --group agent)")
     d = sub.add_parser("debrief", help="skriv hovedtallene for en flylogg i data/flights/ som JSON")
     d.add_argument("flight", nargs="?", default="latest", help="filnavn, eller «latest»")
@@ -24,6 +26,15 @@ def main() -> None:
         from .build import RAW, TILES
 
         generate(TILES.parent / "audio", RAW)
+    elif args.cmd == "osm":
+        from . import airports, osm
+        from .build import RAW
+        from .grid import GridSpec
+
+        area = AREAS[args.area]
+        arp = airports.load_airport(area.icao, RAW)["arp"]
+        grid = GridSpec.centered(arp["east"] + area.center_offset[0], arp["north"] + area.center_offset[1], area.cell, area.size)
+        osm.fetch(area.id, grid, RAW)
     elif args.cmd == "mcp":
         from .mcp_server import main as serve
 

@@ -139,3 +139,54 @@ def test_fyr_i_flisene():
     assert by_name["Grønningen"] == (pytest.approx(14, abs=1.5), 1)
     # lyktene har nominell høyde og er ikke tårn
     assert by_name["Odderøya"] == (pytest.approx(5.0), 0)
+
+
+def test_bygg_med_form_fra_omriss(tmp_path):
+    """Omriss + type + høyde: stort bygg får høyde fra DOM, lite fra etasjer eller type, uthus tas ikke med."""
+    import struct
+
+    from flypipe import footprints, osm
+
+    grid = GridSpec(west=0.0, north=1000.0, cell=10.0, width=100, height=100)
+    hgt = np.full((100, 100), 20.0, dtype=np.float32)
+    hgt[:, 50:] = 30.0  # terrenget er 10 m høyere i øst
+    ndsm = np.full((100, 100), 2.0, dtype=np.float32)
+    ndsm[10:14, 10:15] = 18.0  # et 18 m høyt bygg på 50 x 40 m
+    rings = [
+        [(100, 900), (150, 900), (150, 860), (100, 860)],  # 0: stort, kontor (type 311)
+        [(300, 500), (308, 500), (308, 492), (300, 492)],  # 1: lite hus med 3 etasjer
+        [(600, 300), (609, 300), (609, 291), (600, 291)],  # 2: lite hus uten annet enn type (enebolig)
+        [(700, 700), (706, 700), (706, 694), (700, 694)],  # 3: garasje (type 181)
+        [(490, 200), (520, 200), (520, 190), (490, 190)],  # 4: over terrengspranget, ukjent type
+    ]
+    fp = osm.Footprints(
+        xy=np.array([p for r in rings for p in r], dtype=float), start=np.arange(0, 21, 4),
+        ref=np.array([11, 22, 33, 44, 0]), levels=np.array([0, 3, 0, 0, 0]), fetched="2026-11-21",
+    )
+    out, used = footprints.build(fp, {11: 311, 22: 111, 33: 111, 44: 181}, hgt, ndsm, grid)
+    assert list(used) == [True, True, True, False, True]
+    big, storeys, nominal, slope = out
+    assert (big["height_source"], big["top"] - 20) == ("dom", 18.0) and big["profile"] == "offices and shops" and len(big["cells"]) == 20
+    assert (storeys["height_source"], storeys["top"] - 20) == ("levels", 10.0) and len(storeys["cells"]) == 1
+    assert (nominal["height_source"], nominal["top"] - 30) == ("nominal", 7.0) and nominal["profile"] == "houses"  # står på 30 m-terrenget
+    # veggene går ned til laveste terreng under bygget
+    assert slope["base"] == 20.0 and slope["profile"] == "other"
+
+    # fila spillet leser: hode, så hvert bygg med hjørner i meter fra nordvestre hjørne (z mot sør)
+    footprints.write(tmp_path / "b.bin", out, grid)
+    raw = (tmp_path / "b.bin").read_bytes()
+    assert raw[:4] == b"FBLD" and struct.unpack_from("<II", raw, 4) == (1, 4)
+    n, r, g, b, _, base, top = struct.unpack_from("<H4Bff", raw, 12)
+    assert (n, base, top) == (4, 20.0, 38.0) and (r, g, b) in matrikkel.PROFILE_BY_MAIN[3][1]
+    assert struct.unpack_from("<8f", raw, 26) == (100, 100, 150, 100, 150, 140, 100, 140)
+    assert len(raw) == 12 + 4 * (14 + 4 * 8)
+
+
+def test_matrikkelbygg_uten_omriss_blir_bokser():
+    from flypipe import footprints, osm
+
+    fp = osm.Footprints(xy=np.array([(0, 0), (10, 0), (10, 10), (0, 10)], dtype=float), start=np.array([0, 4]), ref=np.array([7]), levels=np.array([0]), fetched="")
+    points = gpd.GeoDataFrame({"bygningsnummer": [7, 8, 9]}, geometry=[Point(500, 500), Point(8, 8), Point(300, 300)], crs=25833)
+    left = footprints.unmatched(points, fp, np.array([True]))
+    # 7 har omriss (samme nummer, selv om punktet ligger langt unna), 8 ligger i omrisset, 9 har ingenting
+    assert list(left["bygningsnummer"]) == [9]

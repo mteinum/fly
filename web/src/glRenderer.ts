@@ -15,6 +15,7 @@ import { buildRunwayDecal } from "./runwayDecal";
 import type { Plane } from "./plane";
 import type { RGB } from "./sky";
 import { CHURCH_TOWER_HALF_WIDTH, LIGHTHOUSE_RADIUS } from "./physics";
+import { buildingMesh } from "./footprints";
 import { BUILDING, type Terrain, type TerrainAssets } from "./terrain";
 import { SCOPE, TOWER_FOV, towerView } from "./tower";
 import { H as SCREEN_H, horizonShift, OX, PANEL_TOP, TOP, TOWER_SILL } from "./screen";
@@ -41,6 +42,8 @@ const color = (c: RGB): THREE.Color => new THREE.Color().setRGB(c[0] / 255, c[1]
 /** Utslag i grader for klaffstilling 0, 1, 2, 3 og FULL, som på A320 (1 = 1+F). */
 const FLAP_DEG = [0, 10, 15, 20, 35], SLAT_DEG = [0, 18, 22, 22, 27];
 
+const SRGB_TO_LINEAR = Uint8Array.from({ length: 256 }, (_, v) => Math.round(255 * (v / 255 <= 0.04045 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4)));
+
 export class GlRenderer {
   readonly buildingCount: number;
   private renderer: THREE.WebGLRenderer;
@@ -50,6 +53,7 @@ export class GlRenderer {
   private indexCache = new Map<number, THREE.BufferAttribute>();
   private terrainMat: THREE.MeshStandardMaterial;
   private buildingMat = new THREE.MeshLambertMaterial({ emissive: 0xffc27a, emissiveIntensity: 0 });
+  private footprintMat: THREE.MeshLambertMaterial | null = null;
   private plane: THREE.Group;
   private gear = new THREE.Group();
   /** Klaffer (bak) og slats (foran) på vingene: hver plate glir ut og vipper ned med klaffstillingen. */
@@ -130,6 +134,7 @@ export class GlRenderer {
 
     for (const rw of t.meta.airports[0].runways) this.scene.add(buildRunwayDecal(t, rw, map.anisotropy));
     this.buildingCount = this.addBuildings();
+    this.addFootprints();
     this.addChurchTowers();
     this.addTunnels();
     this.addLighthouses();
@@ -274,15 +279,15 @@ export class GlRenderer {
 
   /** Én boks per bygningscelle, fra bakken til taket. */
   private addBuildings(): number {
-    const { sKind, sBase, sTop, sCol, width: W, cell } = this.t;
+    const { sKind, sBase, sTop, sCol, sShaped, width: W, cell } = this.t;
     let count = 0;
-    for (let i = 0; i < sKind.length; i++) if (sKind[i] === BUILDING) count++;
+    for (let i = 0; i < sKind.length; i++) if (sKind[i] === BUILDING && !sShaped[i]) count++;
     if (!count) return 0;
     const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), this.buildingMat, count);
     const m = new THREE.Matrix4(), c = new THREE.Color();
     let k = 0;
     for (let i = 0; i < sKind.length; i++) {
-      if (sKind[i] !== BUILDING) continue;
+      if (sKind[i] !== BUILDING || sShaped[i]) continue; // bygg med omriss tegnes av addFootprints
       const col = i % W, row = (i / W) | 0;
       m.makeScale(cell, sTop[i] - sBase[i], cell).setPosition((col + 0.5) * cell, sBase[i], (row + 0.5) * cell);
       mesh.setMatrixAt(k, m);
@@ -291,6 +296,31 @@ export class GlRenderer {
     mesh.frustumCulled = false; // én felles avgrensning for hele kartet gir ingen gevinst
     this.scene.add(mesh);
     return count;
+  }
+
+  /** Bygninger med form: omriss fra OpenStreetMap med flatt tak (se footprints.ts). Byggene deles i ruter på
+   *  3,2 km, så de som ligger utenfor synsfeltet ikke tegnes. */
+  private addFootprints(): void {
+    const all = this.t.footprints;
+    if (!all.length) return;
+    const TILE = 3200, groups = new Map<number, typeof all>();
+    for (const b of all) {
+      const key = Math.floor(b.ring[0] / TILE) * 1000 + Math.floor(b.ring[1] / TILE);
+      (groups.get(key) ?? groups.set(key, []).get(key)!).push(b);
+    }
+    // som bygningsboksene, men med farge per hjørne og flat skyggelegging (gir kanter mellom vegg og tak)
+    const mat = new THREE.MeshLambertMaterial({ vertexColors: true, flatShading: true, emissive: 0xffc27a, emissiveIntensity: 0 });
+    this.footprintMat = mat;
+    for (const group of groups.values()) {
+      const m = buildingMesh(group), geo = new THREE.BufferGeometry();
+      // fargene i fila er sRGB; hjørnefarger regnes som lineære, så de må gjøres om (ellers blir alt blekt)
+      for (let i = 0; i < m.color.length; i++) m.color[i] = SRGB_TO_LINEAR[m.color[i]];
+      geo.setAttribute("position", new THREE.BufferAttribute(m.position, 3));
+      geo.setAttribute("color", new THREE.BufferAttribute(m.color, 3, true));
+      geo.setIndex(new THREE.BufferAttribute(m.index, 1));
+      geo.computeBoundingSphere();
+      this.scene.add(new THREE.Mesh(geo, mat));
+    }
   }
 
   /** Kirketårn: hvitt tårn med mørkt spir. Plass og høyde er målt (DOM); formen er SYNTETISK:
@@ -592,6 +622,8 @@ export class GlRenderer {
     this.terrainMat.emissiveIntensity = sky.night * 4;
     // svak glød: med alle hus fra matrikkelen ville sterkere glød blitt et lysteppe som skjuler lyspunktene på bakken
     this.buildingMat.emissiveIntensity = sky.night * 0.09;
+    // byggene med form dekker mer av bakken enn boksene gjorde: svakere glød, så de står som mørke silhuetter mot lysene
+    if (this.footprintMat) this.footprintMat.emissiveIntensity = sky.night * 0.03;
     (this.runwayLights.material as THREE.PointsMaterial).opacity = 0.45 + 0.55 * sky.night;
     // Fyrlys: et kort blink per periode, tydeligst om natta, så vidt synlig i dagslys
     const now = performance.now() / 1000;

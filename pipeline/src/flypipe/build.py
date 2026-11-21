@@ -11,7 +11,7 @@ from PIL import Image
 from rasterio.features import rasterize
 from shapely.geometry import LineString
 
-from . import airports, analysis, dtm, landcover, lights, matrikkel, n50, structures, terrain
+from . import airports, analysis, dtm, footprints, landcover, lights, matrikkel, n50, osm, structures, terrain
 from .areas import AREAS, Area
 from .crs import UTM33, grid_convergence_deg, scale_factor
 from .grid import GridSpec
@@ -80,29 +80,51 @@ def build(area: Area) -> Path:
             print(f"[{area.id}] Matrikkelen {area.n50_county}: bygningspunkter")
             n50_points = len(vectors["buildingPoints"])
             vectors["buildingPoints"] = matrikkel.load_buildings(area.n50_county, grid, RAW)
-            point_heights = matrikkel.height_raster(vectors["buildingPoints"], grid)
+            all_buildings = vectors["buildingPoints"]  # alle bygg, til klynger og nattlys
         ndsm = None
         if area.dom_building_heights:
             print(f"[{area.id}] DOM {area.source_res:g} m (bygningshøyder)")
             ndsm = terrain.block_mean(dtm.load_source_dom(grid, area.source_res, raw), factor) - hgt
+        shaped: list[dict] = []
+        if area.osm_footprints:
+            # Bygg med omriss tegnes som form. Bare Matrikkel-byggene uten omriss blir igjen som bokser, og N50s
+            # flater for store bygg trengs ikke (omrissene dekker dem).
+            fp = osm.load(area.id)
+            print(f"[{area.id}] OpenStreetMap: {len(fp)} bygningsomriss (hentet {fp.fetched})")
+            shaped, used = footprints.build(fp, matrikkel.type_by_number(area.n50_county, grid, RAW), hgt, ndsm, grid)
+            vectors["buildingPoints"] = footprints.unmatched(vectors["buildingPoints"], fp, used)
+            vectors = {**vectors, "towerAreas": vectors["buildingAreas"], "buildingAreas": vectors["buildingAreas"].iloc[0:0]}
+        if area.matrikkel_buildings:
+            point_heights = matrikkel.height_raster(vectors["buildingPoints"], grid)
         print(f"[{area.id}] DOM 1 m rundt bruene (dekkhøyde)")
         items, bridge_lines, features = structures.build_structures(
             vectors, n50.rasterize_features(vectors, grid), hgt, grid, raw, ndsm, point_heights=point_heights
         )
+        if shaped:
+            # cellene under omrissene: til kollisjon, nattlys og analyser. Niende felt = 1: tegnes som form, ikke som boks
+            boxes = {(it[0], it[1]) for it in items}
+            for b in shaped:
+                for cell in b["cells"]:
+                    row, col = divmod(int(cell), grid.width)
+                    if features[row, col] == n50.NONE and (col, row) not in boxes:
+                        features[row, col] = n50.BUILDING
+                        items.append([col, row, structures.BUILDING, round(b["base"], 1), round(b["top"], 1), *b["color"], 1])
         if area.matrikkel_buildings:
             # Farge etter bygningstype (se matrikkel.PROFILE_*). Celler uten kjent type beholder fargen de har.
             types = matrikkel.type_raster(vectors["buildingPoints"], vectors["buildingAreas"], grid)
+            for b in shaped:
+                profile_cells[b["profile"]] = profile_cells.get(b["profile"], 0) + len(b["cells"])
             for it in items:
                 code = int(types[it[1], it[0]])
-                if it[2] == structures.BUILDING and code:
+                if it[2] == structures.BUILDING and code and len(it) == 8:
                     name, colors = matrikkel.profile(code)
                     it[5:8] = colors[(it[0] * 7 + it[1] * 13) % 2]  # fast veksling, så naboer ikke blir helt like
                     profile_cells[name] = profile_cells.get(name, 0) + 1
             # Kirker med tårn der overflatemodellen viser et
-            church = vectors["buildingPoints"][vectors["buildingPoints"]["bygningstype"] == matrikkel.CHURCH]
+            church = all_buildings[all_buildings["bygningstype"] == matrikkel.CHURCH]
             print(f"[{area.id}] DOM 1 m rundt {len(church)} kirker (tårn)")
             towers = structures.church_towers(church, hgt, grid, raw)
-    airport["tower"] = airports.tower_position(airport, vectors["buildingAreas"] if area.n50_county else None, hgt, grid)
+    airport["tower"] = airports.tower_position(airport, vectors.get("towerAreas", vectors["buildingAreas"]) if area.n50_county else None, hgt, grid)
 
     # Analyser: hva tårnet ser, klaringen under hver innflyging, og bygningsklynger (se analysis.py)
     print(f"[{area.id}] analyser: synlighet fra tårnet, klaring under innflygingene, bygningsklynger")
@@ -123,7 +145,7 @@ def build(area: Area) -> Path:
     clusters = np.zeros(0, dtype=int)
     if area.n50_county:
         # Matrikkelen har alle bygg som punkt. Med N50 må flatene (store bygg) tas med i tillegg til punktene.
-        centres = [vectors["buildingPoints"].geometry] + ([] if area.matrikkel_buildings else [vectors["buildingAreas"].geometry.centroid])
+        centres = [all_buildings.geometry] if area.matrikkel_buildings else [vectors["buildingPoints"].geometry, vectors["buildingAreas"].geometry.centroid]
         building_xy = np.array([(p.x, p.y) for series in centres for p in series], dtype=float).reshape(-1, 2)
         cluster_eps = analysis.CLUSTER_EPS_M if area.matrikkel_buildings else analysis.CLUSTER_EPS_GENERALISED_M
         clusters = analysis.building_clusters(building_xy, cluster_eps)
@@ -165,6 +187,8 @@ def build(area: Area) -> Path:
 
     out = TILES / area.id
     out.mkdir(parents=True, exist_ok=True)
+    if area.osm_footprints:
+        footprints.write(out / "buildings.bin", shaped, grid)
     hgt.astype("<f4").tofile(out / "heightmap.f32")
     Image.fromarray(rgb, "RGB").save(out / "colormap.png", optimize=True)
     has_lights = area.night_lights and lc is not None and features is not None
@@ -238,6 +262,15 @@ def build(area: Area) -> Path:
             "buildingCells": len(items) - n_bridge,
             "bridgeHeights": "DOM 1 m (nhm_dom_topo_25833), median langs senterlinja per celle",
             "bridgeLines": len(bridge_lines),
+            "footprints": {
+                "file": "buildings.bin",
+                "count": len(shaped),
+                "boxesWithoutOutline": int(len(vectors["buildingPoints"])),
+                "source": f"OpenStreetMap (hentet {fp.fetched}), forenklet til 0,6 m; type fra Matrikkelen via bygningsnummer",
+                "license": "Open Database License (ODbL) 1.0, © OpenStreetMap contributors. Denne fila og cellene avledet av den deles under samme lisens.",
+                "heights": {k: sum(b["height_source"] == k for b in shaped) for k in ("dom", "levels", "nominal")},
+                "heightsAbout": "dom: median av DOM - DTM innenfor omrisset (minst tre 10 m-celler); levels: etasjer x 3 m + 1; nominal: antatt etter bygningstype",
+            } if area.osm_footprints else None,
             "buildingColors": {
                 "about": "farge etter bygningstype fra Matrikkelen; fargene er valgt, ikke observert",
                 "cells": dict(sorted(profile_cells.items(), key=lambda kv: -kv[1])),
@@ -276,7 +309,7 @@ def build(area: Area) -> Path:
             "bridgeKm": round(float(vectors["bridges"].length.sum()) / 1000, 1),
             "tunnels": len(tunnels),
             "tunnelsAbout": "veier under terrenget (N50, medium = U), minst 150 m; i structures.json, tegnes stiplet av spillet",
-            "buildings": int(len(vectors["buildingPoints"]) + (0 if area.matrikkel_buildings else len(vectors["buildingAreas"]))),
+            "buildings": int(len(all_buildings) if area.matrikkel_buildings else len(vectors["buildingPoints"]) + len(vectors["buildingAreas"])),
             "buildingSource": (
                 f"Matrikkelen - Bygningspunkt, {area.n50_county}: bygg som står, uten garasjer, uthus og naust (N50 hadde {n50_points} punkter). "
                 "Store bygg har i tillegg form fra N50"
@@ -298,6 +331,7 @@ def build(area: Area) -> Path:
         "attribution": [
             "Elevation data (DTM, DOM), N50 map data and building points (Matrikkelen): © Kartverket (CC BY 4.0)"
             if area.matrikkel_buildings else "Elevation data (DTM, DOM) and N50 map data: © Kartverket (CC BY 4.0)",
+            *(["Building outlines: © OpenStreetMap contributors (ODbL)"] if area.osm_footprints else []),
             "Airport data: OurAirports (public domain)",
         ],
     }

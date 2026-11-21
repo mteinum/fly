@@ -56,7 +56,7 @@ export interface TerrainMeta {
   surface: { file: string; classes: { code: number; name: string; color: [number, number, number] }[] };
   landcover: { file: string; classes: { code: number; name: string; water: boolean }[] };
   /** `buildingColors.legend`: [navn, farge] per bygningstype som finnes i utsnittet (fra pipeline, matrikkel.py). */
-  structures: { file: string; buildingColors?: { legend: [string, string][] } | null };
+  structures: { file: string; buildingColors?: { legend: [string, string][] } | null; footprints?: { file: string; count: number } | null };
   names?: { file: string; count: number };
   /** Kjennemerker som vises med logo: posisjon i rutenettet, høyde (m), og bildefil i web/public/. */
   landmarks?: { id: string; name: string; x: number; y: number; z: number; image: string }[];
@@ -70,12 +70,15 @@ import type { PlaceName } from "./labels";
 export interface NameFile { items: [string, number, number, number, number, string, string][] }
 export const parseNames = (f: NameFile): PlaceName[] => f.items.map(([name, x, y, z, size, type, group]) => ({ name, x, y, z, size, type, group }));
 
+import { type Footprint, parseFootprints } from "./footprints";
+
 export const BUILDING = 1;
 export const BRIDGE = 2;
 
-/** structures.json: [kol, rad, type, bunn, topp, r, g, b], høyder i m (NN2000). */
+/** structures.json: [kol, rad, type, bunn, topp, r, g, b, form?], høyder i m (NN2000).
+ *  form = 1: cella hører til et bygg som tegnes med omriss (buildings.bin), ikke som boks. */
 export interface StructureFile {
-  items: [number, number, number, number, number, number, number, number][];
+  items: [number, number, number, number, number, number, number, number, number?][];
   /** Bruer som polylinjer: punkter [x, y, z] i rutenettkoordinater og m (NN2000), bredde i m. */
   bridges: { width: number; points: [number, number, number][] }[];
   /** Kirketårn: [x, y, bunn, topp] i rutenettkoordinater og m (NN2000). Plass og høyde målt i DOM av pipeline. */
@@ -95,6 +98,10 @@ export class Terrain {
   readonly sBase: Float32Array;
   readonly sTop: Float32Array;
   readonly sCol: Uint32Array; // 0xRRGGBB
+  /** 1 der bygningscella tegnes som del av et omriss og ikke som egen boks. */
+  readonly sShaped: Uint8Array;
+  /** Bygninger med form (omriss fra OpenStreetMap). Tom når utsnittet ikke har dem. */
+  footprints: Footprint[] = [];
   readonly bridges: StructureFile["bridges"];
   readonly churchTowers: NonNullable<StructureFile["churchTowers"]>;
   readonly tunnels: NonNullable<StructureFile["tunnels"]>;
@@ -120,12 +127,14 @@ export class Terrain {
     this.sBase = new Float32Array(n);
     this.sTop = new Float32Array(n);
     this.sCol = new Uint32Array(n);
+    this.sShaped = new Uint8Array(n);
     this.bridges = structures.bridges;
     this.churchTowers = structures.churchTowers ?? [];
     this.tunnels = structures.tunnels ?? [];
     this.lighthouses = structures.lighthouses ?? [];
-    for (const [col, row, kind, base, top, r, g, b] of structures.items) {
+    for (const [col, row, kind, base, top, r, g, b, shaped] of structures.items) {
       const i = row * this.width + col;
+      this.sShaped[i] = shaped ? 1 : 0;
       this.sKind[i] = kind;
       this.sBase[i] = base;
       this.sTop[i] = top;
@@ -187,7 +196,7 @@ export interface TerrainAssets {
 
 export async function loadTerrain(baseUrl: string): Promise<TerrainAssets> {
   const meta: TerrainMeta = await (await fetch(`${baseUrl}/metadata.json`)).json();
-  const [hgtBuf, colormap, lights, lcBuf, surfaceBuf, structures, names] = await Promise.all([
+  const [hgtBuf, colormap, lights, lcBuf, surfaceBuf, structures, names, footprints] = await Promise.all([
     fetch(`${baseUrl}/${meta.heightmap.file}`).then((r) => r.arrayBuffer()),
     loadImage(`${baseUrl}/${meta.colormap.file}`),
     meta.lights ? loadImage(`${baseUrl}/${meta.lights.file}`) : null,
@@ -195,10 +204,12 @@ export async function loadTerrain(baseUrl: string): Promise<TerrainAssets> {
     fetch(`${baseUrl}/${meta.surface.file}`).then((r) => r.arrayBuffer()),
     fetch(`${baseUrl}/${meta.structures.file}`).then((r) => r.json() as Promise<StructureFile>),
     meta.names ? fetch(`${baseUrl}/${meta.names.file}`).then((r) => r.json() as Promise<NameFile>) : null,
+    meta.structures.footprints ? fetch(`${baseUrl}/${meta.structures.footprints.file}`).then((r) => r.arrayBuffer()) : null,
   ]);
   // heightmap.f32 er little-endian, som alle plattformer nettlesere kjører på
   const terrain = new Terrain(meta, new Float32Array(hgtBuf), new Uint8Array(lcBuf), structures);
   if (names) terrain.names = parseNames(names);
+  if (footprints) terrain.footprints = parseFootprints(footprints);
   return { terrain, colormap, lights, surface: new Uint8Array(surfaceBuf) };
 }
 

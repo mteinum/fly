@@ -22,4 +22,6 @@ SOFTWARE.
 
 This licence covers the source code only. Map tiles, reference data, audio
 files and fonts in this repository are subject to their own terms; see
-README.md and docs/datakilder.md.
+README.md and docs/datakilder.md. Building outlines in data/osm/ and the tiles
+derived from them are © OpenStreetMap contributors under the Open Database
+License (ODbL) 1.0; see data/osm/LICENSE.md.

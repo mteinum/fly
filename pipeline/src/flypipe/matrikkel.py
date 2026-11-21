@@ -110,22 +110,34 @@ def nominal_height(building_type: np.ndarray) -> np.ndarray:
     return out
 
 
-def load_buildings(county: str, grid: GridSpec, raw_dir: Path) -> gpd.GeoDataFrame:
-    """Bygninger som står, innenfor rutenettet og uten garasjer og uthus: punkt, `bygningstype` og `height` (nominell)."""
+def _standing(county: str, grid: GridSpec, raw_dir: Path) -> gpd.GeoDataFrame:
+    """Alle bygg som står, også garasjer og uthus, med bygningsnummer (nøkkelen OSM-omrissene bruker)."""
     gdf = gpd.read_file(
         gdb_path(county, raw_dir), layer=LAYER, bbox=(grid.west, grid.south, grid.east, grid.north),
-        columns=["bygningstype", "bygningsstatus"], engine="pyogrio",
+        columns=["bygningstype", "bygningsstatus", "bygningsnummer"], engine="pyogrio",
     )
     assert gdf.crs is not None and gdf.crs.to_epsg() == 25833, gdf.crs
     assert len(gdf) and set(gdf.geom_type) == {"Point"}, set(gdf.geom_type)
-    gdf = gdf[gdf["bygningsstatus"].isin(STANDING) & gdf["bygningstype"].notna()]
+    return gdf[gdf["bygningsstatus"].isin(STANDING) & gdf["bygningstype"].notna()]
+
+
+def type_by_number(county: str, grid: GridSpec, raw_dir: Path) -> dict[int, int]:
+    """Bygningstype per bygningsnummer, for alle bygg som står (også uthus, så de kan velges bort)."""
+    gdf = _standing(county, grid, raw_dir)
+    return dict(zip(gdf["bygningsnummer"].astype("int64"), gdf["bygningstype"].astype(int)))
+
+
+def load_buildings(county: str, grid: GridSpec, raw_dir: Path) -> gpd.GeoDataFrame:
+    """Bygninger som står, innenfor rutenettet og uten garasjer og uthus: punkt, `bygningstype`, `bygningsnummer` og `height` (nominell)."""
+    gdf = _standing(county, grid, raw_dir)
     gdf = gdf[~gdf["bygningstype"].astype(int).isin(OUTBUILDINGS)]
     # bbox-filteret i leseren tar med punkter på kanten: hold oss strengt innenfor
     x, y = gdf.geometry.x, gdf.geometry.y
     gdf = gdf[(x >= grid.west) & (x < grid.east) & (y > grid.south) & (y <= grid.north)].copy()
     gdf["bygningstype"] = gdf["bygningstype"].astype(int)
     gdf["height"] = nominal_height(gdf["bygningstype"].to_numpy())
-    return gdf[["bygningstype", "height", "geometry"]].reset_index(drop=True)
+    gdf["bygningsnummer"] = gdf["bygningsnummer"].astype("int64")
+    return gdf[["bygningstype", "bygningsnummer", "height", "geometry"]].reset_index(drop=True)
 
 
 def height_raster(buildings: gpd.GeoDataFrame, grid: GridSpec) -> np.ndarray:

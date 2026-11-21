@@ -151,6 +151,8 @@ Koden er lisensiert under MIT, se [LICENSE](LICENSE). Det gjelder ikke data og m
 følger med eller hentes av pipeline; de har egne vilkår:
 
 - Kartfliser og fasitpunkter er avledet av data fra Kartverket (CC BY 4.0).
+- Bygningsomriss (`data/osm/` og `buildings.bin` i flisene) er © OpenStreetMap contributors under
+  Open Database License (ODbL) 1.0, se [data/osm/LICENSE.md](data/osm/LICENSE.md).
 - Flyplassdata er fra OurAirports (public domain).
 - Lydfilene i `web/public/audio/` er generert med ElevenLabs og publisert av
   rettighetshaveren. De er ikke omfattet av MIT-lisensen.

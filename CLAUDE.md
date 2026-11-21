@@ -16,6 +16,8 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     dtm.py        Kartverket DTM og DOM via WCS, cache i data/raw/
     airports.py   OurAirports: flyplass + rullebaner; tårnposisjon fra N50-bygning type 411
     n50.py        N50 Kartdata: veier, bruer, bygninger -> feature-raster
+    osm.py        bygningsomriss fra OpenStreetMap: `flypipe osm <utsnitt>` henter til data/osm/ (i git, ODbL)
+    footprints.py bygg med form: omriss (OSM) + type (Matrikkelen) + høyde (DOM) -> buildings.bin
     matrikkel.py  Matrikkelen: alle bygninger som punkt med type (10 m-flisene); høyde og farge er valgt etter type
     landcover.py  N50 Arealdekke -> palettindeks per celle
     structures.py bruer (dekkhøyde fra DOM), bygninger, kirketårn og fyr (målt i DOM) som egen liste
@@ -34,6 +36,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     physics.ts     flymodell (enkel, med A320-lignende fartsgrenser), landing, kollisjon
     autopilot.ts   regelstyrt autopilot for innflyging og landing (A), flyr med spillerens kontroller
     guidance.ts    avvik fra senterlinje og 3° glidebane (vises som ILS på PFD, syntetisk)
+    footprints.ts  leser buildings.bin og lager trekanter (vegger og flatt tak) for bygg med omriss
     flightlog.ts   flylogg per innflyging (UTM 33, sann kurs); L laster ned, utviklingsserveren lagrer i data/flights/
     replay.ts      opptak av de siste 5 s og reprise utenfra etter krasj
     sun.ts         solas posisjon fra tid og sted
@@ -51,6 +54,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     towerPanel.ts  tårnets interiør: sprosser, benk med radar, stripe, værpanel
 data/raw/        cache av nedlastede rådata (ikke i git)
 data/processed/  GeoTIFF-kopier for kontroll i QGIS (ikke i git)
+data/osm/        bygningsomriss fra OpenStreetMap per utsnitt (i git; ODbL, se LICENSE.md der)
 data/flights/    flylogger fra spillet i utviklingsmodus (ikke i git)
 .mcp.json        MCP-serveren `teinum-fly` for Claude Code; .claude/skills/debrief/ sier hvordan en innflyging gås gjennom
 deploy/          publisering til fly.teinum.no (SSH + rsync), kjøres av .github/workflows/deploy.yml
@@ -68,6 +72,8 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 - `surface.bin`: uint8, arealdekke med vei (16) og rullebane (17) lagt oppå; velger detaljmønster på bakken
 - `landcover.bin`: uint8 palettindeks (klasser i metadata.json; avgjør hva som er vann)
 - `structures.json`: `[kol, rad, type, bunn, topp, r, g, b]` for bruer og bygninger, `churchTowers`: `[x, y, bunn, topp]`, `lighthouses`: `[x, y, bunn, topp, tårn]` og `tunnels`: polylinjer `[x, y]`
+- `buildings.bin` (bare utsnitt med OSM-omriss, foreløpig kjevik10): bygg med form, se footprints.py for formatet.
+  I `structures.json` har cellene under disse byggene et niende felt = 1 (tegnes ikke som boks)
 - `names.json`: `[navn, x, y, z, skriftstørrelse, type, gruppe]`, stedsnavn fra N50, viktigste først
 - `metadata.json`: bbox, CRS, cellestørrelse, min/maks høyde, konvergens,
   flyplasser med rullebaner (hver baneende har `approach` fra analysis.py), klasseliste, `analysis`
@@ -166,6 +172,9 @@ cd pipeline && uv run flypipe debrief        # hovedtallene for siste flylogg i 
   Det som skal synes på nært hold må være en overflateklasse eller egen geometri (slik tunnelene er).
 - Om-skjermen (About, i web/index.html) sier hva som er ekte og hva som er syntetisk, hvem som krediteres og hva
   siden gjør med personvern. Endres noe av dette, må teksten der følge med.
+- OpenStreetMap-data er ODbL: data/osm/ og det som avledes av dem (buildings.bin, bygningscellene) deles under
+  samme lisens og krediteres «© OpenStreetMap contributors» i metadata og på om-skjermen. Bygget henter aldri
+  fra Overpass selv; `flypipe osm` kjøres for hånd, som `flypipe audio`.
 - Besøksmåling: Google Tag Manager (GTM-KJ2W4NZK) lastes i web/index.html. Det er den eneste tredjeparten
   siden kontakter. Spilldata (flylogg, navn på diplom) skal ikke sendes dit.
 - API-nøkler leses fra miljøet i pipeline og skrives aldri til fil, logg eller nettleser.

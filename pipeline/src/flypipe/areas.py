@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 
 # Navnene vises i spillet, som er på engelsk.
@@ -25,6 +25,8 @@ class Area:
     night_lights: bool = False  # skriv lights.png (gatelys og vinduslys, syntetisk plassert)
     # True: bygningspunkter fra Matrikkelen (alle bygg) i stedet for N50 (et utvalg). Samme fylkeskode som N50.
     matrikkel_buildings: bool = False
+    # True: bygningene får form fra OpenStreetMap-omriss (data/osm/<id>.npz, ODbL). Krever matrikkel_buildings.
+    osm_footprints: bool = False
     # Flytt utsnittets sentrum (øst, nord i m) fra flyplassens referansepunkt, for å få med noe som ellers kuttes
     center_offset: tuple[float, float] = (0.0, 0.0)
 
@@ -55,7 +57,8 @@ AREAS = {
     # 50 m: grovt nivå. Brukes ikke av spillet nå, men av testene og av blokkmiddel-kontrollen
     "kjevik": Area(id="kjevik", name="Kristiansand Airport, Kjevik", icao="ENCN", n50_county="42_Agder", center_offset=KJEVIK_OFFSET),
     # 10 m: det spillet bruker. kjevik10 har samme bbox som kjevik, så rådata deles.
-    "kjevik10": _airport_10m("kjevik10", "Kristiansand Airport, Kjevik", "ENCN", "42_Agder", cache="kjevik", center_offset=KJEVIK_OFFSET),
+    # Kjevik er første utsnitt med bygningsomriss fra OpenStreetMap (prøves ut før de andre)
+    "kjevik10": replace(_airport_10m("kjevik10", "Kristiansand Airport, Kjevik", "ENCN", "42_Agder", cache="kjevik", center_offset=KJEVIK_OFFSET), osm_footprints=True),
     "sola10": _airport_10m("sola10", "Stavanger Airport, Sola", "ENZV", "11_Rogaland"),
     "flesland10": _airport_10m("flesland10", "Bergen Airport, Flesland", "ENBR", "46_Vestland"),
     "gardermoen10": _airport_10m("gardermoen10", "Oslo Airport, Gardermoen", "ENGM", "32_Akershus"),
