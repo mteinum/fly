@@ -29,9 +29,9 @@ export function formatOslo(utcMs: number): string {
   return `${String(t.hour).padStart(2, "0")}:${String(t.minute).padStart(2, "0")}`;
 }
 
-export const DEFAULT_HOUR = 9;
+export const DEFAULT_HOUR = 13;
 
-/** Starttid: ?time=HH:MM og ?date=YYYY-MM-DD (norsk tid). Uten parametre: i dag kl. 09:00. */
+/** Starttid: ?time=HH:MM og ?date=YYYY-MM-DD (norsk tid). Uten parametre: i dag kl. 13:00. */
 export function startTime(params: URLSearchParams, nowMs: number): number {
   const t = osloTime(nowMs);
   const date = /^(\d{4})-(\d{2})-(\d{2})$/.exec(params.get("date") ?? "");

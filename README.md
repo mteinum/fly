@@ -45,7 +45,7 @@ baneender på flyplassen.
 
 URL-parametre: `?apt=ENGM`, `?cam=cockpit` eller `?cam=tower`, `?rwy=21`, `?cfg=full` (start med understell nede
 og full klaff), `?time=22:00` og `?date=2026-06-21`
-(norsk tid; uten dem starter spillet kl. 09:00 i dag), og `?pos=øst,nord,høyde,kurs` (UTM 33,
+(norsk tid; uten dem starter spillet kl. 13:00 i dag), og `?pos=øst,nord,høyde,kurs` (UTM 33,
 meter, sann kurs), f.eks. `?pos=91725,6468775,70,174` for Varoddbrua.
 
 ## Innflyging

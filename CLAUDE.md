@@ -141,7 +141,7 @@ cd pipeline && uv run flypipe debrief        # hovedtallene for siste flylogg i 
 - Sann målestokk, ingen vertikal overdrivelse. three.js brukes bare til
   tegning; fysikk og terrengoppslag er ren TypeScript og testes uten nettleser.
 - Kameraene heter «utvendig», «cockpit» og «tårn» (ikke «jakt»).
-- Tid: spillet starter kl. 09:00 norsk tid samme dag (kan overstyres med ?time og ?date).
+- Tid: spillet starter kl. 13:00 norsk tid samme dag (kan overstyres med ?time og ?date).
   Spillklokka er UTC i ms, vises i norsk tid. Solas asimut er sann og må
   korrigeres med meridiankonvergensen før den brukes i rutenettet (game.ts).
 - Skill mellom ekte og syntetisk: det som er plassert etter mønster og ikke
