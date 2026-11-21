@@ -268,12 +268,21 @@ Ikke avklart:
 - Hvor godt OSM-omrissene dekker landsbygda og de andre flyplassene er ikke sjekket.
 - Matrikkelen har adresse- og eiendoms-ID per bygning. De trengs ikke og skal ikke med i flisene.
 
-## Undersøkt og tatt i bruk for Kjevik: bygningsomriss fra OpenStreetMap (2026-11-21)
+## Undersøkt og tatt i bruk: bygningsomriss fra OpenStreetMap (2026-11-21)
 
-I bruk i `kjevik10` som forsøk: 33 037 bygg har form, 2 604 Matrikkel-bygg uten omriss er fortsatt bokser.
-Høyden er målt i DOM for 4 635 bygg (de som dekker minst tre celler), regnet fra etasjetall for 3 263, og
-antatt etter type for 25 139. Alle tak er flate. Kode: `pipeline/src/flypipe/osm.py` og `footprints.py`.
-Lisens og kreditering: `data/osm/LICENSE.md`. De andre utsnittene har fortsatt bokser.
+I bruk i alle 10 m-utsnittene. Kode: `pipeline/src/flypipe/osm.py` og `footprints.py`. Lisens og
+kreditering: `data/osm/LICENSE.md`. Alle tak er flate.
+
+| Utsnitt | Bygg med form | Matrikkel-bygg uten omriss (bokser) | Høyde målt i DOM | Trekanter i spillet |
+|---|---|---|---|---|
+| Kjevik | 33 037 | 2 604 | 4 635 | 0,71 mill. |
+| Sola | 74 247 | 3 160 | 11 468 | 1,61 mill. |
+| Flesland | 65 453 | 3 126 | 9 677 | 1,44 mill. |
+| Gardermoen | 24 013 | 1 746 | 4 180 | |
+| Bodø | 13 813 | 388 | 1 779 | |
+
+Høyden er målt (median av DOM - DTM innenfor omrisset) for bygg som dekker minst tre 10 m-celler, regnet fra
+etasjetall der OSM har det, og ellers antatt etter bygningstype. Det siste gjelder de fleste småhus.
 
 Spørsmålet var om OpenStreetMap kan gi husene form i stedet for bokser, og hva lisensen krever.
 

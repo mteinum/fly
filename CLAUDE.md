@@ -72,7 +72,7 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 - `surface.bin`: uint8, arealdekke med vei (16) og rullebane (17) lagt oppå; velger detaljmønster på bakken
 - `landcover.bin`: uint8 palettindeks (klasser i metadata.json; avgjør hva som er vann)
 - `structures.json`: `[kol, rad, type, bunn, topp, r, g, b]` for bruer og bygninger, `churchTowers`: `[x, y, bunn, topp]`, `lighthouses`: `[x, y, bunn, topp, tårn]` og `tunnels`: polylinjer `[x, y]`
-- `buildings.bin` (bare utsnitt med OSM-omriss, foreløpig kjevik10): bygg med form, se footprints.py for formatet.
+- `buildings.bin` (10 m-utsnittene): bygg med form, se footprints.py for formatet.
   I `structures.json` har cellene under disse byggene et niende felt = 1 (tegnes ikke som boks)
 - `names.json`: `[navn, x, y, z, skriftstørrelse, type, gruppe]`, stedsnavn fra N50, viktigste først
 - `metadata.json`: bbox, CRS, cellestørrelse, min/maks høyde, konvergens,

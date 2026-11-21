@@ -303,6 +303,7 @@
     "buildingCells": 7067,
     "bridgeHeights": "DOM 1 m (nhm_dom_topo_25833), median langs senterlinja per celle",
     "bridgeLines": 61,
+    "footprints": null,
     "buildingColors": null,
     "lighthouses": 8,
     "lighthouseTowers": 2,

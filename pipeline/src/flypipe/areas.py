@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 
 # Navnene vises i spillet, som er på engelsk.
@@ -46,6 +46,7 @@ def _airport_10m(id: str, name: str, icao: str, county: str, cache: str = "", ce
         bake_hillshade=False,
         night_lights=True,
         matrikkel_buildings=True,
+        osm_footprints=True,
     )
 
 
@@ -57,8 +58,7 @@ AREAS = {
     # 50 m: grovt nivå. Brukes ikke av spillet nå, men av testene og av blokkmiddel-kontrollen
     "kjevik": Area(id="kjevik", name="Kristiansand Airport, Kjevik", icao="ENCN", n50_county="42_Agder", center_offset=KJEVIK_OFFSET),
     # 10 m: det spillet bruker. kjevik10 har samme bbox som kjevik, så rådata deles.
-    # Kjevik er første utsnitt med bygningsomriss fra OpenStreetMap (prøves ut før de andre)
-    "kjevik10": replace(_airport_10m("kjevik10", "Kristiansand Airport, Kjevik", "ENCN", "42_Agder", cache="kjevik", center_offset=KJEVIK_OFFSET), osm_footprints=True),
+    "kjevik10": _airport_10m("kjevik10", "Kristiansand Airport, Kjevik", "ENCN", "42_Agder", cache="kjevik", center_offset=KJEVIK_OFFSET),
     "sola10": _airport_10m("sola10", "Stavanger Airport, Sola", "ENZV", "11_Rogaland"),
     "flesland10": _airport_10m("flesland10", "Bergen Airport, Flesland", "ENBR", "46_Vestland"),
     "gardermoen10": _airport_10m("gardermoen10", "Oslo Airport, Gardermoen", "ENGM", "32_Akershus"),

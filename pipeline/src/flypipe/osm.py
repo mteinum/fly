@@ -102,9 +102,12 @@ def fetch(area_id: str, grid: GridSpec, raw_dir: Path) -> Path:
             skipped["tag"] += 1
             continue
         for geom in _rings(el):
+            if len(geom) < 4 or geom[0] != geom[-1]:  # ikke en lukket flate (halvferdig kartlegging)
+                skipped["invalid"] += 1
+                continue
             east, north = to_utm.transform([p["lon"] for p in geom], [p["lat"] for p in geom])
             poly = Polygon(np.c_[east, north])
-            if len(geom) < 4 or not poly.is_valid or poly.area < MIN_AREA_M2:
+            if not poly.is_valid or poly.area < MIN_AREA_M2:
                 skipped["small" if poly.is_valid else "invalid"] += 1
                 continue
             c = poly.representative_point()
