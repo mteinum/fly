@@ -48,7 +48,9 @@ export class GlRenderer {
   readonly buildingCount: number;
   private renderer: THREE.WebGLRenderer;
   private scene = new THREE.Scene();
-  private camera = new THREE.PerspectiveCamera(60, 1.6, 2, 150000);
+  // Nærplanet står så langt ute som det kan (flyet er alltid minst 20 m foran kameraet): dybdebufferens
+  // oppløsning på avstand er omvendt proporsjonal med det, og flater tett på hverandre flimrer ellers.
+  private camera = new THREE.PerspectiveCamera(60, 1.6, 8, 150000);
   private chunks: Chunk[] = [];
   private indexCache = new Map<number, THREE.BufferAttribute>();
   private terrainMat: THREE.MeshStandardMaterial;
@@ -166,7 +168,7 @@ export class GlRenderer {
 
   /** Det som ligger utenfor kartutsnittet: én stor flate. Hav ved kysten; i innlandet en flate i
    *  høyde med kartets laveste punkt og med skogfarge, så kartet ikke ender i blått hav. Ikke data. */
-  private surroundings(): THREE.Mesh {
+  private surroundings(): THREE.Group {
     const t = this.t, W = t.width, H = t.height;
     let water = 0, n = 0;
     for (let i = 0; i < W; i += 8) for (const [x, y] of [[i, 0], [i, H - 1], [0, i], [W - 1, i]]) {
@@ -174,13 +176,19 @@ export class GlRenderer {
       if (t.isWater(x + 0.5, y + 0.5)) water++;
     }
     const inland = water / n < 0.25, forest = t.meta.surface.classes.find((c) => c.code === 4)?.color ?? [46, 101, 54];
-    const plane = new THREE.Mesh(
-      new THREE.PlaneGeometry(400000, 400000).rotateX(-Math.PI / 2),
-      new THREE.MeshStandardMaterial({ color: color(inland ? forest : t.meta.seaColor), roughness: 1, metalness: 0 }),
-    );
-    // Under kartets laveste punkt, ellers ville flaten stikke opp gjennom dalene inne i kartet
-    plane.position.set((W * t.cell) / 2, inland ? Math.max(0, t.meta.minHeight) - 5 : -0.5, (H * t.cell) / 2);
-    return plane;
+    const mat = new THREE.MeshStandardMaterial({ color: color(inland ? forest : t.meta.seaColor), roughness: 1, metalness: 0 });
+    // Flaten ligger BARE utenfor kartet, som fire remser rundt det. Lå den også under kartet, ville den
+    // slåss med sjøen og lavt land om hvem som er nærmest (dybdebufferen skiller ikke en halv meter på
+    // flere kilometers avstand), og holmer og strender blinket i havfarge.
+    const far = 200000, w = W * t.cell, h = H * t.cell, y = inland ? Math.max(0, t.meta.minHeight) - 5 : -0.5, group = new THREE.Group();
+    // remsene går 40 m inn under kartkanten, så det ikke blir sprekker mellom dem og terrenget
+    const lap = 40;
+    for (const [x0, z0, x1, z1] of [[-far, -far, w + far, lap], [-far, h - lap, w + far, h + far], [-far, 0, lap, h], [w - lap, 0, w + far, h]]) {
+      const strip = new THREE.Mesh(new THREE.PlaneGeometry(x1 - x0, z1 - z0).rotateX(-Math.PI / 2), mat);
+      strip.position.set((x0 + x1) / 2, y, (z0 + z1) / 2);
+      group.add(strip);
+    }
+    return group;
   }
 
   /** Flatenormaler fra høydekartet (sentraldifferanser), pakket som RGB. Samme rutenett som høydekartet. */

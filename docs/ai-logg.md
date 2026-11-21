@@ -371,6 +371,22 @@ og hva som ble endret.
   riktig. Når noe ser rart ut, er «koden er feil» den første hypotesen
   som skal avkreftes, ikke den siste.
 
+**43. Holmer som blinket i havfarge**
+- Meldt av brukeren med et skjermopptak: «litt flikking».
+- Jeg delte opptaket i enkeltbilder og lette etter piksler som hopper fram
+  og tilbake fra bilde til bilde. Første treff var musepekeren. Det andre
+  var ekte: lavt land og holmer flere kilometer unna ble til sjø i
+  annethvert bilde.
+- Årsak: flaten som fyller verden utenfor kartet lå også under hele kartet,
+  en halv meter under havnivå. På avstand skiller ikke dybdebufferen en
+  halv meter, så flaten og terrenget byttet på å ligge øverst.
+- Feilen har vært der siden flaten kom inn. Den synes best over
+  skjærgård, som kom med da Kjevik-kartet ble flyttet sørover.
+- Rettet: flaten ligger bare utenfor kartet, og kameraets nærplan er
+  flyttet fra 2 til 8 m, som gir fire ganger finere dybde på avstand.
+- Ikke bekreftet: et stillbilde viser ikke flimmer. Brukeren må se om det
+  er borte.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal
