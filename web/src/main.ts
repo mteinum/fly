@@ -146,8 +146,33 @@ async function main(): Promise<void> {
   addEventListener("keydown", (e) => {
     if (e.code === "KeyN" && !e.repeat && !isTyping(e)) { showNames = !showNames; game.msg.text = showNames ? "Place names on" : "Place names off"; game.msg.t = 1.5; }
   });
+  // Kjennemerker med logo (fra pipeline, data/landmarks.json): et lite skilt over stedet
+  const signs = (terrain.meta.landmarks ?? []).map((lm) => {
+    const image = new Image();
+    image.src = `${import.meta.env.BASE_URL}${lm.image}`;
+    // samme form som et stedsnavn, så sikt og avstand kan sjekkes med de samme funksjonene
+    return { lm, image, place: { name: lm.name, x: lm.x, y: lm.y, z: lm.z, size: 12, type: "landmark", group: "bebyggelse" } satisfies PlaceName };
+  });
+  const SIGN_RANGE_M = 9000, SIGN_HEIGHT = 3.4; // logiske enheter: på størrelse med et stedsnavn
+  const drawSigns = (cx: number, cy: number, ey: number) => {
+    for (const { lm, image, place } of signs) {
+      if (!image.complete || !image.naturalWidth) continue;
+      if (Math.hypot(lm.x - cx, lm.y - cy) * terrain.cell > SIGN_RANGE_M || !inSight(terrain, cx, cy, ey, place)) continue;
+      const at = renderer.project(lm.x * terrain.cell, lm.z + 25, lm.y * terrain.cell);
+      if (!at) continue;
+      const px = at[0] * W, py = TOP + at[1] * (H - TOP), h = SIGN_HEIGHT, w = (h * image.naturalWidth) / image.naturalHeight;
+      g.save();
+      g.globalAlpha = 0.8;
+      g.strokeStyle = "rgba(0,0,0,.4)"; g.lineWidth = 0.25;
+      g.beginPath(); g.moveTo(px, py - 4.4); g.lineTo(px, py); g.stroke(); // strek ned til stedet, som for navnene
+      g.fillStyle = "#ffffff"; g.beginPath(); g.roundRect(px - w / 2 - 0.8, py - 4.4 - h - 1.4, w + 1.6, h + 1.4, 0.6); g.fill();
+      g.drawImage(image, px - w / 2, py - 4.4 - h - 0.7, w, h);
+      g.restore();
+    }
+  };
   const drawNames = () => {
     const [ex, ey, ez] = renderer.eye, cx = ex / terrain.cell, cy = ez / terrain.cell;
+    drawSigns(cx, cy, ey);
     const boxes: { x: number; y: number; w: number; h: number; place: PlaceName; px: number; py: number; font: string }[] = [];
     for (const { place, distanceM } of candidates(terrain, cx, cy, ey)) {
       const at = renderer.project(place.x * terrain.cell, place.z + 20, place.y * terrain.cell);

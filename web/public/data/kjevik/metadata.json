@@ -8,19 +8,19 @@
   "height": 512,
   "bbox": {
     "west": 81250.0,
-    "south": 6459500.0,
+    "south": 6456000.0,
     "east": 106850.0,
-    "north": 6485100.0
+    "north": 6481600.0
   },
   "gridOrigin": "nordvest: rad 0 = nord, kolonne 0 = vest, y øker mot sør",
   "minHeight": -0.33,
-  "maxHeight": 329.36,
+  "maxHeight": 314.81,
   "seaColor": [
     45,
     110,
     150
   ],
-  "gridConvergenceDeg": -5.8852,
+  "gridConvergenceDeg": -5.878,
   "scaleFactor": 1.001616,
   "heightmap": {
     "file": "heightmap.f32",
@@ -293,16 +293,16 @@
   },
   "names": {
     "file": "names.json",
-    "count": 1046,
+    "count": 1024,
     "source": "N50 Kartdata, tekstlaget (stedsnavn fra Sentralt stedsnavnregister)",
     "about": "size er kartets skriftstørrelse i 1:50 000 og brukes som mål på hvor viktig navnet er"
   },
   "structures": {
     "file": "structures.json",
-    "bridgeCells": 141,
-    "buildingCells": 7265,
+    "bridgeCells": 139,
+    "buildingCells": 7067,
     "bridgeHeights": "DOM 1 m (nhm_dom_topo_25833), median langs senterlinja per celle",
-    "bridgeLines": 64,
+    "bridgeLines": 61,
     "buildingColors": null,
     "churches": 0,
     "churchTowers": 0,
@@ -315,7 +315,7 @@
   },
   "hillshade": {
     "sunAzimuthTrueDeg": 225.0,
-    "sunAzimuthGridDeg": 230.89,
+    "sunAzimuthGridDeg": 230.88,
     "sunElevationDeg": 28.0
   },
   "features": {
@@ -325,16 +325,18 @@
       "R",
       "F"
     ],
-    "roadCells": 6235,
-    "roadKm": 329.3,
-    "bridgeKm": 7.5,
-    "buildings": 8098,
+    "roadCells": 5328,
+    "roadKm": 281.3,
+    "bridgeKm": 7.2,
+    "tunnels": 25,
+    "tunnelsAbout": "veier under terrenget (N50, medium = U), minst 150 m; i structures.json, tegnes stiplet av spillet",
+    "buildings": 7864,
     "buildingSource": "N50 Kartdata"
   },
   "analysis": {
     "towerViewshed": {
       "groundSeenShare": 0.049,
-      "seenAt300mShare": 0.741,
+      "seenAt300mShare": 0.802,
       "method": "siktlinjer fra tårnets øyepunkt over terrenget (DTM), med jordkrumning og standard brytning (k = 0,13)",
       "limits": "trær og bygninger sperrer ikke sikten her; tårnets plassering og øyehøyde er antatt"
     },
@@ -345,13 +347,23 @@
     },
     "buildingClusters": {
       "method": "DBSCAN, eps 100 m, minst 5 bygninger",
-      "buildings": 8098,
-      "clusters": 344,
-      "inClustersShare": 0.51,
+      "buildings": 7864,
+      "clusters": 345,
+      "inClustersShare": 0.537,
       "largestCluster": 144,
       "medianCluster": 8
     }
   },
+  "landmarks": [
+    {
+      "id": "uia",
+      "name": "University of Agder",
+      "x": 150.18,
+      "y": 266.11,
+      "z": 43.2,
+      "image": "uia-logo.png"
+    }
+  ],
   "airports": [
     {
       "icao": "ENCN",
@@ -363,7 +375,7 @@
         "east": 94051.25,
         "north": 6472303.86,
         "x": 256.025,
-        "y": 255.9228
+        "y": 185.9228
       },
       "runways": [
         {
@@ -378,7 +390,7 @@
               "east": 93381.88,
               "north": 6471531.75,
               "x": 242.6376,
-              "y": 271.365,
+              "y": 201.365,
               "ident": "03",
               "elevationM": 12.5,
               "headingTrueDeg": 35.0,
@@ -398,7 +410,7 @@
               "east": 94716.86,
               "north": 6473076.33,
               "x": 269.3372,
-              "y": 240.4735,
+              "y": 170.4735,
               "ident": "21",
               "elevationM": 15.8,
               "headingTrueDeg": 215.0,
@@ -419,7 +431,7 @@
         "east": 93380.0,
         "north": 6472122.94,
         "x": 242.6,
-        "y": 259.5412,
+        "y": 189.5412,
         "groundM": 12.5,
         "eyeM": 44.5,
         "source": "N50 bygning type 411 nærmest referansepunktet; plassering på bygningen og høyde er antatt"

@@ -71,11 +71,13 @@ def load_features(
     # medium: T = på terrenget, L = i lufta (bru), U = under terrenget (tunnel, tegnes ikke)
     roads = cars[(cars["medium"] == "T") & cars["vegkategori"].isin(road_categories)]
     bridges = cars[(cars["medium"] == "L") & cars["vegkategori"].isin(BRIDGE_CATEGORIES)]
+    tunnels = cars[(cars["medium"] == "U") & cars["vegkategori"].isin(road_categories)]
     points = _read(gdb, "N50_BygningerOgAnlegg_posisjon", grid)
     areas = _read(gdb, "N50_BygningerOgAnlegg_omrade", grid)
     return {
         "roads": roads,
         "bridges": bridges,
+        "tunnels": tunnels,
         "buildingPoints": points[points["objtype"] == "Bygning"],
         "buildingAreas": areas[areas["objtype"] == "Bygning"],
     }
@@ -123,8 +125,24 @@ def rasterize_features(features: dict[str, gpd.GeoDataFrame], grid: GridSpec) ->
     return rasterize(shapes, out_shape=(grid.height, grid.width), transform=grid.transform, fill=NONE, dtype="uint8")
 
 
-# Navnetyper som ikke gir mening sett fra lufta
-SKIP_NAME_TYPES = {"tunnel"}
+TUNNEL_MIN_LENGTH_M = 150.0  # kortere tunneler (underganger, kulverter) tegnes ikke
+
+
+def tunnel_lines(features: dict[str, gpd.GeoDataFrame], grid: GridSpec) -> list[list[list[float]]]:
+    """Tunnelene (veier med medium = U) som polylinjer i rutenettkoordinater: [[x, y], ...] per tunnel."""
+    out = []
+    for geom in features["tunnels"].geometry:
+        for line in getattr(geom, "geoms", [geom]) if geom is not None and not geom.is_empty else []:
+            if line.length < TUNNEL_MIN_LENGTH_M:
+                continue
+            pts = [[round(v, 2) for v in grid.utm_to_grid(x, y)] for x, y, *_ in line.simplify(2.0).coords]
+            if all(0 <= x < grid.width and 0 <= y < grid.height for x, y in pts):
+                out.append(pts)
+    return sorted(out)
+
+
+# Navnetyper som ikke tas med. Tunnelnavn er med (tunnelene tegnes stiplet), merket så de ikke forveksles med stedet.
+SKIP_NAME_TYPES: set[str] = set()
 # Navn med minst denne skriftstørrelsen flyttes fra kartteksten til stedets eget punkt i SSR
 SSR_POINT_MIN_SIZE = 8.5
 SSR_URL = "https://ws.geonorge.no/stedsnavn/v1/sted"
@@ -194,8 +212,11 @@ def load_names(county: str, grid: GridSpec, raw_dir: Path) -> list[dict]:
                 sx, sy = grid.utm_to_grid(*point)
                 if 0 <= sx < grid.width and 0 <= sy < grid.height:
                     x, y = sx, sy
+        name = str(first["fulltekst"]).strip()
+        if first["navneobjekttype"] == "tunnel" and "tunnel" not in name.lower():
+            name += " (tunnel)"  # kartet har tunnelsymbol ved navnet; her må ordet til
         names.append({
-            "name": str(first["fulltekst"]).strip(),
+            "name": name,
             "x": x, "y": y,
             "size": round(float(parts["FontSize"].max()), 2),
             "type": str(first["navneobjekttype"]),

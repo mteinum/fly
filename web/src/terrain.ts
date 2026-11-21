@@ -58,6 +58,8 @@ export interface TerrainMeta {
   /** `buildingColors.legend`: [navn, farge] per bygningstype som finnes i utsnittet (fra pipeline, matrikkel.py). */
   structures: { file: string; buildingColors?: { legend: [string, string][] } | null };
   names?: { file: string; count: number };
+  /** Kjennemerker som vises med logo: posisjon i rutenettet, høyde (m), og bildefil i web/public/. */
+  landmarks?: { id: string; name: string; x: number; y: number; z: number; image: string }[];
   airports: Airport[];
   attribution: string[];
 }
@@ -78,6 +80,8 @@ export interface StructureFile {
   bridges: { width: number; points: [number, number, number][] }[];
   /** Kirketårn: [x, y, bunn, topp] i rutenettkoordinater og m (NN2000). Plass og høyde målt i DOM av pipeline. */
   churchTowers?: [number, number, number, number][];
+  /** Veitunneler som polylinjer [x, y] i rutenettkoordinater. De ligger under bakken og tegnes stiplet oppå den. */
+  tunnels?: [number, number][][];
 }
 
 export class Terrain {
@@ -91,6 +95,7 @@ export class Terrain {
   readonly sCol: Uint32Array; // 0xRRGGBB
   readonly bridges: StructureFile["bridges"];
   readonly churchTowers: NonNullable<StructureFile["churchTowers"]>;
+  readonly tunnels: NonNullable<StructureFile["tunnels"]>;
   /** Stedsnavn fra N50, viktigste først. */
   names: PlaceName[] = [];
   private readonly waterCodes: Uint8Array;
@@ -114,6 +119,7 @@ export class Terrain {
     this.sCol = new Uint32Array(n);
     this.bridges = structures.bridges;
     this.churchTowers = structures.churchTowers ?? [];
+    this.tunnels = structures.tunnels ?? [];
     for (const [col, row, kind, base, top, r, g, b] of structures.items) {
       const i = row * this.width + col;
       this.sKind[i] = kind;

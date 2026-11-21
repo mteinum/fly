@@ -196,6 +196,9 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   // ?cfg=full: start ferdig satt opp for landing (understell nede, full klaff)
   // ?ap: la autopiloten fly fra start
   if (params.has("ap")) setAutopilot(true);
+  // ?flaps=0-4: start med klaffene i denne stillingen (til å se dem på flyet)
+  const flapsAt = params.has("flaps") ? Math.round(Number(params.get("flaps"))) : NaN;
+  if (flapsAt >= 0 && flapsAt <= 4) Object.assign(P, { flapCfg: flapsAt, flaps: flapsAt });
   if (params.get("cfg") === "full") Object.assign(P, { gearDown: true, gear: 1, flapCfg: 4, flaps: 4 });
   focus.focus();
   return game;

@@ -135,7 +135,8 @@ def test_place_names_are_whole_names_inside_the_map(any_tiles):
     names = json.loads((TILES.parent / meta["id"] / meta["names"]["file"]).read_text(encoding="utf-8"))["items"]
     assert len(names) == meta["names"]["count"] > 300
     assert not [n[0] for n in names if n[0].endswith("-") or not n[0].strip()]
-    assert all(n[5] != "tunnel" for n in names)
+    # tunnelnavn er med (tunnelene tegnes stiplet), og sier selv at de er tunneler
+    assert all("tunnel" in n[0].lower() for n in names if n[5] == "tunnel")
     sizes = [n[4] for n in names]
     assert sizes == sorted(sizes, reverse=True)  # viktigste først
     for name, x, y, z, *_ in names:

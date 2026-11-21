@@ -75,6 +75,14 @@ def load_source_dtm(
             t_west = grid.west + c0 * res
             t_north = grid.north - r0 * res
             path = raw_dir / f"{prefix}{res:g}m_r{r0}_c{c0}.tif"
+            if path.exists():
+                # Filnavnet sier rad og kolonne, ikke hvor i verden flisa ligger. Er utsnittet flyttet siden sist,
+                # er den lagrede flisa for et annet sted: kast den og hent på nytt.
+                with rasterio.open(path) as old:
+                    stale = abs(old.transform.c - t_west) > 1e-6 or abs(old.transform.f - t_north) > 1e-6 or (old.width, old.height) != (tw, th)
+                if stale:
+                    print(f"  {path.name}: lagret for et annet utsnitt, hentes på nytt")
+                    path.unlink()
             if not path.exists():
                 print(f"  WCS: {path.name}")
                 _fetch_tile(path, t_west, t_north - th * res, t_west + tw * res, t_north, tw, th, url=url, coverage=coverage)

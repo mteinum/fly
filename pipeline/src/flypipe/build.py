@@ -20,6 +20,7 @@ REPO = Path(__file__).resolve().parents[3]
 RAW = REPO / "data" / "raw"
 PROCESSED = REPO / "data" / "processed"
 TILES = REPO / "web" / "public" / "data"
+LANDMARKS = REPO / "data" / "landmarks.json"
 
 SUN_AZIMUTH_TRUE = 225.0
 SUN_ELEVATION = 28.0
@@ -50,7 +51,7 @@ def build(area: Area) -> Path:
     raw = RAW / area.raw_id
     print(f"[{area.id}] flyplass {area.icao} (OurAirports)")
     arp = airports.load_airport(area.icao, RAW)["arp"]
-    grid = GridSpec.centered(arp["east"], arp["north"], area.cell, area.size)
+    grid = GridSpec.centered(arp["east"] + area.center_offset[0], arp["north"] + area.center_offset[1], area.cell, area.size)
     airport = airports.load_airport(area.icao, RAW, grid)
 
     print(f"[{area.id}] DTM {area.source_res:g} m fra WCS, bbox {grid.west:.0f},{grid.south:.0f},{grid.east:.0f},{grid.north:.0f}")
@@ -141,8 +142,18 @@ def build(area: Area) -> Path:
             if np.hypot(px - n["x"], py - n["y"]) * area.cell < 400:
                 n["x"], n["y"] = px, py
                 n["z"] = max(ground(n), pz)
+    # Kjennemerker med logo (data/landmarks.json): de som ligger i utsnittet, med høyden på stedet
+    landmarks = []
+    for lm in json.loads(LANDMARKS.read_text(encoding="utf-8"))["landmarks"] if area.n50_county else []:
+        lx, ly = grid.utm_to_grid(lm["east"], lm["north"])
+        if 0 <= lx < grid.width and 0 <= ly < grid.height:
+            roofs = [it[4] for it in items if it[2] == structures.BUILDING and abs(it[0] - lx) < 3 and abs(it[1] - ly) < 3]
+            z = max([max(0.0, float(hgt[int(ly), int(lx)])), *roofs])  # over takene rundt, så skiltet ikke står inne i et bygg
+            landmarks.append({"id": lm["id"], "name": lm["name"], "x": round(lx, 2), "y": round(ly, 2), "z": round(z, 1), "image": lm["image"]})
     flat_light = np.ones_like(shade)
     rgb = terrain.colormap(hgt, area.cell, shade if area.bake_hillshade else flat_light, lc, features, steep_slope=area.steep_slope)
+    # Tunneler ses ikke fra lufta. Spillet tegner dem som stiplet linje oppå bakken og sjøen, slik et kart gjør.
+    tunnels = n50.tunnel_lines(vectors, grid) if area.n50_county else []
     on_runway = runway_mask(airport, grid)
     rgb[on_runway] = terrain.RUNWAY
 
@@ -166,7 +177,7 @@ def build(area: Area) -> Path:
     surface[on_runway] = landcover.SURFACE_RUNWAY
     surface.tofile(out / "surface.bin")
     (out / "structures.json").write_text(
-        json.dumps({"columns": ["col", "row", "kind", "base", "top", "r", "g", "b"], "kinds": structures.KINDS, "items": items, "bridges": bridge_lines, "churchTowers": towers}, separators=(",", ":")) + "\n",
+        json.dumps({"columns": ["col", "row", "kind", "base", "top", "r", "g", "b"], "kinds": structures.KINDS, "items": items, "bridges": bridge_lines, "churchTowers": towers, "tunnels": tunnels}, separators=(",", ":")) + "\n",
         encoding="utf-8",
     )
     n_bridge = sum(1 for it in items if it[2] == structures.BRIDGE)
@@ -254,6 +265,8 @@ def build(area: Area) -> Path:
             "roadCells": int((features == n50.ROAD).sum()),
             "roadKm": round(float(vectors["roads"].length.sum()) / 1000, 1),
             "bridgeKm": round(float(vectors["bridges"].length.sum()) / 1000, 1),
+            "tunnels": len(tunnels),
+            "tunnelsAbout": "veier under terrenget (N50, medium = U), minst 150 m; i structures.json, tegnes stiplet av spillet",
             "buildings": int(len(vectors["buildingPoints"]) + (0 if area.matrikkel_buildings else len(vectors["buildingAreas"]))),
             "buildingSource": (
                 f"Matrikkelen - Bygningspunkt, {area.n50_county}: bygg som står, uten garasjer, uthus og naust (N50 hadde {n50_points} punkter). "
@@ -271,6 +284,7 @@ def build(area: Area) -> Path:
             },
             "buildingClusters": analysis.cluster_summary(clusters, cluster_eps if area.n50_county else analysis.CLUSTER_EPS_M),
         },
+        "landmarks": landmarks,
         "airports": [airport],
         "attribution": [
             "Elevation data (DTM, DOM), N50 map data and building points (Matrikkelen): © Kartverket (CC BY 4.0)"

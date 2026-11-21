@@ -1,0 +1,14 @@
+{
+  "about": "Kjennemerker som vises med logo i spillet. Posisjon (øst, nord i EPSG:25833) er stedets representasjonspunkt i Sentralt stedsnavnregister, slått opp 2026-11-21 med https://ws.geonorge.no/stedsnavn/v1/navn. © Kartverket (CC BY 4.0). Logoene tilhører institusjonene.",
+  "landmarks": [
+    {
+      "id": "uia",
+      "name": "University of Agder",
+      "east": 88759.22,
+      "north": 6468294.73,
+      "source": "SSR stedsnummer 1084196, «Universitetet i Agder» (Universitet/høgskole), Kristiansand",
+      "image": "uia-logo.png",
+      "imageSource": "UiA-merket med «UiA» fra universitetets LaTeX-mal for oppgaver"
+    }
+  ]
+}

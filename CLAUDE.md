@@ -11,7 +11,8 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
   src/flypipe/
     crs.py        ALL koordinattransformasjon (WGS84 <-> UTM 33), konvergens
     grid.py       GridSpec: UTM-meter <-> rutenettceller
-    areas.py      definisjon av utsnitt: 10 m rundt ENCN, ENZV, ENBR, ENGM og ENBO, og 50 m for Kjevik
+    areas.py      definisjon av utsnitt: 10 m rundt ENCN, ENZV, ENBR, ENGM og ENBO, og 50 m for Kjevik.
+                  Kjevik-utsnittet er flyttet 3,5 km sørover (center_offset) for å få med hele Flekkerøya
     dtm.py        Kartverket DTM og DOM via WCS, cache i data/raw/
     airports.py   OurAirports: flyplass + rullebaner; tårnposisjon fra N50-bygning type 411
     n50.py        N50 Kartdata: veier, bruer, bygninger -> feature-raster
@@ -66,7 +67,7 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 - `lights.png`: RGB, nattlys (kun 10 m). Syntetisk plassert langs veier og i bebyggelse
 - `surface.bin`: uint8, arealdekke med vei (16) og rullebane (17) lagt oppå; velger detaljmønster på bakken
 - `landcover.bin`: uint8 palettindeks (klasser i metadata.json; avgjør hva som er vann)
-- `structures.json`: `[kol, rad, type, bunn, topp, r, g, b]` for bruer og bygninger, og `churchTowers`: `[x, y, bunn, topp]`
+- `structures.json`: `[kol, rad, type, bunn, topp, r, g, b]` for bruer og bygninger, `churchTowers`: `[x, y, bunn, topp]` og `tunnels`: polylinjer `[x, y]`
 - `names.json`: `[navn, x, y, z, skriftstørrelse, type, gruppe]`, stedsnavn fra N50, viktigste først
 - `metadata.json`: bbox, CRS, cellestørrelse, min/maks høyde, konvergens,
   flyplasser med rullebaner (hver baneende har `approach` fra analysis.py), klasseliste, `analysis`
@@ -98,7 +99,7 @@ cd pipeline && uv run flypipe debrief        # hovedtallene for siste flylogg i 
 4. Kurs i spillet er **rutenettretning** (radianer, 0 = rutenett-nord, med
    klokka): `x += sin(hdg)`, `y -= cos(hdg)`.
 5. Rutenett-nord er ikke sann nord. `sann = rutenett + gridConvergenceDeg`.
-   Konvergensen er -5,89° ved Kjevik, -8,03° på Sola, -8,52° på Flesland, -3,39° på
+   Konvergensen er -5,88° i Kjevik-utsnittet (regnet i utsnittets sentrum, som ligger 3,5 km sør for flyplassen), -8,03° på Sola, -8,52° på Flesland, -3,39° på
    Gardermoen og -0,59° i Bodø. Den står i hvert utsnitts metadata.json; bruk aldri én verdi for flere utsnitt.
    Retninger fra kilder (rullebane, vind, sol) er sanne og må korrigeres;
    rullebaneretning regnes helst direkte fra transformerte endepunkter.
@@ -159,6 +160,10 @@ cd pipeline && uv run flypipe debrief        # hovedtallene for siste flylogg i 
   må den andre følge; airports.test.ts sammenligner dem.
 - Geometri i UTM-planet bruker `headingGridDeg` (fra baneendene), aldri publisert sann kurs minus konvergens:
   den sanne kursen er avrundet til hele grader.
+- Kjennemerker med logo står i data/landmarks.json (posisjon fra stedsnavnregisteret, bilde i web/public/).
+  Logoer tilhører institusjonene: legg bare inn en når eieren av prosjektet har bedt om det.
+- Fargekartet brukes bare på avstand: nær bakken tegner shaderen naturlige flater fra `surface.bin`.
+  Det som skal synes på nært hold må være en overflateklasse eller egen geometri (slik tunnelene er).
 - Om-skjermen (About, i web/index.html) sier hva som er ekte og hva som er syntetisk, hvem som krediteres og hva
   siden gjør med personvern. Endres noe av dette, må teksten der følge med.
 - Besøksmåling: Google Tag Manager (GTM-KJ2W4NZK) lastes i web/index.html. Det er den eneste tredjeparten

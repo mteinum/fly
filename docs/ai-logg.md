@@ -319,6 +319,28 @@ og hva som ble endret.
   stedsnavnregisteret viste at det er Nykirken i Bergen, 9 m fra punktet.
   Den var altså riktig; mistanken var grunn til å sjekke, ikke til å rette.
 
+**38. Tegnet tunnelen der spillet ikke ser**
+- Flekkerøytunnelen ble først bakt inn i fargekartet som stiplet linje.
+  Kartet var riktig, men i spillet var den borte: nær bakken tegner
+  shaderen naturlige flater (også sjø) fra overflateklassene og bruker
+  ikke fargekartet.
+- Jeg skrev den shaderen selv og husket ikke hvordan den virket.
+- Rettet: tunnelene er egen geometri oppå bakken, som bruene.
+
+**39. Lagrede fliser for feil sted**
+- Da Kjevik-utsnittet ble flyttet 3,5 km sørover, stoppet bygget på en
+  kontroll: de lagrede høydeflisene var navngitt etter rad og kolonne, ikke
+  etter hvor de ligger. Kontrollen (fra fase 1) fanget det; uten den ville
+  terrenget blitt lagt 3,5 km feil uten feilmelding.
+- Rettet: en lagret flis med annen georeferering kastes og hentes på nytt.
+
+**40. Testen leste fra motsatt kartkant**
+- Et fasitpunkt for arealdekke havnet utenfor kartet etter flyttingen.
+  Testen feilet med «forventet innsjø, fikk hav»: negativ radindeks i
+  Python leser fra den andre enden av tabellen, så den fant en celle 25 km
+  unna i stedet for å si at punktet lå utenfor.
+- Rettet: testen sier nå fra når et punkt er utenfor.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

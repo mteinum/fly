@@ -38,6 +38,9 @@ interface Chunk {
 
 const color = (c: RGB): THREE.Color => new THREE.Color().setRGB(c[0] / 255, c[1] / 255, c[2] / 255, THREE.SRGBColorSpace);
 
+/** Utslag i grader for klaffstilling 0, 1, 2, 3 og FULL, som på A320 (1 = 1+F). */
+const FLAP_DEG = [0, 10, 15, 20, 35], SLAT_DEG = [0, 18, 22, 22, 27];
+
 export class GlRenderer {
   readonly buildingCount: number;
   private renderer: THREE.WebGLRenderer;
@@ -49,6 +52,8 @@ export class GlRenderer {
   private buildingMat = new THREE.MeshLambertMaterial({ emissive: 0xffc27a, emissiveIntensity: 0 });
   private plane: THREE.Group;
   private gear = new THREE.Group();
+  /** Klaffer (bak) og slats (foran) på vingene: hver plate glir ut og vipper ned med klaffstillingen. */
+  private highLift: { panel: THREE.Mesh; chord: number; slat: boolean }[] = [];
   private towerMesh = new THREE.Group();
   private scopeCamera = new THREE.PerspectiveCamera(10, SCOPE.w / SCOPE.h, 5, 150000);
   private shadow: THREE.Mesh;
@@ -124,6 +129,7 @@ export class GlRenderer {
     for (const rw of t.meta.airports[0].runways) this.scene.add(buildRunwayDecal(t, rw, map.anisotropy));
     this.buildingCount = this.addBuildings();
     this.addChurchTowers();
+    this.addTunnels();
     this.addBridges();
     this.runwayLights = this.pointLights(this.runwayLightPositions(), 3.2);
     this.lamps = this.pointLights(this.bridgeLampPositions(), 2.4);
@@ -305,6 +311,42 @@ export class GlRenderer {
     this.scene.add(shaft, spire);
   }
 
+  /** Veitunneler: stiplet linje oppå bakken og sjøen der tunnelen går under, slik et kart tegner dem.
+   *  Hvor tunnelen går er ekte (N50). At den synes, er SYNTETISK: en tunnel ses ikke fra lufta. */
+  private addTunnels(): void {
+    const { cell } = this.t, pos: number[] = [], idx: number[] = [];
+    const DASH = 40, GAP = 40, HALF = 7, LIFT = 1.5; // meter
+    for (const line of this.t.tunnels) {
+      let along = 0; // meter fra tunnelens start
+      for (let i = 1; i < line.length; i++) {
+        const [ax, ay] = line[i - 1], [bx, by] = line[i];
+        const len = Math.hypot(bx - ax, by - ay) * cell;
+        if (len < 0.01) continue;
+        const ux = (bx - ax) / len, uy = (by - ay) / len; // celler per meter langs linja
+        const nx = -uy * cell * HALF, nz = ux * cell * HALF; // normal i meter (XZ)
+        // del lenken i korte biter (10 m), så streken følger bakken, og ta med bitene som ligger i en strek
+        for (let d = 0; d < len; d += 10) {
+          const d1 = Math.min(d + 10, len), mid = along + (d + d1) / 2;
+          if (mid % (DASH + GAP) > DASH) continue;
+          const base = pos.length / 3;
+          for (const dd of [d, d1]) {
+            const x = ax + ux * dd, y = ay + uy * dd, h = Math.max(0, this.t.heightAt(x, y)) + LIFT;
+            pos.push(x * cell - nx, h, y * cell - nz, x * cell + nx, h, y * cell + nz);
+          }
+          idx.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
+        }
+        along += len;
+      }
+    }
+    if (!idx.length) return;
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+    geo.setIndex(idx);
+    geo.computeVertexNormals();
+    const mat = new THREE.MeshLambertMaterial({ color: 0xd8d8de, side: THREE.DoubleSide, transparent: true, opacity: 0.85, depthWrite: false });
+    this.scene.add(new THREE.Mesh(geo, mat));
+  }
+
   /** Brudekker som bånd langs senterlinja, med høyde fra DOM i hvert punkt. */
   private addBridges(): void {
     const { cell } = this.t, pos: number[] = [], idx: number[] = [];
@@ -369,6 +411,27 @@ export class GlRenderer {
       add(new THREE.CylinderGeometry(1.15, 1.0, 4.4, 16).rotateX(Math.PI / 2), white, side * 5.75, -2.3, -2.6);
       add(new THREE.CylinderGeometry(1.0, 1.0, 0.3, 16).rotateX(Math.PI / 2), dark, side * 5.75, -2.3, -4.85);
     }
+    // Klaffer langs bakkanten og slats langs forkanten. Hver plate henger i en gruppe som følger vingekanten,
+    // ligger skjult inne i vingen når den er inne, og glir ut og ned når klaffspaken settes (se render).
+    // SYNTETISK form; utslagene per stilling følger A320 (se FLAP_DEG og SLAT_DEG).
+    const plate = new THREE.MeshLambertMaterial({ color: 0x6f7884 }); // mørkere enn vingen, så platene skiller seg ut
+    const hinge = (x0: number, z0: number, x1: number, z1: number, chord: number, slat: boolean) => {
+      for (const side of [1, -1]) {
+        // endepunktene sortert på x, så platens lokale z peker bakover på begge vinger
+        const [ax, az, bx, bz] = side > 0 ? [x0, z0, x1, z1] : [-x1, z1, -x0, z0];
+        const group = new THREE.Group();
+        group.position.set((ax + bx) / 2, -1.13, (az + bz) / 2);
+        group.rotation.y = Math.atan2(-(bz - az), bx - ax);
+        // klaffens hengsel er forkanten (platen går bakover fra z = 0); slatens er bakkanten (platen går framover)
+        const panel = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(bx - ax, bz - az), 0.16, chord).translate(0, 0, slat ? -chord / 2 : chord / 2), plate);
+        group.add(panel);
+        body.add(group);
+        this.highLift.push({ panel, chord, slat });
+      }
+    };
+    hinge(2.3, 3.55, 5.6, 3.4, 1.7, false); // indre klaff
+    hinge(5.8, 3.45, 12.6, 5.12, 1.4, false); // ytre klaff
+    hinge(2.6, -3.63, 16.4, 4.26, 0.75, true); // slats langs hele forkanten
     const lamp = (c: number, x: number, y: number, z: number) => add(new THREE.SphereGeometry(0.35, 8, 6), new THREE.MeshBasicMaterial({ color: c, fog: false }), x, y, z);
     lamp(0xff2020, -17.1, -1.1, 5.4); // navigasjonslys: rødt på venstre vinge (babord)
     lamp(0x20ff40, 17.1, -1.1, 5.4); // grønt på høyre (styrbord)
@@ -523,6 +586,16 @@ export class GlRenderer {
     this.towerMesh.visible = cam !== "tower"; // i tårnkameraet står vi inne i det
     this.gear.visible = P.gear > 0.02;
     this.gear.scale.y = Math.max(P.gear, 0.02);
+    // Klaffer og slats: utslag i grader per klaffstilling (0, 1, 2, 3, FULL), interpolert mens de går
+    const fi = Math.min(Math.floor(P.flaps), FLAP_DEG.length - 2), ff = P.flaps - fi;
+    const flapDeg = FLAP_DEG[fi] + (FLAP_DEG[fi + 1] - FLAP_DEG[fi]) * ff, slatDeg = SLAT_DEG[fi] + (SLAT_DEG[fi + 1] - SLAT_DEG[fi]) * ff;
+    for (const { panel, chord, slat } of this.highLift) {
+      const out = slat ? slatDeg / SLAT_DEG[4] : flapDeg / FLAP_DEG[4]; // 0 = inne i vingen, 1 = helt ute
+      panel.visible = out > 0.01;
+      // inne: platen ligger inni vingen. Ute: skjøvet 85 % av sin egen bredde ut over kanten, og vippet ned
+      panel.position.z = slat ? chord * (1 - 0.85 * out) : -chord * (1 - 0.85 * out);
+      panel.rotation.x = ((slat ? -slatDeg : flapDeg) * Math.PI) / 180;
+    }
 
     const ground = Math.max(0, this.t.heightAt(P.x, P.y));
     this.shadow.position.set(x, ground + 0.6, z);

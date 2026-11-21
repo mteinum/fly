@@ -53,10 +53,14 @@ def test_landcover_tile_matches_kartverket(tiles):
     if "N50" not in meta["landcover"]["source"]:
         pytest.skip("fliser bygget uten N50")
     lc = np.fromfile(TILES / meta["landcover"]["file"], dtype=np.uint8).reshape(hgt.shape)
-    at = lambda e, n: int(lc[int(grid.utm_to_grid(e, n)[1]), int(grid.utm_to_grid(e, n)[0])])
+    def at(e, n):
+        x, y = grid.utm_to_grid(e, n)
+        assert 0 <= x < grid.width and 0 <= y < grid.height, f"({e}, {n}) ligger utenfor utsnittet"  # negativ indeks ville ellers lest fra motsatt kant
+        return int(lc[int(y), int(x)])
+
     assert at(92000, 6469000) == CODE["Havflate"]  # Topdalsfjorden
     assert at(99575, 6474475) == CODE["Innsjø"]  # innsjø, 59 moh.
-    assert at(88375, 6482025) == CODE["Innsjø"]  # regulert innsjø, 41 moh.
+    # Fasitpunktet i den regulerte innsjøen (88375, 6482025) falt utenfor da utsnittet ble flyttet 3,5 km sørover.
     assert at(88033.63, 6466411.58) == CODE["Åpent område"]  # domkirken/Torvet: punkt-API sier ÅpentOmråde
     assert at(84562.92, 6480430.72) in (CODE["Skog"], CODE["Åpent område"])  # Moseidvarden
     arp = meta["airports"][0]["arp"]
