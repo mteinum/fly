@@ -22,11 +22,15 @@ export interface AisShip {
   id: number; e: number; n: number;
   sog: number | null; cog: number | null; hdg: number | null;
   age: number; name: string; type: number; len: number | null; beam: number | null;
+  /** Destinasjonen skipet har oppgitt (skrevet inn for hånd om bord). */
+  dest?: string;
+  /** Skipets midtpunkt i forhold til antenna, i meter framover og mot styrbord. Posisjonen er antennas. */
+  fwd?: number | null; stb?: number | null;
 }
 
 export interface Ship {
-  id: number; name: string; type: number;
-  /** Posisjon i rutenettet da meldingen ble sendt, og spillets klokke (s) da. */
+  id: number; name: string; type: number; dest: string;
+  /** Skipets MIDTPUNKT i rutenettet da meldingen ble sendt, og spillets klokke (s) da. */
   x: number; y: number; at: number;
   /** Rutenettkurs skipet beveger seg i (rad), og baugens retning (rad). Fart i m/s. */
   course: number; heading: number; speed: number;
@@ -45,6 +49,16 @@ export function shipColor(type: number): number {
   if (type === 51 || type === 50 || type === 58) return 0xd9482b; // redning, los, ambulanse: rødt
   if (type === 52 || type === 31 || type === 32) return 0xc98a2b; // slepebåt og slep: oransje
   return 0x70767e;
+}
+
+/** AIS-skipstype (0-99) i klartekst, slik den vises på skiltet. Tom for typer som ikke sier noe. */
+export function shipKind(type: number): string {
+  if (type >= 80 && type <= 89) return "Tanker";
+  if (type >= 70 && type <= 79) return "Cargo";
+  if (type >= 60 && type <= 69) return "Passenger";
+  if (type >= 40 && type <= 49) return "High-speed craft";
+  const named: Record<number, string> = { 30: "Fishing", 31: "Towing", 32: "Towing", 33: "Dredger", 34: "Diving", 36: "Sailing", 37: "Pleasure craft", 50: "Pilot", 51: "Search and rescue", 52: "Tug", 53: "Port tender", 55: "Law enforcement", 58: "Medical" };
+  return named[type] ?? "";
 }
 
 /** Mål når skipet ikke har sendt dem: et lite fartøy. Reelle mål holdes innenfor det rimelige. */
@@ -68,7 +82,15 @@ export function fromAis(list: AisShip[], t: Terrain, now: number): Ship[] {
     // baugen: kompasset hvis skipet har det, ellers kursen når det er i fart, ellers en fast retning per skip
     const heading = s.hdg !== null ? grid(s.hdg) : speed > 0 ? course : ((s.id % 360) * RAD);
     const [lengthM, beamM] = size(s.len, s.beam);
-    out.push({ id: s.id, name: s.name, type: s.type, x, y, at: now - s.age, course, heading, speed, lengthM, beamM, dx: 0, dy: 0, blendAt: now });
+    // Posisjonen er antennas. Den står sjelden midt i skipet (ofte på brua akter), så skroget flyttes dit det
+    // hører hjemme: framover langs baugretningen og til styrbord. Bare når vi vet hvor baugen peker.
+    let cx = x, cy = y;
+    if (s.hdg !== null || speed > 0) {
+      const fwd = s.fwd ?? 0, stb = s.stb ?? 0;
+      cx += (Math.sin(heading) * fwd + Math.cos(heading) * stb) / t.cell;
+      cy += (-Math.cos(heading) * fwd + Math.sin(heading) * stb) / t.cell;
+    }
+    out.push({ id: s.id, name: s.name, type: s.type, dest: s.dest ?? "", x: cx, y: cy, at: now - s.age, course, heading, speed, lengthM, beamM, dx: 0, dy: 0, blendAt: now });
   }
   return out;
 }

@@ -30,8 +30,8 @@ foreach ($exp['areas'] as $icao => $box) {
         $g = $got[$i];
         if ($g['id'] !== $w['id']) { $fail("$icao: skip $i er {$g['id']}, ventet {$w['id']}"); }
         if (abs($g['e'] - $w['e']) > 0.15 || abs($g['n'] - $w['n']) > 0.15) { $fail("$icao {$w['id']}: posisjon ({$g['e']}, {$g['n']}), ventet ({$w['e']}, {$w['n']})"); }
-        foreach (['sog', 'cog', 'hdg', 'age', 'name', 'type', 'len', 'beam'] as $k) {
-            $same = is_float($w[$k]) || is_float($g[$k]) ? ($w[$k] !== null && $g[$k] !== null && abs($g[$k] - $w[$k]) < 1e-9) : $g[$k] === $w[$k];
+        foreach (['sog', 'cog', 'hdg', 'age', 'name', 'dest', 'type', 'len', 'beam', 'fwd', 'stb'] as $k) {
+            $same = is_float($w[$k]) || is_float($g[$k]) ? ($w[$k] !== null && $g[$k] !== null && abs($g[$k] - $w[$k]) < 1e-9) : $g[$k] == $w[$k] && ($g[$k] === null) === ($w[$k] === null);
             if (!$same) { $fail("$icao {$w['id']}: $k er " . json_encode($g[$k]) . ', ventet ' . json_encode($w[$k])); }
         }
         $total++;

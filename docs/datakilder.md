@@ -330,7 +330,10 @@ I bruk: Kystverkets åpne AIS-strøm leses av en liten PHP-tjeneste på webhotel
 spillet tegner skipene ved Kjevik, Sola, Flesland og Bodø (`web/src/ships.ts`). Kreditering:
 «Ship positions: Kystverket (NLOD)» i spillet og på om-skjermen.
 
-- **Ekte:** hvilke skip som er der, posisjon, kurs, fart, navn, type og mål, slik skipet selv sender det.
+- **Ekte:** hvilke skip som er der, posisjon, kurs, fart, navn, type, mål, destinasjon og hvor på skipet antenna
+  står, slik skipet selv sender det. Skroget tegnes rundt skipets midtpunkt, ikke rundt antenna.
+  Destinasjonen er skrevet inn for hånd om bord og er ofte rar eller gammel. Destinasjoner med seks sifre eller
+  mer vises ikke (noen skriver telefonnummer der).
 - **Syntetisk:** skipets form og farge, og bevegelsen mellom to meldinger (rett fram med samme fart, høyst 2,5 min).
 - **Ikke med:** fiskefartøy under 15 m og fritidsfartøy under 45 m (ikke i de åpne dataene), og skip som ikke er
   hørt på ti minutter.

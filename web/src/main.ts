@@ -7,7 +7,7 @@ import { drawCornerMap, drawHud, drawMessage } from "./hud";
 import { candidates, declutter, inSight, labelStyle, type PlaceName } from "./labels";
 import { drawPanel } from "./panel";
 import { H, setScreen, TOP, W } from "./screen";
-import { type AisShip, Fleet, position, shipColor } from "./ships";
+import { type AisShip, Fleet, position, shipColor, shipKind } from "./ships";
 import { loadTerrain } from "./terrain";
 import { towerView } from "./tower";
 import { drawTower } from "./towerPanel";
@@ -172,7 +172,7 @@ async function main(): Promise<void> {
     // samme form som et stedsnavn, så sikt og avstand kan sjekkes med de samme funksjonene
     return { lm, image, place: { name: lm.name, x: lm.x, y: lm.y, z: lm.z, size: 12, type: "landmark", group: "bebyggelse" } satisfies PlaceName };
   });
-  const MAX_SHIP_LABELS = 6;
+  const MAX_SHIP_LABELS = 6, DETAIL_FONT = '400 2.1px "Helvetica Neue", Helvetica, Arial, sans-serif';
   const SIGN_RANGE_M = 9000, SIGN_HEIGHT = 3.4; // logiske enheter: på størrelse med et stedsnavn
   const drawSigns = (cx: number, cy: number, ey: number) => {
     for (const { lm, image, place } of signs) {
@@ -193,7 +193,7 @@ async function main(): Promise<void> {
   const drawNames = () => {
     const [ex, ey, ez] = renderer.eye, cx = ex / terrain.cell, cy = ez / terrain.cell;
     drawSigns(cx, cy, ey);
-    const boxes: { x: number; y: number; w: number; h: number; place: PlaceName; px: number; py: number; font: string }[] = [];
+    const boxes: { x: number; y: number; w: number; h: number; place: PlaceName; px: number; py: number; font: string; detail?: string }[] = [];
     // Skipsnavn (fra AIS) når vi er i nærheten: de nærmeste først, så de får plass før stedsnavnene.
     // Store skip ses lenger enn små. Skip som ikke har sendt navnet sitt ennå, får ikke skilt.
     const near = game.ships
@@ -209,8 +209,11 @@ async function main(): Promise<void> {
       if (!at || !inSight(terrain, cx, cy, ey, place)) continue;
       const px = at[0] * W, py = TOP + at[1] * (H - TOP), size = 2.9, font = `500 ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
       g.font = font;
-      const w = g.measureText(s.name).width;
-      boxes.push({ x: px - w / 2 - 2, y: py - 6 - size, w: w + 4, h: size + 3, place, px, py, font });
+      let w = g.measureText(s.name).width;
+      if (s.detail) { g.font = DETAIL_FONT; w = Math.max(w, g.measureText(s.detail).width); }
+      // med en linje til under navnet flyttes navnet opp, så linja får plass over streken ned til skipet
+      const lift = s.detail ? 2.6 : 0;
+      boxes.push({ x: px - w / 2 - 2, y: py - 6 - size - lift, w: w + 4, h: size + 3 + lift, place, px, py: py - lift, font, detail: s.detail });
     }
     for (const { place, distanceM } of candidates(terrain, cx, cy, ey)) {
       const at = renderer.project(place.x * terrain.cell, place.z + 20, place.y * terrain.cell);
@@ -229,10 +232,16 @@ async function main(): Promise<void> {
     for (const b of declutter(boxes, 16 + near.length)) {
       const { color } = labelStyle(b.place);
       g.strokeStyle = "rgba(0,0,0,.4)"; g.lineWidth = 0.25;
-      g.beginPath(); g.moveTo(b.px, b.py - 4.4); g.lineTo(b.px, b.py); g.stroke(); // strek ned til stedet
+      const foot = b.detail ? b.py + 2.6 : b.py;
+      g.beginPath(); g.moveTo(b.px, b.py - (b.detail ? 1.6 : 4.4)); g.lineTo(b.px, foot); g.stroke(); // strek ned til stedet
       g.font = b.font;
       g.strokeStyle = "rgba(0,0,0,.5)"; g.lineWidth = 0.6; g.strokeText(b.place.name, b.px, b.py - 5);
       g.fillStyle = color; g.fillText(b.place.name, b.px, b.py - 5);
+      if (b.detail) {
+        g.font = DETAIL_FONT;
+        g.strokeStyle = "rgba(0,0,0,.5)"; g.lineWidth = 0.5; g.strokeText(b.detail, b.px, b.py - 2.3);
+        g.fillStyle = color; g.fillText(b.detail, b.px, b.py - 2.3);
+      }
     }
     g.restore();
   };
@@ -242,7 +251,9 @@ async function main(): Promise<void> {
     const shipNow = performance.now() / 1000;
     const ships = fleet.list.map((s) => {
       const [x, y] = position(s, terrain, shipNow);
-      return { x, y, heading: s.heading, lengthM: s.lengthM, beamM: s.beamM, speed: s.speed, color: shipColor(s.type), name: s.name };
+      return { x, y, heading: s.heading, lengthM: s.lengthM, beamM: s.beamM, speed: s.speed, color: shipColor(s.type), name: s.name,
+        // linje to på skiltet: type og destinasjon, det som finnes av dem
+        detail: [shipKind(s.type), s.dest && `→ ${s.dest}`].filter(Boolean).join(" ") };
     });
     renderer.setShips(ships);
     game.ships = ships; // samme liste til oversiktskartet

@@ -38,9 +38,12 @@
     "hdg": 269,
     "age": 0,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257067200,
@@ -51,9 +54,12 @@
     "hdg": 323,
     "age": 0,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257120700,
@@ -64,9 +70,12 @@
     "hdg": 227,
     "age": 0,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257226500,
@@ -77,9 +86,12 @@
     "hdg": 172,
     "age": 0,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257336800,
@@ -90,9 +102,12 @@
     "hdg": null,
     "age": 0,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257355800,
@@ -103,9 +118,12 @@
     "hdg": null,
     "age": 22,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257396000,
@@ -116,9 +134,12 @@
     "hdg": 8,
     "age": 0,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 258012180,
@@ -129,9 +150,12 @@
     "hdg": null,
     "age": 28,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 305773000,
@@ -142,9 +166,12 @@
     "hdg": 305,
     "age": 0,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    }
   ],
   "ENZV": [
@@ -157,9 +184,12 @@
     "hdg": 279,
     "age": 24,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257030000,
@@ -170,9 +200,12 @@
     "hdg": 48,
     "age": 32,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257094360,
@@ -183,9 +216,12 @@
     "hdg": 323,
     "age": 44,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257249600,
@@ -196,9 +232,12 @@
     "hdg": null,
     "age": 12,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257256500,
@@ -209,9 +248,12 @@
     "hdg": null,
     "age": 19,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257475000,
@@ -222,9 +264,12 @@
     "hdg": 320,
     "age": 8,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257642000,
@@ -235,9 +280,12 @@
     "hdg": 39,
     "age": 21,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257808000,
@@ -248,9 +296,12 @@
     "hdg": 335,
     "age": 13,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 258009600,
@@ -261,9 +312,12 @@
     "hdg": 197,
     "age": 27,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 258098500,
@@ -274,9 +328,12 @@
     "hdg": 331,
     "age": 14,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 258424000,
@@ -287,9 +344,12 @@
     "hdg": 19,
     "age": 3,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 258538000,
@@ -300,9 +360,12 @@
     "hdg": 5,
     "age": 14,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 259015040,
@@ -313,9 +376,12 @@
     "hdg": null,
     "age": 15,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 259678000,
@@ -326,9 +392,12 @@
     "hdg": 216,
     "age": 1,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 259989000,
@@ -339,9 +408,12 @@
     "hdg": 260,
     "age": 25,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    }
   ],
   "ENBR": [
@@ -354,9 +426,12 @@
     "hdg": 14,
     "age": 26,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257025600,
@@ -367,9 +442,12 @@
     "hdg": null,
     "age": 26,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257039200,
@@ -380,9 +458,12 @@
     "hdg": null,
     "age": 14,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257061000,
@@ -393,9 +474,12 @@
     "hdg": 42,
     "age": 10,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257095200,
@@ -406,9 +490,12 @@
     "hdg": null,
     "age": 8,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257130660,
@@ -419,9 +506,12 @@
     "hdg": null,
     "age": 32,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257130780,
@@ -432,9 +522,12 @@
     "hdg": null,
     "age": 31,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257166000,
@@ -445,9 +538,12 @@
     "hdg": 314,
     "age": 44,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257202900,
@@ -458,9 +554,12 @@
     "hdg": null,
     "age": 11,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257228700,
@@ -471,9 +570,12 @@
     "hdg": null,
     "age": 32,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257254700,
@@ -484,9 +586,12 @@
     "hdg": null,
     "age": 17,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257270800,
@@ -497,9 +602,12 @@
     "hdg": 51,
     "age": 32,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257282000,
@@ -510,9 +618,12 @@
     "hdg": 269,
     "age": 4,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257304700,
@@ -523,9 +634,12 @@
     "hdg": 116,
     "age": 39,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257350580,
@@ -536,9 +650,12 @@
     "hdg": null,
     "age": 37,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257380700,
@@ -549,9 +666,12 @@
     "hdg": null,
     "age": 17,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257614800,
@@ -562,9 +682,12 @@
     "hdg": null,
     "age": 44,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257684700,
@@ -575,9 +698,12 @@
     "hdg": 331,
     "age": 10,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257766500,
@@ -588,9 +714,12 @@
     "hdg": 16,
     "age": 31,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257781000,
@@ -601,9 +730,12 @@
     "hdg": 196,
     "age": 19,
     "name": "NJORD",
+    "dest": "BERGEN-FLAAM-BERGEN",
     "type": 40,
     "len": 35,
-    "beam": 11
+    "beam": 11,
+    "fwd": -0.5,
+    "stb": 0.5
    },
    {
     "id": 257786980,
@@ -614,9 +746,12 @@
     "hdg": null,
     "age": 6,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257882000,
@@ -627,9 +762,12 @@
     "hdg": 355,
     "age": 1,
     "name": "DANTIC",
+    "dest": "ASKOY",
     "type": 75,
     "len": 64,
-    "beam": 11
+    "beam": 11,
+    "fwd": 22.0,
+    "stb": -3.5
    },
    {
     "id": 258018390,
@@ -640,9 +778,12 @@
     "hdg": 352,
     "age": 11,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 258031000,
@@ -653,9 +794,12 @@
     "hdg": 10,
     "age": 15,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 258099500,
@@ -666,9 +810,12 @@
     "hdg": null,
     "age": 37,
     "name": "ALFA",
+    "dest": "",
     "type": 30,
     "len": 15,
-    "beam": 7
+    "beam": 7,
+    "fwd": -5.5,
+    "stb": -0.5
    },
    {
     "id": 258177000,
@@ -679,9 +826,12 @@
     "hdg": 301,
     "age": 45,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 258305500,
@@ -692,9 +842,12 @@
     "hdg": 140,
     "age": 38,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 258338500,
@@ -705,9 +858,12 @@
     "hdg": null,
     "age": 46,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 258558000,
@@ -718,9 +874,12 @@
     "hdg": 147,
     "age": 24,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 259008580,
@@ -731,9 +890,12 @@
     "hdg": 192,
     "age": 5,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 259026900,
@@ -744,9 +906,12 @@
     "hdg": 202,
     "age": 36,
     "name": "LIAFJORD",
+    "dest": "CH16 FOR INFO",
     "type": 30,
     "len": 72,
-    "beam": 16
+    "beam": 16,
+    "fwd": 3.0,
+    "stb": -6.0
    },
    {
     "id": 259046000,
@@ -757,9 +922,12 @@
     "hdg": 196,
     "age": 29,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 259955000,
@@ -770,9 +938,12 @@
     "hdg": 296,
     "age": 23,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    }
   ],
   "ENBO": [
@@ -785,9 +956,12 @@
     "hdg": 50,
     "age": 28,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257222040,
@@ -798,9 +972,12 @@
     "hdg": null,
     "age": 23,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257452700,
@@ -811,9 +988,12 @@
     "hdg": null,
     "age": 25,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257660500,
@@ -824,9 +1004,12 @@
     "hdg": null,
     "age": 2,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257687000,
@@ -837,9 +1020,12 @@
     "hdg": null,
     "age": 22,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 257933900,
@@ -850,9 +1036,12 @@
     "hdg": 341,
     "age": 2,
     "name": "SORDAL AEGE",
+    "dest": "",
     "type": 33,
     "len": 15,
-    "beam": 8
+    "beam": 8,
+    "fwd": -3.5,
+    "stb": 0.0
    },
    {
     "id": 258178000,
@@ -863,9 +1052,12 @@
     "hdg": 227,
     "age": 44,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 258238000,
@@ -876,9 +1068,12 @@
     "hdg": 249,
     "age": 21,
     "name": "NORDFISK",
+    "dest": "B0DOE CH16",
     "type": 30,
     "len": 64,
-    "beam": 14
+    "beam": 14,
+    "fwd": 12.0,
+    "stb": 0.0
    },
    {
     "id": 259026800,
@@ -889,9 +1084,12 @@
     "hdg": 138,
     "age": 33,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 259034410,
@@ -902,9 +1100,12 @@
     "hdg": null,
     "age": 40,
     "name": "",
+    "dest": "",
     "type": 0,
     "len": null,
-    "beam": null
+    "beam": null,
+    "fwd": null,
+    "stb": null
    },
    {
     "id": 259988000,
@@ -915,9 +1116,12 @@
     "hdg": 22,
     "age": 17,
     "name": "VAEROY",
+    "dest": "BODO-MOSK-VER-ROST",
     "type": 60,
     "len": 94,
-    "beam": 17
+    "beam": 17,
+    "fwd": 8.0,
+    "stb": -6.5
    }
   ]
  }

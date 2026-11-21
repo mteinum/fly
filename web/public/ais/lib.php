@@ -96,12 +96,25 @@ function ais_position(string $bits, int $type): ?array
     ];
 }
 
-/** Mål fra de fire avstandene til antenna: [lengde, bredde] i meter, eller [null, null]. */
+/** Mål fra de fire avstandene fra antenna til baug, hekk, babord og styrbord side (m).
+ *  Gir ['len', 'beam', 'fwd', 'stb']: lengde og bredde, og hvor skipets midtpunkt ligger i forhold til
+ *  antenna (framover og mot styrbord). Posisjonen skipet sender er antennas, ikke midtpunktets.
+ *  Alt er null når skipet ikke har oppgitt mål. */
 function ais_size(string $bits, int $from): array
 {
-    $len = ais_uint($bits, $from, $from + 9) + ais_uint($bits, $from + 9, $from + 18);
-    $beam = ais_uint($bits, $from + 18, $from + 24) + ais_uint($bits, $from + 24, $from + 30);
-    return [$len > 0 ? $len : null, $beam > 0 ? $beam : null];
+    $bow = ais_uint($bits, $from, $from + 9); $stern = ais_uint($bits, $from + 9, $from + 18);
+    $port = ais_uint($bits, $from + 18, $from + 24); $starboard = ais_uint($bits, $from + 24, $from + 30);
+    $len = $bow + $stern; $beam = $port + $starboard;
+    return [
+        'len' => $len > 0 ? $len : null, 'beam' => $beam > 0 ? $beam : null,
+        'fwd' => $len > 0 ? ($bow - $stern) / 2 : null, 'stb' => $beam > 0 ? ($starboard - $port) / 2 : null,
+    ];
+}
+
+/** Tekst skipet selv har sendt (navn, destinasjon): bare store bokstaver, tall og litt tegnsetting slipper ut. */
+function ais_clean(string $s): string
+{
+    return trim(substr(preg_replace('/[^A-Z0-9 .\-\/&#>]/', '', strtoupper($s)), 0, 20));
 }
 
 /** Les linjer fra strømmen inn i $state. $areas er [ICAO => [west, south, east, north]] i UTM 33.
@@ -143,20 +156,20 @@ function ais_ingest(array $lines, array &$state, array $areas, int $now): int
             if (!$inside) { unset($state['ships'][$mmsi]); continue; } // har seilt ut av utsnittet
             $state['ships'][$mmsi] = ['e' => round($e, 1), 'n' => round($n, 1), 'sog' => $p['sog'], 'cog' => $p['cog'], 'hdg' => $p['hdg'], 't' => $t];
             if ($type === 19 && strlen($bits) >= 301) {
-                [$len, $beam] = ais_size($bits, 271);
-                $state['static'][$mmsi] = ['name' => ais_text($bits, 143, 263), 'type' => ais_uint($bits, 263, 271), 'len' => $len, 'beam' => $beam, 't' => $t];
+                $state['static'][$mmsi] = ['name' => ais_text($bits, 143, 263), 'type' => ais_uint($bits, 263, 271), 'dest' => '', 't' => $t] + ais_size($bits, 271);
             }
         } elseif ($type === 5 && strlen($bits) >= 270) {
-            [$len, $beam] = ais_size($bits, 240);
-            $state['static'][$mmsi] = ['name' => ais_text($bits, 112, 232), 'type' => ais_uint($bits, 232, 240), 'len' => $len, 'beam' => $beam, 't' => $t];
+            // destinasjonen er skrevet inn for hånd om bord og er ofte rar eller gammel
+            $dest = strlen($bits) >= 422 ? ais_text($bits, 302, 422) : '';
+            $state['static'][$mmsi] = ['name' => ais_text($bits, 112, 232), 'type' => ais_uint($bits, 232, 240), 'dest' => $dest, 't' => $t] + ais_size($bits, 240);
         } elseif ($type === 24 && strlen($bits) >= 160) {
             // klasse B sender navn (del A) og type/mål (del B) hver for seg
-            $s = $state['static'][$mmsi] ?? ['name' => '', 'type' => 0, 'len' => null, 'beam' => null];
+            $s = $state['static'][$mmsi] ?? ['name' => '', 'type' => 0, 'dest' => '', 'len' => null, 'beam' => null, 'fwd' => null, 'stb' => null];
             if (ais_uint($bits, 38, 40) === 0) {
                 $s['name'] = ais_text($bits, 40, 160);
             } elseif (strlen($bits) >= 162) {
                 $s['type'] = ais_uint($bits, 40, 48);
-                [$s['len'], $s['beam']] = ais_size($bits, 132);
+                $s = ais_size($bits, 132) + $s;
             }
             $s['t'] = $t;
             $state['static'][$mmsi] = $s;
@@ -181,10 +194,12 @@ function ais_ships(array $state, array $box, int $now): array
             'e' => $s['e'], 'n' => $s['n'],
             'sog' => $s['sog'], 'cog' => $s['cog'], 'hdg' => $s['hdg'],
             'age' => max(0, $now - $s['t']),
-            // navnet er sendt av skipet selv: bare bokstaver, tall og litt tegnsetting slipper gjennom
-            'name' => substr(preg_replace('/[^A-Z0-9 .\-\/&]/', '', strtoupper($st['name'] ?? '')), 0, 20),
+            'name' => ais_clean($st['name'] ?? ''),
+            // noen skriver telefonnummer i destinasjonsfeltet: seks sifre eller mer vises ikke
+            'dest' => preg_match_all('/\d/', $st['dest'] ?? '') >= 6 ? '' : ais_clean($st['dest'] ?? ''),
             'type' => (int) ($st['type'] ?? 0),
             'len' => $st['len'] ?? null, 'beam' => $st['beam'] ?? null,
+            'fwd' => $st['fwd'] ?? null, 'stb' => $st['stb'] ?? null,
         ];
     }
     usort($out, fn ($a, $b) => $a['id'] <=> $b['id']);

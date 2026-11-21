@@ -49,6 +49,16 @@ def _text(v: int, nbits: int, start: int, chars: int) -> str:
     return out.replace("@", " ").strip()
 
 
+def _size(d: list[int]) -> dict:
+    """Lengde, bredde og midtpunktets plass i forhold til antenna, fra avstandene til baug, hekk, babord, styrbord."""
+    length, beam = d[0] + d[1], d[2] + d[3]
+    return {"len": length or None, "beam": beam or None, "fwd": (d[0] - d[1]) / 2 if length else None, "stb": (d[3] - d[2]) / 2 if beam else None}
+
+
+def _clean(s: str) -> str:
+    return re.sub(r"[^A-Z0-9 .\-/&#>]", "", s.upper())[:20].strip()
+
+
 def decode(lines: list[str]) -> tuple[dict[int, dict], dict[int, dict], int]:
     """(posisjoner, faste opplysninger, siste tidsstempel) fra strømmens linjer."""
     ships: dict[int, dict] = {}
@@ -93,14 +103,14 @@ def decode(lines: list[str]) -> tuple[dict[int, dict], dict[int, dict], int]:
             ships[mmsi] = {"e": e, "n": north, "sog": None if sog >= 1023 else sog / 10, "cog": None if cog >= 3600 else cog / 10, "hdg": None if hdg >= 360 else hdg, "t": t}
         elif kind == 5 and n >= 270:
             dims = [_field(v, n, s, w) for s, w in ((240, 9), (249, 9), (258, 6), (264, 6))]
-            static[mmsi] = {"name": _text(v, n, 112, 20), "type": _field(v, n, 232, 8), "len": dims[0] + dims[1] or None, "beam": dims[2] + dims[3] or None}
+            static[mmsi] = {"name": _text(v, n, 112, 20), "type": _field(v, n, 232, 8), "dest": _text(v, n, 302, 20) if n >= 422 else "", **_size(dims)}
         elif kind == 24 and n >= 160:
-            s = static.setdefault(mmsi, {"name": "", "type": 0, "len": None, "beam": None})
+            s = static.setdefault(mmsi, {"name": "", "type": 0, "dest": "", **_size([0, 0, 0, 0])})
             if _field(v, n, 38, 2) == 0:
                 s["name"] = _text(v, n, 40, 20)
             elif n >= 162:
                 dims = [_field(v, n, a, w) for a, w in ((132, 9), (141, 9), (150, 6), (156, 6))]
-                s.update(type=_field(v, n, 40, 8), len=dims[0] + dims[1] or None, beam=dims[2] + dims[3] or None)
+                s.update(type=_field(v, n, 40, 8), **_size(dims))
     return ships, static, last
 
 
@@ -115,8 +125,9 @@ def expected() -> dict:
             if not (w <= p["e"] < e and s < p["n"] <= n):
                 continue
             st = static.get(mmsi, {})
-            name = re.sub(r"[^A-Z0-9 .\-/&]", "", st.get("name", "").upper())[:20]
-            rows.append({"id": mmsi, "e": round(p["e"], 1), "n": round(p["n"], 1), "sog": p["sog"], "cog": p["cog"], "hdg": p["hdg"], "age": now - (p["t"] or now), "name": name, "type": st.get("type", 0), "len": st.get("len"), "beam": st.get("beam")})
+            rows.append({"id": mmsi, "e": round(p["e"], 1), "n": round(p["n"], 1), "sog": p["sog"], "cog": p["cog"], "hdg": p["hdg"], "age": now - (p["t"] or now),
+                         "name": _clean(st.get("name", "")), "dest": "" if sum(c.isdigit() for c in st.get("dest", "")) >= 6 else _clean(st.get("dest", "")), "type": st.get("type", 0),
+                         "len": st.get("len"), "beam": st.get("beam"), "fwd": st.get("fwd"), "stb": st.get("stb")})
         out[icao] = rows
     return {"about": "Laget av pipeline/tests/ais_reference.py fra ais_sample.txt (Kystverkets åpne AIS-strøm, NLOD, opptak 2026-11-21).", "now": now, "areas": AREAS, "ships": out}
 

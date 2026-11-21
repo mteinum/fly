@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type AisShip, Fleet, fromAis, MAX_AGE_S, position, shipColor } from "./ships";
+import { type AisShip, Fleet, fromAis, MAX_AGE_S, position, shipColor, shipKind } from "./ships";
 import { loadTestTerrain } from "./testTerrain";
 
 const t = loadTestTerrain();
@@ -72,5 +72,32 @@ describe("skip fra AIS", () => {
     expect(shipColor(70)).not.toBe(shipColor(80));
     expect(shipColor(60)).toBe(shipColor(69));
     expect(shipColor(0)).toBe(shipColor(99));
+  });
+});
+
+describe("skipets plass og skilt", () => {
+  it("flytter skroget fra antenna til skipets midtpunkt", () => {
+    // 200 m langt skip med antenna på brua akter: midtpunktet ligger 70 m foran antenna og 4 m mot styrbord
+    const base = { sog: 0, cog: null, hdg: 0, fwd: 70, stb: 4 };
+    const [north] = fromAis([ship(base)], t, 0), [plain] = fromAis([ship({ ...base, fwd: 0, stb: 0 })], t, 0);
+    const [e0, n0] = t.gridToUtm(plain.x, plain.y), [e1, n1] = t.gridToUtm(north.x, north.y);
+    // baugen peker sann nord: i rutenettet dreid med konvergensen. Avstanden skal være 70 m framover og 4 m til høyre
+    const h = (-t.meta.gridConvergenceDeg * Math.PI) / 180;
+    expect((e1 - e0) * Math.sin(h) + (n1 - n0) * Math.cos(h)).toBeCloseTo(70, 3);
+    expect((e1 - e0) * Math.cos(h) - (n1 - n0) * Math.sin(h)).toBeCloseTo(4, 3);
+    // sann øst: 70 m østover (styrbord er da sør)
+    const [east] = fromAis([ship({ ...base, hdg: 90 })], t, 0), [e2, n2] = t.gridToUtm(east.x, east.y);
+    expect(Math.hypot(e2 - e0, n2 - n0)).toBeCloseTo(Math.hypot(70, 4), 3);
+    expect(e2 - e0).toBeGreaterThan(65);
+    expect(n2 - n0).toBeLessThan(0);
+    // uten kompass og uten fart vet vi ikke hvor baugen peker: da flyttes ingenting
+    const [unknown] = fromAis([ship({ ...base, hdg: null })], t, 0);
+    expect([unknown.x, unknown.y]).toEqual([plain.x, plain.y]);
+  });
+
+  it("gir type i klartekst og tar med destinasjonen", () => {
+    expect([shipKind(70), shipKind(79), shipKind(84), shipKind(60), shipKind(52), shipKind(30), shipKind(0), shipKind(99)]).toEqual(["Cargo", "Cargo", "Tanker", "Passenger", "Tug", "Fishing", "", ""]);
+    expect(fromAis([ship({ dest: "BERGEN-FLAAM-BERGEN" })], t, 0)[0].dest).toBe("BERGEN-FLAAM-BERGEN");
+    expect(fromAis([ship()], t, 0)[0].dest).toBe("");
   });
 });

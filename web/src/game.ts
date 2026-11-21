@@ -54,7 +54,7 @@ export interface Game {
   /** Satt mens reprisen etter en krasj spilles av. Fysikken står stille imens. */
   replay: Replay | null;
   /** Skipene akkurat nå, til kartet: posisjon i rutenettet, rutenettkurs (rad) og fart (m/s). Settes av main.ts. */
-  ships: { x: number; y: number; heading: number; speed: number; name: string; lengthM: number }[];
+  ships: { x: number; y: number; heading: number; speed: number; name: string; lengthM: number; detail: string }[];
   /** Loggen fra forrige innflyging som ble avsluttet (landing, krasj eller avbrutt), eller null. */
   flightLog: FlightLog | null;
 }
