@@ -1,0 +1,30 @@
+{
+ "about": "Geoidehøyde (m): ellipsoidehøyde minus NN2000-høyde, per utsnitt, regnet med pyproj (EPSG:4937 -> EPSG:4258+5941). Lagret så bygget ikke må laste ned høydereferansemodellen.",
+ "points": {
+  "kjevik10": {
+   "lon": 8.09144,
+   "lat": 58.17296,
+   "separationM": 40.7
+  },
+  "sola10": {
+   "lon": 5.63772,
+   "lat": 58.87672,
+   "separationM": 43.76
+  },
+  "flesland10": {
+   "lon": 5.21806,
+   "lat": 60.29341,
+   "separationM": 44.84
+  },
+  "gardermoen10": {
+   "lon": 11.10044,
+   "lat": 60.19388,
+   "separationM": 38.26
+  },
+  "bodo10": {
+   "lon": 14.36525,
+   "lat": 67.2692,
+   "separationM": 31.37
+  }
+ }
+}

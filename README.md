@@ -97,6 +97,12 @@ Ved Kjevik, Sola, Flesland og Bodø ser du de skipene som faktisk er der, fra Ky
 Spillet henter dem hvert halve minutt fra en liten tjeneste på samme nettsted (`web/public/ais/`), som
 leser Kystverkets strøm. Småbåter er ikke med i de åpne dataene. Svarer ikke tjenesten, er sjøen tom.
 
+## Andre fly
+
+Fly som faktisk er i lufta rundt flyplassen vises i spillet, med kallesignal, type og høyde. Posisjonene kommer
+fra adsb.lol, et nettverk av frivillige mottakere, via en liten tjeneste på samme nettsted
+(`web/public/traffic/`). Dekningen varierer, og kilden har en døgngrense, så himmelen kan være tom.
+
 ## Reprise
 
 Etter en krasj spilles de siste fem sekundene av på nytt, sett fra et fast punkt ved siden

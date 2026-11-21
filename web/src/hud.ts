@@ -33,6 +33,16 @@ export function drawMap(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImag
     g.fill(); g.stroke();
     g.restore();
   }
+  // Andre fly (fra ADS-B): en liten hvit pil i fartsretningen
+  g.fillStyle = "#ffffff"; g.strokeStyle = "rgba(0,0,0,.75)"; g.lineWidth = 0.25;
+  for (const a of game.traffic) {
+    g.save();
+    g.translate(x + a.x * k, y + a.y * k);
+    g.rotate(a.heading);
+    g.beginPath(); g.moveTo(0, -1.8); g.lineTo(1.3, 1.3); g.lineTo(0, 0.6); g.lineTo(-1.3, 1.3); g.closePath();
+    g.fill(); g.stroke();
+    g.restore();
+  }
   g.translate(x + P.x * k, y + P.y * k);
   g.rotate(P.hdg); // kartet er rutenett-nord opp, så rutenettkursen brukes direkte
   g.fillStyle = "#ff4a3d"; g.strokeStyle = "#fff"; g.lineWidth = 0.4;

@@ -367,6 +367,37 @@ Hvorfor det ikke kan brukes direkte fra spillet:
 Valgt løsning: et lite PHP-skript på webhotellet som leser Kystverkets strøm direkte (ingen nøkkel) og gir
 spillet posisjonene. Det lytter bare når noen spiller.
 
+## Flytrafikk: adsb.lol (2026-11-21)
+
+Andre fly rundt flyplassene hentes fra adsb.lol, et åpent nettverk av frivillige ADS-B-mottakere, via en
+PHP-tjeneste på webhotellet (`web/public/traffic/`). Spillet tegner dem (`web/src/traffic.ts`).
+
+| | |
+|---|---|
+| Endepunkt | `https://api.adsb.lol/v2/lat/<lat>/lon/<lon>/dist/<nautiske mil>` (kontrollert ved å kalle det 2026-11-21) |
+| Lisens | Open Database License (ODbL) 1.0. Kreditering i spillet: «Aircraft positions: adsb.lol (ODbL)» |
+| Grense | 500 forespørsler per døgn per IP-adresse uten nøkkel. Tjenesten bruker høyst 440 |
+| Brukes | posisjon, GPS-høyde, trykkhøyde, fart, kurs, stigning, kallesignal, flytype og kategori |
+| Brukes ikke | registrering (for småfly peker den på eieren) og resten av det flyet sender |
+
+- **Ekte:** hvilke fly som er der, hvor, hvor høyt, kurs, fart og stigning.
+- **Syntetisk:** flyets form (skalert etter kategorien det sender), og bevegelsen mellom oppdateringene (rett
+  fram med samme fart og stigning, høyst 90 s). Det er opptil 45 s mellom oppdateringene, så fly i sving og
+  under landing ligger litt feil.
+- **Høyde:** flyene sender GPS-høyde over ellipsoiden. Geoidehøyden trekkes fra for å få NN2000: 40,7 m ved
+  Kjevik, 43,8 ved Sola, 44,8 ved Flesland, 38,3 ved Gardermoen og 31,4 i Bodø (regnet med pyproj og
+  Kartverkets høydereferansemodell, lagret i `data/geoid.json`). Mangler GPS-høyden, brukes trykkhøyden, som
+  kan være over hundre meter feil; i prøven skilte de to 376 m for et fly i 36 000 fot.
+- **Dekning:** avhenger av hvor frivillige har mottakere. Ikke kartlagt for Norge. Da prøven ble tatt (en
+  lørdag kveld) var det 3 fly ved Gardermoen, 1 over Kjevik og ingen ved Flesland.
+- **Kontroll:** PHP-koden gir samme resultat som en uavhengig tolking i Python med pyproj for tre lagrede svar.
+  Prøven er liten (fire fly), så egne tilfeller dekker resten: bare trykkhøyde, uten høyde, gammel posisjon,
+  utenfor ruta, rar tekst.
+
+Undersøkt, ikke valgt: adsb.fi (raus grense, men «for personal, non-commercial use only»), OpenSky Network
+(krever konto og hemmelig nøkkel; vilkårene lot seg ikke lese), airplanes.live (dokumentasjonen lot seg ikke
+lese). Avinors flydata er rutetider og status, ikke posisjoner.
+
 ### Lyd: ElevenLabs (generert)
 
 | | |

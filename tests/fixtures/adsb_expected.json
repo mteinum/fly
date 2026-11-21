@@ -1,0 +1,93 @@
+{
+ "about": "Laget av pipeline/tests/traffic_reference.py fra adsb_sample.json (adsb.lol, ODbL).",
+ "areas": {
+  "ENGM": {
+   "lat": 60.1939,
+   "lon": 11.1004,
+   "radiusNm": 10,
+   "box": [
+    271050.0,
+    6666590.0,
+    296650.0,
+    6692190.0
+   ],
+   "geoidM": 38.26
+  },
+  "ENBR": {
+   "lat": 60.2934,
+   "lon": 5.2181,
+   "radiusNm": 10,
+   "box": [
+    -52230.0,
+    6711430.0,
+    -26630.0,
+    6737030.0
+   ],
+   "geoidM": 44.84
+  },
+  "ENCN": {
+   "lat": 58.173,
+   "lon": 8.0914,
+   "radiusNm": 10,
+   "box": [
+    81250.0,
+    6456000.0,
+    106850.0,
+    6481600.0
+   ],
+   "geoidM": 40.7
+  }
+ },
+ "aircraft": {
+  "ENGM": [
+   {
+    "id": "478899",
+    "e": 283162.9,
+    "n": 6680885.8,
+    "altM": null,
+    "alt": null,
+    "ground": true,
+    "gs": 44.5,
+    "track": 14.06,
+    "vr": null,
+    "age": 1.9,
+    "flight": "VAKT101",
+    "type": "",
+    "cat": "C2"
+   },
+   {
+    "id": "47a31a",
+    "e": 283562.1,
+    "n": 6679804.6,
+    "altM": null,
+    "alt": null,
+    "ground": true,
+    "gs": 18.5,
+    "track": null,
+    "vr": null,
+    "age": 12.4,
+    "flight": "NOZ3BW",
+    "type": "B738",
+    "cat": "A3"
+   }
+  ],
+  "ENBR": [],
+  "ENCN": [
+   {
+    "id": "4ab821",
+    "e": 104670.0,
+    "n": 6474738.4,
+    "altM": 10596.8,
+    "alt": "geom",
+    "ground": false,
+    "gs": 421.0,
+    "track": 34.26,
+    "vr": 64,
+    "age": 0.3,
+    "flight": "NSZ5708",
+    "type": "B38M",
+    "cat": "A3"
+   }
+  ]
+ }
+}

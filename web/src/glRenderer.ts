@@ -41,7 +41,7 @@ const color = (c: RGB): THREE.Color => new THREE.Color().setRGB(c[0] / 255, c[1]
 
 /** Utslag i grader for klaffstilling 0, 1, 2, 3 og FULL, som på A320 (1 = 1+F). */
 const FLAP_DEG = [0, 10, 15, 20, 35], SLAT_DEG = [0, 18, 22, 22, 27];
-const MAX_SHIPS = 256;
+const MAX_SHIPS = 256, MAX_TRAFFIC = 64;
 const SPOILER_DEG = 40; // luftbremsenes utslag når de er helt ute (SYNTETISK tall)
 
 const SRGB_TO_LINEAR = Uint8Array.from({ length: 256 }, (_, v) => Math.round(255 * (v / 255 <= 0.04045 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4)));
@@ -85,6 +85,11 @@ export class GlRenderer {
   private shipHouses!: THREE.InstancedMesh;
   private shipWakes!: THREE.InstancedMesh;
   private shipLights!: THREE.Points;
+  /** Andre fly (fra ADS-B): kropp, vinger og halefinne som instanser, og et blinkende lys hver. */
+  private trafficBodies!: THREE.InstancedMesh;
+  private trafficWings!: THREE.InstancedMesh;
+  private trafficFins!: THREE.InstancedMesh;
+  private trafficLights!: THREE.Points;
   private size = new THREE.Vector2(1, 1);
   private groundDetail: GroundDetail;
 
@@ -150,6 +155,7 @@ export class GlRenderer {
     this.addTunnels();
     this.addLighthouses();
     this.addShips();
+    this.addTraffic();
     this.addBridges();
     this.runwayLights = this.pointLights(this.runwayLightPositions(), 3.2);
     this.lamps = this.pointLights(this.bridgeLampPositions(), 2.4);
@@ -360,6 +366,48 @@ export class GlRenderer {
     });
     shaft.frustumCulled = spire.frustumCulled = false;
     this.scene.add(shaft, spire);
+  }
+
+  /** Andre fly tegnes som kropp, vinger og halefinne, skalert etter kategorien flyet sender (helikoptre får
+   *  en rotorskive i stedet for vinger). Hvor de er kommer fra ADS-B; formen er SYNTETISK og uten krengning. */
+  private addTraffic(): void {
+    const box = () => new THREE.BoxGeometry(1, 1, 1);
+    const white = new THREE.MeshLambertMaterial({ color: 0xf2f4f6 }), grey = new THREE.MeshLambertMaterial({ color: 0xb8bec6 });
+    this.trafficBodies = new THREE.InstancedMesh(box(), white, MAX_TRAFFIC);
+    this.trafficWings = new THREE.InstancedMesh(box(), grey, MAX_TRAFFIC);
+    this.trafficFins = new THREE.InstancedMesh(box(), new THREE.MeshLambertMaterial({ color: 0x3a4a5f }), MAX_TRAFFIC);
+    const light = new THREE.BufferGeometry();
+    light.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(MAX_TRAFFIC * 3), 3));
+    this.trafficLights = new THREE.Points(light, new THREE.PointsMaterial({ color: 0xffffff, size: 3.5, sizeAttenuation: false, transparent: true, depthWrite: false, fog: false }));
+    for (const m of [this.trafficBodies, this.trafficWings, this.trafficFins, this.trafficLights]) m.frustumCulled = false;
+    this.trafficBodies.count = this.trafficWings.count = this.trafficFins.count = 0;
+    light.setDrawRange(0, 0);
+    this.scene.add(this.trafficBodies, this.trafficWings, this.trafficFins, this.trafficLights);
+  }
+
+  /** Hvor de andre flyene er nå. x og y i rutenettceller, alt i meter over havet, heading som rutenettkurs. */
+  setTraffic(list: { x: number; y: number; alt: number; heading: number; lengthM: number; spanM: number; rotor: boolean }[]): void {
+    const { cell } = this.t, m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0);
+    const pos = this.trafficLights.geometry.getAttribute("position") as THREE.BufferAttribute;
+    const n = Math.min(list.length, MAX_TRAFFIC);
+    for (let i = 0; i < n; i++) {
+      const a = list[i], X = a.x * cell, Z = a.y * cell, fx = Math.sin(a.heading), fz = -Math.cos(a.heading);
+      const d = a.lengthM * 0.11, Y = a.alt + d; // kroppens tykkelse; posisjonen er undersiden
+      q.setFromAxisAngle(up, -a.heading);
+      m.compose(new THREE.Vector3(X, Y, Z), q, new THREE.Vector3(d, d, a.lengthM));
+      this.trafficBodies.setMatrixAt(i, m);
+      // vinger litt foran midten; et helikopter får en bred, tynn rotorskive over kroppen
+      m.compose(new THREE.Vector3(X + fx * a.lengthM * (a.rotor ? 0.1 : 0.04), Y + (a.rotor ? d * 0.9 : -d * 0.2), Z + fz * a.lengthM * (a.rotor ? 0.1 : 0.04)), q,
+        new THREE.Vector3(a.spanM, d * 0.12, a.rotor ? a.spanM : a.lengthM * 0.16));
+      this.trafficWings.setMatrixAt(i, m);
+      m.compose(new THREE.Vector3(X - fx * a.lengthM * 0.43, Y + d * 1.1, Z - fz * a.lengthM * 0.43), q, new THREE.Vector3(d * 0.12, d * 1.6, a.lengthM * 0.14));
+      this.trafficFins.setMatrixAt(i, m);
+      pos.setXYZ(i, X, Y + d, Z);
+    }
+    this.trafficBodies.count = this.trafficWings.count = this.trafficFins.count = n;
+    this.trafficLights.geometry.setDrawRange(0, n);
+    pos.needsUpdate = true;
+    for (const mesh of [this.trafficBodies, this.trafficWings, this.trafficFins]) mesh.instanceMatrix.needsUpdate = true;
   }
 
   /** Skip tegnes som et skrog med overbygg akter, skalert etter lengde og bredde, og kjølvann når de er i fart.
@@ -713,6 +761,8 @@ export class GlRenderer {
       light.visible = on;
       (light.material as THREE.PointsMaterial).opacity = 0.25 + 0.75 * sky.night;
     }
+    // Antikollisjonslys: et kort hvitt blink i sekundet, dag og natt, så flyene kan ses på avstand
+    this.trafficLights.visible = (performance.now() / 1000) % 1.2 < 0.15;
     this.shipLights.visible = sky.night > 0.05;
     (this.shipLights.material as THREE.PointsMaterial).opacity = sky.night;
     this.lamps.visible = sky.night > 0.05;

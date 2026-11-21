@@ -22,3 +22,7 @@ web/public/ais/areas.json
 # Lageret til skipstjenesten på serveren
 web/public/ais/cache/*
 !web/public/ais/cache/.htaccess
+web/public/traffic/areas.json
+# Lageret til flytjenesten på serveren
+web/public/traffic/cache/*
+!web/public/traffic/cache/.htaccess

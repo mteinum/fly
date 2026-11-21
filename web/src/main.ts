@@ -11,6 +11,7 @@ import { type AisShip, Fleet, position, shipColor, shipKind } from "./ships";
 import { loadTerrain } from "./terrain";
 import { towerView } from "./tower";
 import { drawTower } from "./towerPanel";
+import { type AdsbAircraft, aircraftSize, locate, Traffic } from "./traffic";
 
 const DEFAULT_ICAO = "ENCN";
 
@@ -105,11 +106,31 @@ async function main(): Promise<void> {
         if (!r.ok) return;
         const data: { ships: AisShip[] } = await r.json();
         fleet.update(data.ships, terrain, performance.now() / 1000);
-        document.getElementById("credits")!.textContent = [...terrain.meta.attribution, "Ship positions: Kystverket (NLOD)", "Audio: generated with ElevenLabs"].join(" · ");
+        credit("Ship positions: Kystverket (NLOD)");
       } catch { /* ingen skip denne gangen */ }
     };
     void poll();
     setInterval(() => { if (!document.hidden) void poll(); }, 30000);
+  }
+
+  // Flytrafikk: ekte fly fra adsb.lol, hentet fra /traffic/ på serveren. Kilden har en døgngrense, så serveren
+  // oppdaterer høyst hvert 45. sekund; her spørres det like ofte. Uten svar er himmelen tom.
+  const traffic = new Traffic(), trafficUrl = import.meta.env.DEV ? (params.get("traffic") ?? "https://fly.teinum.no/traffic/") : `${import.meta.env.BASE_URL}traffic/`;
+  let credits = [...terrain.meta.attribution];
+  const showCredits = () => { document.getElementById("credits")!.textContent = [...credits, "Audio: generated with ElevenLabs"].join(" · "); };
+  const credit = (text: string) => { if (!credits.includes(text)) { credits = [...credits, text]; showCredits(); } };
+  if (terrain.meta.traffic) {
+    const poll = async () => {
+      try {
+        const r = await fetch(`${trafficUrl}?apt=${chosen.icao}`);
+        if (!r.ok) return;
+        const data: { aircraft: AdsbAircraft[] } = await r.json();
+        traffic.update(data.aircraft, terrain, performance.now() / 1000);
+        credit("Aircraft positions: adsb.lol (ODbL)");
+      } catch { /* ingen fly denne gangen */ }
+    };
+    void poll();
+    setInterval(() => { if (!document.hidden) void poll(); }, 45000);
   }
 
   // Om-skjermen. Spillet går videre bak den; Esc, Close eller et klikk utenfor lukker.
@@ -218,6 +239,20 @@ async function main(): Promise<void> {
       boxes.push({ x: px - w / 2 - 2, y: py - 6 - size - lift, w: w + 4, h: size + 3 + lift, place, px, py: py - lift, font, detail: s.detail });
       shipLabels++;
     }
+    // Andre fly: de nærmeste i bildet, innen 20 km. Skiltet står over flyet, med type og høyde under kallesignalet.
+    let flightLabels = 0;
+    for (const a of [...game.traffic].sort((p, q) => Math.hypot(p.x - cx, p.y - cy) - Math.hypot(q.x - cx, q.y - cy))) {
+      if (flightLabels >= MAX_SHIP_LABELS || Math.hypot(a.x - cx, a.y - cy) * terrain.cell > 20000) break;
+      const place: PlaceName = { name: a.name, x: a.x, y: a.y, z: a.alt, size: 7, type: "fly", group: "fly" };
+      const at = renderer.project(a.x * terrain.cell, a.alt + 14, a.y * terrain.cell);
+      if (!at || !inSight(terrain, cx, cy, ey, place)) continue;
+      const px = at[0] * W, py = TOP + at[1] * (H - TOP), size = 2.9, font = `500 ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      g.font = font;
+      let w = g.measureText(a.name).width;
+      g.font = DETAIL_FONT; w = Math.max(w, g.measureText(a.detail).width);
+      boxes.push({ x: px - w / 2 - 2, y: py - 6 - size - 2.6, w: w + 4, h: size + 5.6, place, px, py: py - 2.6, font, detail: a.detail });
+      flightLabels++;
+    }
     for (const { place, distanceM } of candidates(terrain, cx, cy, ey)) {
       const at = renderer.project(place.x * terrain.cell, place.z + 20, place.y * terrain.cell);
       if (!at || !inSight(terrain, cx, cy, ey, place)) continue;
@@ -232,7 +267,7 @@ async function main(): Promise<void> {
     g.textAlign = "center"; g.textBaseline = "alphabetic"; g.lineJoin = "round";
     // Dempet: liten, halvgjennomsiktig skrift med tynn skygge. Navnene skal kunne leses, ikke ta over bildet.
     g.globalAlpha = 0.63;
-    for (const b of declutter(boxes, 16 + shipLabels)) {
+    for (const b of declutter(boxes, 16 + shipLabels + flightLabels)) {
       const { color } = labelStyle(b.place);
       g.strokeStyle = "rgba(0,0,0,.4)"; g.lineWidth = 0.25;
       const foot = b.detail ? b.py + 2.6 : b.py;
@@ -260,6 +295,14 @@ async function main(): Promise<void> {
     });
     renderer.setShips(ships);
     game.ships = ships; // samme liste til oversiktskartet
+    const others = traffic.list.map((a) => {
+      const [x, y, alt] = locate(a, terrain, shipNow);
+      // linje to på skiltet: flytype og høyde i fot (som i luftfarten), eller at flyet står på bakken
+      const detail = [a.type, a.ground ? "on ground" : `${Math.round((alt * 3.28084) / 100) * 100} ft`].filter(Boolean).join(" · ");
+      return { x, y, alt, heading: a.course, ...aircraftSize(a.cat), name: a.flight || a.type || "aircraft", detail };
+    });
+    renderer.setTraffic(others);
+    game.traffic = others;
     showInfo();
     audio.update(game, terrain);
     if (game.replay) renderer.render(game.replay.plane, "replay", game.env, game.replay.spectator);

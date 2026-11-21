@@ -47,6 +47,8 @@ jobs:
       # Skipstjenesten er også PHP: tolking av AIS og UTM-formelen mot et opptak og Kartverkets fasitpunkter
       - name: Skipstjeneste - tolk et opptak av AIS-strømmen
         run: bash deploy/test_ais.sh ais-test
+      - name: Flytjeneste - tolk lagrede svar fra adsb.lol
+        run: bash deploy/test_traffic.sh traffic-test
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: diplom

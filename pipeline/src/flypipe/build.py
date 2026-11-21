@@ -13,7 +13,7 @@ from shapely.geometry import LineString
 
 from . import airports, analysis, dtm, footprints, landcover, lights, matrikkel, n50, osm, structures, terrain
 from .areas import AREAS, Area
-from .crs import UTM33, grid_convergence_deg, scale_factor
+from .crs import UTM33, geoid_separation, grid_convergence_deg, scale_factor, utm33_to_wgs84
 from .grid import GridSpec
 
 REPO = Path(__file__).resolve().parents[3]
@@ -358,6 +358,23 @@ def build(area: Area) -> Path:
         ais_path.parent.mkdir(parents=True, exist_ok=True)
         ais_path.write_text(json.dumps(dict(sorted(ais_areas.items()))) + "\n", encoding="utf-8")
         meta["ships"] = {"source": "Kystverkets åpne AIS-strøm via /ais/ (sanntid, ikke en del av flisene)", "seaShare": round(sea, 3)} if area.icao in ais_areas else None
+        (out / "metadata.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    # Flytrafikk (web/public/traffic): tjenesten spør adsb.lol om fly rundt utsnittets sentrum. Den trenger
+    # sentrum i lengde/bredde, en radius som dekker hele ruta, ruta selv, og geoidehøyden (flyene sender
+    # GPS-høyde over ellipsoiden, spillet regner NN2000).
+    if area.cell == 10:
+        lon, lat = utm33_to_wgs84(cx, cy)
+        half_diagonal_nm = np.hypot(grid.width, grid.height) * area.cell / 2 / 1852
+        traffic_path = TILES.parent / "traffic" / "areas.json"
+        traffic = json.loads(traffic_path.read_text(encoding="utf-8")) if traffic_path.exists() else {}
+        traffic[area.icao] = {
+            "lat": round(lat, 4), "lon": round(lon, 4), "radiusNm": int(np.ceil(half_diagonal_nm)),
+            "box": [grid.west, grid.south, grid.east, grid.north], "geoidM": geoid_separation(area.id, lon, lat),
+        }
+        traffic_path.parent.mkdir(parents=True, exist_ok=True)
+        traffic_path.write_text(json.dumps(dict(sorted(traffic.items()))) + "\n", encoding="utf-8")
+        meta["traffic"] = {"source": "adsb.lol via /traffic/ (sanntid, ikke en del av flisene)", "geoidSeparationM": traffic[area.icao]["geoidM"]}
         (out / "metadata.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     # Georefererte kopier for kontroll i QGIS

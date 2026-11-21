@@ -410,6 +410,17 @@ og hva som ble endret.
   flisenes metadata. Uten den ville fasiten og serveren vært enige om feil
   rute.
 
+**47. En følgebil ble tegnet som et fly**
+- Første bilde av flytrafikken på Gardermoen viste «VAKT101» som et
+  mellomstort fly på bakken. Det er et kjøretøy med sender: ADS-B har en
+  egen kategori (C) for kjøretøy og hindre.
+- Jeg hadde tatt med kategorien bare for å velge størrelse, og lot ukjente
+  kategorier bli «et mellomstort fly».
+- Rettet: kategori C tegnes ikke.
+- I samme runde skrev jeg en test som ventet et fly i fasiten som lå
+  utenfor kartruta (innenfor 25 nautiske mil, men ikke i ruta). Fasiten
+  hadde rett.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

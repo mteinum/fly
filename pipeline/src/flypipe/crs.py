@@ -10,6 +10,8 @@ nulltransformasjon). Avviket er under 1 m og uten betydning på 50 m-celler.
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import math
 
 from pyproj import Geod, Transformer
@@ -60,3 +62,28 @@ def scale_factor(east: float, north: float) -> float:
     lon1, lat1, _ = _geod.fwd(lon, lat, 90.0, 1000.0)
     e1, n1 = wgs84_to_utm33(lon1, lat1)
     return math.hypot(e1 - east, n1 - north) / 1000.0
+
+
+GEOID_FILE = Path(__file__).resolve().parents[3] / "data" / "geoid.json"
+
+
+def geoid_separation(key: str, lon: float, lat: float) -> float:
+    """Hvor mange meter ellipsoiden ligger over NN2000 i punktet (geoidehøyden, ca. 30-45 m i Norge).
+
+    GPS-høyder (som fly sender) er over ellipsoiden; kartet og spillet er i NN2000. Tallet regnes med pyproj
+    og Kartverkets høydereferansemodell (EPSG:4937 -> EPSG:5941), som pyproj laster ned ved behov. Derfor
+    lagres det i data/geoid.json (i git), så bygget ikke avhenger av den nedlastingen.
+    """
+    import json
+
+    store = json.loads(GEOID_FILE.read_text(encoding="utf-8")) if GEOID_FILE.exists() else {"about": "Geoidehøyde (m): ellipsoidehøyde minus NN2000-høyde, per utsnitt, regnet med pyproj (EPSG:4937 -> EPSG:4258+5941). Lagret så bygget ikke må laste ned høydereferansemodellen.", "points": {}}
+    if key not in store["points"]:
+        import pyproj
+
+        pyproj.network.set_network_enabled(True)
+        height = Transformer.from_crs("EPSG:4937", "EPSG:4258+5941", always_xy=True).transform(lon, lat, 1000.0)[2]
+        n = 1000.0 - float(height)
+        assert 15 < n < 60, f"urimelig geoidehøyde {n} m: høydereferansemodellen ble trolig ikke brukt"
+        store["points"][key] = {"lon": round(lon, 5), "lat": round(lat, 5), "separationM": round(n, 2)}
+        GEOID_FILE.write_text(json.dumps(store, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    return float(store["points"][key]["separationM"])

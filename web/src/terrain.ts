@@ -58,6 +58,8 @@ export interface TerrainMeta {
   /** `buildingColors.legend`: [navn, farge] per bygningstype som finnes i utsnittet (fra pipeline, matrikkel.py). */
   structures: { file: string; buildingColors?: { legend: [string, string][] } | null; footprints?: { file: string; count: number } | null };
   names?: { file: string; count: number };
+  /** Satt for utsnittene spillet bruker: andre fly kan hentes fra /traffic/ (se traffic.ts). */
+  traffic?: { source: string } | null;
   /** Satt når utsnittet har sjø: da finnes det skipstrafikk å hente fra /ais/ (se ships.ts). */
   ships?: { source: string } | null;
   /** Kjennemerker som vises med logo: posisjon i rutenettet, høyde (m), og bildefil i web/public/. */

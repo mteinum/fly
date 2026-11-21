@@ -55,6 +55,8 @@ export interface Game {
   replay: Replay | null;
   /** Skipene akkurat nå, til kartet: posisjon i rutenettet, rutenettkurs (rad) og fart (m/s). Settes av main.ts. */
   ships: { x: number; y: number; heading: number; speed: number; name: string; lengthM: number; detail: string }[];
+  /** Andre fly akkurat nå, til kart og skilt: posisjon i rutenettet, høyde (m), rutenettkurs, kallesignal og linje to. */
+  traffic: { x: number; y: number; alt: number; heading: number; name: string; detail: string }[];
   /** Loggen fra forrige innflyging som ble avsluttet (landing, krasj eller avbrutt), eller null. */
   flightLog: FlightLog | null;
 }
@@ -127,6 +129,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     autopilot: false,
     apTarget: null,
     ships: [],
+    traffic: [],
     flightLog: null,
     cam: CAMERAS.find((c) => c === params.get("cam")) ?? "external",
     env: environment(time),

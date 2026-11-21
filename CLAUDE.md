@@ -37,6 +37,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     autopilot.ts   regelstyrt autopilot for innflyging og landing (A), flyr med spillerens kontroller
     guidance.ts    avvik fra senterlinje og 3° glidebane (vises som ILS på PFD, syntetisk)
     footprints.ts  leser buildings.bin og lager trekanter (vegger og flatt tak) for bygg med omriss
+    traffic.ts     andre fly fra ADS-B: UTM -> rutenett, bevegelse og høyde mellom oppdateringer
     ships.ts       skip fra AIS: UTM -> rutenett, bevegelse mellom meldinger, jevne oppdateringer
     flightlog.ts   flylogg per innflyging (UTM 33, sann kurs); L laster ned, utviklingsserveren lagrer i data/flights/
     replay.ts      opptak av de siste 5 s og reprise utenfra etter krasj
@@ -60,6 +61,7 @@ data/flights/    flylogger fra spillet i utviklingsmodus (ikke i git)
 .mcp.json        MCP-serveren `teinum-fly` for Claude Code; .claude/skills/debrief/ sier hvordan en innflyging gås gjennom
 deploy/          publisering til fly.teinum.no (SSH + rsync), kjøres av .github/workflows/deploy.yml
 web/public/share/  delingssiden for diplomer (PHP på webhotellet): index.php, image.php, lib.php
+web/public/traffic/ flytjenesten (PHP på webhotellet): henter fly rundt en flyplass fra adsb.lol, med døgnbudsjett
 web/public/ais/    skipstjenesten (PHP på webhotellet): leser Kystverkets åpne AIS-strøm og gir spillet skipene ved en flyplass
 tests/fixtures/  fasitpunkter fra Kartverkets API-er, og flylogger (flights/, lages av vitest), delt av pytest og vitest
 reference/       opprinnelig piksel-prototype (én HTML-fil), kun til oppslag
@@ -104,7 +106,7 @@ cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstje
    den får ferdige UTM- og rutenettkoordinater i metadata.json.
    ETT UNNTAK: skipsposisjoner kommer i sanntid og kan ikke gå gjennom pipeline. De transformeres på
    serveren, i `utm33()` i web/public/ais/lib.php (Krügers rekker). Den testes mot de samme fasitpunktene
-   fra Kartverket som crs.py. Ingen andre steder.
+   fra Kartverket som crs.py. Flytjenesten (web/public/traffic) bruker samme funksjon. Ingen andre steder.
 3. Spillets rutenett: `x = (øst - west) / celle`, `y = (north - nord) / celle`.
    **y øker mot sør** (rad 0 = nord). Heltall er cellekanter; celleverdien
    gjelder i cellesenteret (+0.5).
@@ -120,7 +122,8 @@ cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstje
    Euler YXZ = `(pitch, -hdg, -roll)`.
 6. Målestokkfaktoren er 1,0016 ved Kjevik og opptil 1,0032 på Vestlandet: rutenettavstander er 0,16-0,32 % lengre
    enn i terrenget. Ignoreres i flymodellen, men ikke anta eksakt likhet i tester.
-7. Høyder er NN2000 (meter). Flyplasshøyder fra OurAirports er i fot (MSL).
+7. Høyder er NN2000 (meter). Flyplasshøyder fra OurAirports er i fot (MSL). GPS-høyder (fra andre fly) er over
+   ellipsoiden: geoidehøyden (31-45 m, per utsnitt i data/geoid.json) trekkes fra. Trykkhøyde er ikke høyde over havet.
 8. WGS84 og ETRS89 regnes som like (avvik < 1 m).
 
 ## Konvensjoner
@@ -162,7 +165,9 @@ cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstje
 - Spillet fyller hele vinduet. Skjermtekst, panel og tårninteriør tegnes i logiske enheter
   (grunnflate 320 x 200, se web/src/screen.ts): bruk `W` og `TOP` for det som skal følge
   vinduskanten, og `OX` for å sentrere faste oppsett. Ikke anta 16:10.
-- Serverkode finnes to steder, begge PHP på webhotellet. Delingssiden (share/) lagrer ingenting og tar ikke imot
+- Serverkode finnes tre steder, alle PHP på webhotellet. Flytjenesten (traffic/) er bygget som skipstjenesten, men
+  henter fra adsb.lol, som tillater 500 forespørsler i døgnet uten nøkkel: den spør høyst hvert 45. sekund per
+  flyplass, bare mens noen spiller, og stopper på 440 per døgn (regnskapet ligger i traffic/cache/lock). Delingssiden (share/) lagrer ingenting og tar ikke imot
   opplastinger: diplomet tegnes fra tallene i adressen, og alt derfra avgrenses i lib.php. Titlene der må holdes
   like TITLES i web/src/diploma.ts. Skipstjenesten (ais/) lagrer bare siste skipsposisjoner (ais/cache/, sperret
   for direkte henting) og ingenting om besøkende; eneste inndata er flyplasskoden, som må finnes i areas.json.
