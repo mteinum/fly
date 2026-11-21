@@ -172,6 +172,7 @@ async function main(): Promise<void> {
     // samme form som et stedsnavn, så sikt og avstand kan sjekkes med de samme funksjonene
     return { lm, image, place: { name: lm.name, x: lm.x, y: lm.y, z: lm.z, size: 12, type: "landmark", group: "bebyggelse" } satisfies PlaceName };
   });
+  const MAX_SHIP_LABELS = 6;
   const SIGN_RANGE_M = 9000, SIGN_HEIGHT = 3.4; // logiske enheter: på størrelse med et stedsnavn
   const drawSigns = (cx: number, cy: number, ey: number) => {
     for (const { lm, image, place } of signs) {
@@ -193,6 +194,24 @@ async function main(): Promise<void> {
     const [ex, ey, ez] = renderer.eye, cx = ex / terrain.cell, cy = ez / terrain.cell;
     drawSigns(cx, cy, ey);
     const boxes: { x: number; y: number; w: number; h: number; place: PlaceName; px: number; py: number; font: string }[] = [];
+    // Skipsnavn (fra AIS) når vi er i nærheten: de nærmeste først, så de får plass før stedsnavnene.
+    // Store skip ses lenger enn små. Skip som ikke har sendt navnet sitt ennå, får ikke skilt.
+    const near = game.ships
+      .filter((s) => s.name)
+      .map((s) => ({ s, d: Math.hypot(s.x - cx, s.y - cy) * terrain.cell }))
+      .filter(({ s, d }) => d < (s.lengthM > 100 ? 9000 : 5000))
+      .sort((a, b) => a.d - b.d)
+      .slice(0, MAX_SHIP_LABELS);
+    for (const { s } of near) {
+      // navnet står litt over overbygget; samme form som et stedsnavn, så sikt og utforming gjenbrukes
+      const place: PlaceName = { name: s.name, x: s.x, y: s.y, z: Math.min(Math.max(s.lengthM * 0.13, 5), 28), size: 7, type: "skip", group: "skip" };
+      const at = renderer.project(s.x * terrain.cell, place.z + 8, s.y * terrain.cell);
+      if (!at || !inSight(terrain, cx, cy, ey, place)) continue;
+      const px = at[0] * W, py = TOP + at[1] * (H - TOP), size = 2.9, font = `500 ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      g.font = font;
+      const w = g.measureText(s.name).width;
+      boxes.push({ x: px - w / 2 - 2, y: py - 6 - size, w: w + 4, h: size + 3, place, px, py, font });
+    }
     for (const { place, distanceM } of candidates(terrain, cx, cy, ey)) {
       const at = renderer.project(place.x * terrain.cell, place.z + 20, place.y * terrain.cell);
       if (!at || !inSight(terrain, cx, cy, ey, place)) continue;
@@ -207,7 +226,7 @@ async function main(): Promise<void> {
     g.textAlign = "center"; g.textBaseline = "alphabetic"; g.lineJoin = "round";
     // Dempet: liten, halvgjennomsiktig skrift med tynn skygge. Navnene skal kunne leses, ikke ta over bildet.
     g.globalAlpha = 0.63;
-    for (const b of declutter(boxes, 16)) {
+    for (const b of declutter(boxes, 16 + near.length)) {
       const { color } = labelStyle(b.place);
       g.strokeStyle = "rgba(0,0,0,.4)"; g.lineWidth = 0.25;
       g.beginPath(); g.moveTo(b.px, b.py - 4.4); g.lineTo(b.px, b.py); g.stroke(); // strek ned til stedet
@@ -223,7 +242,7 @@ async function main(): Promise<void> {
     const shipNow = performance.now() / 1000;
     const ships = fleet.list.map((s) => {
       const [x, y] = position(s, terrain, shipNow);
-      return { x, y, heading: s.heading, lengthM: s.lengthM, beamM: s.beamM, speed: s.speed, color: shipColor(s.type) };
+      return { x, y, heading: s.heading, lengthM: s.lengthM, beamM: s.beamM, speed: s.speed, color: shipColor(s.type), name: s.name };
     });
     renderer.setShips(ships);
     game.ships = ships; // samme liste til oversiktskartet
