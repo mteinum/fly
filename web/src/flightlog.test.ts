@@ -23,7 +23,7 @@ const PILOTS: Record<string, { ap: boolean; pilot: Pilot }> = {
     ap: false,
     pilot: (cmd, P, d) => ({
       keys: d > 5000 ? { ...cmd.keys, ArrowDown: 0, ArrowUp: 0 } : cmd.keys,
-      gearDown: d < 2000, flapCfg: P.flapCfg,
+      gearDown: d < 2000, flapCfg: P.flapCfg, speedKt: cmd.speedKt,
     }),
   },
   // glemmer understellet

@@ -35,6 +35,8 @@ export interface AutopilotCommand {
   /** Hvor understellsspaken og klaffspaken skal stå. */
   gearDown: boolean;
   flapCfg: number;
+  /** Farten den holder nå (kt). Vises i FCU-vinduet. */
+  speedKt: number;
 }
 
 /** Hva autopiloten vil gjøre nå for å lande fra baneenden `end`, eller null når den ikke kan (flyr bort fra banen eller er forbi den). */
@@ -71,5 +73,5 @@ export function autopilot(P: Plane, t: Terrain, rw: Runway, end: RunwayEnd): Aut
   push("ArrowRight", "ArrowLeft", bank / 0.75); // rorutslaget er krengingen flyet går mot
   push("ArrowDown", "ArrowUp", ((pitch - P.pitch) * 4) / 0.6); // pil ned = nese opp
   push("KeyW", "KeyS", ((thr - P.thr) * 2) / 0.4);
-  return { keys, gearDown: step.gear, flapCfg: step.flaps };
+  return { keys, gearDown: step.gear, flapCfg: step.flaps, speedKt: speed * KT };
 }

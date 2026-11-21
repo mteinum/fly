@@ -10,7 +10,7 @@
  * terrenget på ND (fra høydekartet), klokke.
  * klaffer og understell med varsler og landingsmemo.
  * Syntetisk: motorverdiene (regnet rett fra gasshåndtaket), memolinjene SIGNS/CABIN/SPLRS, drivstoffmengde,
- * tomme FCU-vinduer (ingen autopilot).
+ * ALT-vinduet på FCU (høyden innflygingen startet i, ikke en klarert høyde).
  */
 import { osloTime } from "./clock";
 import type { Game } from "./game";
@@ -361,8 +361,10 @@ function lcd(g: G2D, x: number, y: number, w: number, h: number, caption: string
   text(g, value, x + w - 1, y + h / 2 + 1, h * 0.58, color, "right", MONO, 600);
 }
 
-/** FCU: vinduene viser streker fordi ingen verdier kan velges (ingen autopilot). */
-function fcu(g: G2D, body: number): void {
+/** FCU: streker med prikk betyr at flyet styrer verdien selv («managed»), som på flyet. Når autopiloten (A) flyr,
+ *  viser SPD og HDG det den holder. ALT viser alltid et tall, slik vinduet gjør i flyet: her høyden innflygingen
+ *  startet i (SYNTETISK: spillet har ingen klarert høyde). V/S er streker fordi nedstigningen følger glidebanen. */
+function fcu(g: G2D, body: number, game: Game): void {
   const x = 106, y = 109, w = 108, h = 11.5;
   g.fillStyle = shade(52, 60, 70, body); g.beginPath(); g.roundRect(x, y, w, h, 1.2); g.fill();
   g.strokeStyle = shade(20, 23, 28, body); g.lineWidth = 0.4; g.stroke();
@@ -371,7 +373,12 @@ function fcu(g: G2D, body: number): void {
     text(g, label, wx + 0.8, y + 1.9, 2, WHITE, "left");
     text(g, value, wx + ww - 1, y + 6.6, 4.4, "#ffb347", "right", MONO, 600);
   };
-  win(x + 5, 19, "SPD", "---●"); win(x + 29, 19, "HDG", "---●"); win(x + 56, 24, "ALT", "-----"); win(x + 84, 19, "V/S", "-----");
+  const ap = game.apTarget;
+  win(x + 5, 19, "SPD", ap ? String(Math.round(ap.speedKt)) : "---●");
+  win(x + 29, 19, "HDG", ap ? String(Math.round(ap.courseTrueDeg) % 360).padStart(3, "0") : "---●");
+  win(x + 56, 24, "ALT", `${game.approach.platformFt}${ap ? "●" : ""}`);
+  win(x + 84, 19, "V/S", "-----");
+  if (ap) text(g, "AP1", x + 52.5, y + 2, 2, GREEN, "center", SANS, 700);
   // EFIS-kontrollpanel på hver side: trykkinnstilling
   for (const ex of [x - 30, x + w + 4]) {
     g.fillStyle = shade(52, 60, 70, body); g.beginPath(); g.roundRect(ex, y + 1, 26, h - 2, 1); g.fill();
@@ -477,7 +484,7 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
   shadow.addColorStop(0, "rgba(0,0,0,.5)"); shadow.addColorStop(1, "rgba(0,0,0,0)");
   g.fillStyle = shadow; g.fillRect(0, PANEL_TOP + 16, W, 6);
   g.translate(OX, 0); // instrumentene har fast oppsett og står midt på panelet
-  fcu(g, body);
+  fcu(g, body, game);
 
   pfd(g, 10, ROW, d, body);
   nd(g, 60, ROW, d, t, game, body);

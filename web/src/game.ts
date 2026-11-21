@@ -42,7 +42,9 @@ export interface Game {
   time: number;
   env: Environment;
   /** Gjeldende innflyging: løpenummer (øker for hver ny) og banen det flys mot. */
-  approach: { count: number; ident: string; autopilot: boolean };
+  approach: { count: number; ident: string; autopilot: boolean; platformFt: number };
+  /** Det autopiloten flyr etter nå (fart i kt, sann kurs i grader), eller null når den er av. Vises på FCU. */
+  apTarget: { speedKt: number; courseTrueDeg: number } | null;
   /** Autopiloten flyr (A slår den av og på). `approach.autopilot` husker om den har vært brukt på denne innflygingen. */
   autopilot: boolean;
   /** Ett steg: klokke, fysikk, meldinger og ny innflyging når det trengs. */
@@ -68,7 +70,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   const K: Keys = {};
   const msg: Message = { text: "", t: 0 };
   const say = (text: string, t = 3) => { msg.text = text; msg.t = t; };
-  const approach = { count: 0, ident: ends[endIdx].ident, autopilot: false };
+  const approach = { count: 0, ident: ends[endIdx].ident, autopilot: false, platformFt: 0 };
   // Tar piloten i stikka eller gassen, slipper autopiloten (som i flyet)
   const MANUAL = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "KeyW", "KeyS"];
   const setAutopilot = (on: boolean, why = "") => {
@@ -79,12 +81,14 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   };
   /** Kontrollene dette steget: pilotens taster, eller autopilotens utslag når den flyr. */
   const controls = (): Keys => {
+    game.apTarget = null;
     if (!game.autopilot || P.state !== "fly") return K;
     if (MANUAL.some((k) => K[k])) { setAutopilot(false); return K; }
     const cmd = autopilot(P, terrain, runwayOf(ends[endIdx]), ends[endIdx]);
     if (!cmd) { setAutopilot(false, ": no runway ahead"); return K; }
     if (cmd.gearDown !== P.gearDown) toggleGear(P, say);
     if (cmd.flapCfg !== P.flapCfg) moveFlaps(P, Math.sign(cmd.flapCfg - P.flapCfg), say);
+    game.apTarget = { speedKt: cmd.speedKt, courseTrueDeg: ends[endIdx].headingTrueDeg };
     return cmd.keys;
   };
   const recorder = new Recorder(), logger = new FlightLogger(terrain, airport);
@@ -100,6 +104,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     logger.start(P, runwayOf(ends[endIdx]), ends[endIdx], new Date());
     approach.count++;
     approach.ident = ends[endIdx].ident;
+    approach.platformFt = Math.round((P.alt * 3.28084) / 100) * 100; // høyden innflygingen starter i, til FCU
     say(`Approach ${airport.icao} runway ${ends[endIdx].ident}`, 3);
   };
   const environment = (time: number): Environment => {
@@ -116,6 +121,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   const game: Game = {
     P, airport, msg, time, approach,
     autopilot: false,
+    apTarget: null,
     flightLog: null,
     cam: CAMERAS.find((c) => c === params.get("cam")) ?? "external",
     env: environment(time),
