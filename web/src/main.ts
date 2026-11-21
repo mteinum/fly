@@ -7,6 +7,7 @@ import { drawCornerMap, drawHud, drawMessage } from "./hud";
 import { candidates, declutter, inSight, labelStyle, type PlaceName } from "./labels";
 import { drawPanel } from "./panel";
 import { H, setScreen, TOP, W } from "./screen";
+import { type AisShip, Fleet, position, shipColor } from "./ships";
 import { loadTerrain } from "./terrain";
 import { towerView } from "./tower";
 import { drawTower } from "./towerPanel";
@@ -92,6 +93,24 @@ async function main(): Promise<void> {
     document.getElementById("info")!.textContent = mapInfo + facts;
   };
   document.getElementById("credits")!.textContent = [...terrain.meta.attribution, "Audio: generated with ElevenLabs"].join(" · ");
+
+  // Skipstrafikk: ekte skip fra Kystverkets AIS, hentet fra /ais/ på serveren hvert halve minutt.
+  // Utviklingsserveren har ingen PHP og henter fra den publiserte siden. Svarer ikke tjenesten, blir det sjø uten skip.
+  // ?ais=adresse (kun utviklingsmodus): hent fra en lokal PHP-server i stedet
+  const fleet = new Fleet(), aisUrl = import.meta.env.DEV ? (params.get("ais") ?? "https://fly.teinum.no/ais/") : `${import.meta.env.BASE_URL}ais/`;
+  if (terrain.meta.ships) {
+    const poll = async () => {
+      try {
+        const r = await fetch(`${aisUrl}?apt=${chosen.icao}`);
+        if (!r.ok) return;
+        const data: { ships: AisShip[] } = await r.json();
+        fleet.update(data.ships, terrain, performance.now() / 1000);
+        document.getElementById("credits")!.textContent = [...terrain.meta.attribution, "Ship positions: Kystverket (NLOD)", "Audio: generated with ElevenLabs"].join(" · ");
+      } catch { /* ingen skip denne gangen */ }
+    };
+    void poll();
+    setInterval(() => { if (!document.hidden) void poll(); }, 30000);
+  }
 
   // Om-skjermen. Spillet går videre bak den; Esc, Close eller et klikk utenfor lukker.
   const about = document.getElementById("about")!;
@@ -201,6 +220,11 @@ async function main(): Promise<void> {
 
   runLoop((dt) => {
     game.step(dt);
+    const shipNow = performance.now() / 1000;
+    renderer.setShips(fleet.list.map((s) => {
+      const [x, y] = position(s, terrain, shipNow);
+      return { x, y, heading: s.heading, lengthM: s.lengthM, beamM: s.beamM, speed: s.speed, color: shipColor(s.type) };
+    }));
     showInfo();
     audio.update(game, terrain);
     if (game.replay) renderer.render(game.replay.plane, "replay", game.env, game.replay.spectator);

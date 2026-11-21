@@ -37,6 +37,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     autopilot.ts   regelstyrt autopilot for innflyging og landing (A), flyr med spillerens kontroller
     guidance.ts    avvik fra senterlinje og 3° glidebane (vises som ILS på PFD, syntetisk)
     footprints.ts  leser buildings.bin og lager trekanter (vegger og flatt tak) for bygg med omriss
+    ships.ts       skip fra AIS: UTM -> rutenett, bevegelse mellom meldinger, jevne oppdateringer
     flightlog.ts   flylogg per innflyging (UTM 33, sann kurs); L laster ned, utviklingsserveren lagrer i data/flights/
     replay.ts      opptak av de siste 5 s og reprise utenfra etter krasj
     sun.ts         solas posisjon fra tid og sted
@@ -59,6 +60,7 @@ data/flights/    flylogger fra spillet i utviklingsmodus (ikke i git)
 .mcp.json        MCP-serveren `teinum-fly` for Claude Code; .claude/skills/debrief/ sier hvordan en innflyging gås gjennom
 deploy/          publisering til fly.teinum.no (SSH + rsync), kjøres av .github/workflows/deploy.yml
 web/public/share/  delingssiden for diplomer (PHP på webhotellet): index.php, image.php, lib.php
+web/public/ais/    skipstjenesten (PHP på webhotellet): leser Kystverkets åpne AIS-strøm og gir spillet skipene ved en flyplass
 tests/fixtures/  fasitpunkter fra Kartverkets API-er, og flylogger (flights/, lages av vitest), delt av pytest og vitest
 reference/       opprinnelig piksel-prototype (én HTML-fil), kun til oppslag
 docs/            datakilder.md, resampling.md, analyser.md, ai-logg.md
@@ -90,6 +92,7 @@ cd web && npm run dev                        # spill på http://localhost:5173
 cd web && npm test && npm run typecheck
 cd web && UPDATE_FIXTURES=1 npm test         # lag flyloggene i tests/fixtures/flights/ på nytt (etter endring i flymodell/autopilot)
 cd pipeline && uv run flypipe debrief        # hovedtallene for siste flylogg i data/flights/
+cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstjenesten på nytt (etter nytt opptak)
 ```
 
 ## CRS-regler
@@ -99,6 +102,9 @@ cd pipeline && uv run flypipe debrief        # hovedtallene for siste flylogg i 
    `pipeline/src/flypipe/crs.py`, med pyproj og `always_xy=True`. Rekkefølgen er
    alltid (lon, lat) - aldri (lat, lon). Web-koden transformerer aldri selv;
    den får ferdige UTM- og rutenettkoordinater i metadata.json.
+   ETT UNNTAK: skipsposisjoner kommer i sanntid og kan ikke gå gjennom pipeline. De transformeres på
+   serveren, i `utm33()` i web/public/ais/lib.php (Krügers rekker). Den testes mot de samme fasitpunktene
+   fra Kartverket som crs.py. Ingen andre steder.
 3. Spillets rutenett: `x = (øst - west) / celle`, `y = (north - nord) / celle`.
    **y øker mot sør** (rad 0 = nord). Heltall er cellekanter; celleverdien
    gjelder i cellesenteret (+0.5).
@@ -156,10 +162,15 @@ cd pipeline && uv run flypipe debrief        # hovedtallene for siste flylogg i 
 - Spillet fyller hele vinduet. Skjermtekst, panel og tårninteriør tegnes i logiske enheter
   (grunnflate 320 x 200, se web/src/screen.ts): bruk `W` og `TOP` for det som skal følge
   vinduskanten, og `OX` for å sentrere faste oppsett. Ikke anta 16:10.
-- Delingssiden er den eneste serverkoden. Den lagrer ingenting og tar ikke imot opplastinger:
-  diplomet tegnes fra tallene i adressen, og alt derfra avgrenses i lib.php. Titlene der må
-  holdes like TITLES i web/src/diploma.ts. PHP kan ikke kjøres lokalt på denne maskinen;
-  `deploy/test_share.sh` kjøres i GitHub Actions.
+- Serverkode finnes to steder, begge PHP på webhotellet. Delingssiden (share/) lagrer ingenting og tar ikke imot
+  opplastinger: diplomet tegnes fra tallene i adressen, og alt derfra avgrenses i lib.php. Titlene der må holdes
+  like TITLES i web/src/diploma.ts. Skipstjenesten (ais/) lagrer bare siste skipsposisjoner (ais/cache/, sperret
+  for direkte henting) og ingenting om besøkende; eneste inndata er flyplasskoden, som må finnes i areas.json.
+  Den lytter på Kystverkets strøm bare når noen spiller, etter at svaret er sendt, og én om gangen.
+- PHP kjøres ikke direkte på denne maskinen, men i en container:
+  `podman machine start && podman run --rm -v "$PWD":/w -w /w docker.io/library/php:8.1-cli bash deploy/test_ais.sh /tmp/ais-test`
+  (tilsvarende for deploy/test_share.sh, som trenger GD). Begge kjøres også i GitHub Actions.
+- Publiseringen sletter aldri filer på serveren. En fil som skal bort må erstattes med en tom utgave.
 - KI i spillet koster ingenting å spille: ingen språkmodell kalles fra den publiserte siden. Det som trenger en
   modell (gjennomgang av flylogger) kjører bare lokalt, og modellen får alle tall fra verktøy (debrief.py).
 - Glidebanens geometri finnes to steder: web/src/guidance.ts og pipeline/src/flypipe/analysis.py. Endres den ene,

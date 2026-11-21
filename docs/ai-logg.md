@@ -395,6 +395,21 @@ og hva som ble endret.
 - Rettet: 11° i sekundet. Autopiloten bruker samme tall og lander fortsatt
   med toppkarakter på alle baner.
 
+**45. «PHP kan ikke kjøres lokalt» var feil**
+- Det sto i CLAUDE.md fra da delingssiden ble laget, og jeg testet PHP
+  bare i GitHub Actions. Maskinen har podman. Jeg sjekket bare om `php`
+  fantes, ikke om en container gjorde det.
+- Oppdaget da skipstjenesten skulle skrives og blind utvikling mot
+  publiseringen ville blitt tregt og risikabelt.
+- Rettet: instruksen sier nå hvordan PHP kjøres i en container.
+
+**46. Gjettet kartrutene i en fasit**
+- I referansetolkingen for AIS skrev jeg inn rutene for Sola, Flesland og
+  Bodø «omtrent». Kjevik var riktig fordi jeg nettopp hadde sett tallene.
+- Fanget av en test jeg skrev i samme omgang, som sammenligner rutene med
+  flisenes metadata. Uten den ville fasiten og serveren vært enige om feil
+  rute.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

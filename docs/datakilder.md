@@ -324,7 +324,22 @@ til omrissene som vektordata.
 (1,2 MB for Kjevik), fordi Overpass ofte svarer 502 og bygget ikke skal avhenge av den. Spillet tegner
 omrissene som vegger og flatt tak. Kollisjon bruker fortsatt 10 m-cellene under byggene.
 
-## Undersøkt, ikke i bruk: skipstrafikk fra AIS (2026-11-21)
+## Undersøkt og tatt i bruk: skipstrafikk fra AIS (2026-11-21)
+
+I bruk: Kystverkets åpne AIS-strøm leses av en liten PHP-tjeneste på webhotellet (`web/public/ais/`), og
+spillet tegner skipene ved Kjevik, Sola, Flesland og Bodø (`web/src/ships.ts`). Kreditering:
+«Ship positions: Kystverket (NLOD)» i spillet og på om-skjermen.
+
+- **Ekte:** hvilke skip som er der, posisjon, kurs, fart, navn, type og mål, slik skipet selv sender det.
+- **Syntetisk:** skipets form og farge, og bevegelsen mellom to meldinger (rett fram med samme fart, høyst 2,5 min).
+- **Ikke med:** fiskefartøy under 15 m og fritidsfartøy under 45 m (ikke i de åpne dataene), og skip som ikke er
+  hørt på ti minutter.
+- **Kontroll:** PHP-koden tolker et opptak av strømmen (2013 linjer, `tests/fixtures/ais_sample.txt`) likt med en
+  uavhengig tolking i Python med pyproj: 68 skip, samme posisjon innen 15 cm og samme opplysninger. UTM-formelen
+  i PHP treffer Kartverkets fasitpunkter innen en millimeter.
+- **Prøvd på webhotellet:** PHP der når strømmen (tilkobling på 6 ms, 120–170 meldinger på 4 s).
+
+Undersøkelsen som lå til grunn:
 
 Spørsmålet var om ekte skip kan vises ved kystflyplassene (Kjevik, Sola, Flesland, Bodø).
 
@@ -346,9 +361,8 @@ Hvorfor det ikke kan brukes direkte fra spillet:
 - BarentsWatch krever en hemmelig nøkkel. Den kan ikke ligge i nettleseren.
 - Webhotellet har PHP (delingssiden), men spillet er ellers statisk.
 
-Veier som er mulige: (1) ta opp trafikken en periode og bake den inn ved bygging, som «en vanlig dag»;
-(2) et lite PHP-skript på webhotellet som henter fra BarentsWatch og gir spillet posisjoner uten nøkkel.
-Ikke påbegynt.
+Valgt løsning: et lite PHP-skript på webhotellet som leser Kystverkets strøm direkte (ingen nøkkel) og gir
+spillet posisjonene. Det lytter bare når noen spiller.
 
 ### Lyd: ElevenLabs (generert)
 

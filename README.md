@@ -91,6 +91,12 @@ Pipeline regner tre ting per flyplass (`pipeline/src/flypipe/analysis.py`), og s
 - **Bygningsklynger** (`building_clusters.gpkg`): DBSCAN på N50-bygningene. Klynger får gatelys
   om natta, enslige hus bare lys i vinduet.
 
+## Skip
+
+Ved Kjevik, Sola, Flesland og Bodø ser du de skipene som faktisk er der, fra Kystverkets åpne AIS-data.
+Spillet henter dem hvert halve minutt fra en liten tjeneste på samme nettsted (`web/public/ais/`), som
+leser Kystverkets strøm. Småbåter er ikke med i de åpne dataene. Svarer ikke tjenesten, er sjøen tom.
+
 ## Reprise
 
 Etter en krasj spilles de siste fem sekundene av på nytt, sett fra et fast punkt ved siden

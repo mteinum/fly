@@ -17,3 +17,8 @@ web/public/data/index.json
 share-test/
 # Flylogger fra spillet i utviklingsmodus (til lokal gjennomgang)
 data/flights/
+# Skrives av pipeline: rutene skipstjenesten velger ut skip etter
+web/public/ais/areas.json
+# Lageret til skipstjenesten på serveren
+web/public/ais/cache/*
+!web/public/ais/cache/.htaccess

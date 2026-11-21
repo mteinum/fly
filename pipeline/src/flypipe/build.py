@@ -348,6 +348,18 @@ def build(area: Area) -> Path:
     index["areas"] = sorted([a for a in index["areas"] if a["id"] != area.id] + [entry], key=lambda a: list(AREAS).index(a["id"]))
     index_path.write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
+    # Utsnitt med sjø: skipstjenesten (web/public/ais) trenger rutene for å velge ut skip. Bare 10 m-utsnittene
+    # spillet bruker, og bare der det er hav (Gardermoen har innsjøer, men ingen skip med AIS).
+    sea = float((lc == next(c.code for c in landcover.CLASSES if c.name == "Havflate")).mean())
+    ais_path = TILES.parent / "ais" / "areas.json"
+    ais_areas = json.loads(ais_path.read_text(encoding="utf-8")) if ais_path.exists() else {}
+    ais_areas.pop(area.icao, None) if area.cell != 10 or sea < 0.01 else ais_areas.update({area.icao: [grid.west, grid.south, grid.east, grid.north]})
+    if area.cell == 10:
+        ais_path.parent.mkdir(parents=True, exist_ok=True)
+        ais_path.write_text(json.dumps(dict(sorted(ais_areas.items()))) + "\n", encoding="utf-8")
+        meta["ships"] = {"source": "Kystverkets åpne AIS-strøm via /ais/ (sanntid, ikke en del av flisene)", "seaShare": round(sea, 3)} if area.icao in ais_areas else None
+        (out / "metadata.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
     # Georefererte kopier for kontroll i QGIS
     _write_geotiff(PROCESSED / area.id / f"dtm{area.cell:g}m.tif", hgt, grid)
     _write_geotiff(PROCESSED / area.id / "colormap.tif", rgb, grid)
