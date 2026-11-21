@@ -200,9 +200,11 @@ async function main(): Promise<void> {
       .filter((s) => s.name)
       .map((s) => ({ s, d: Math.hypot(s.x - cx, s.y - cy) * terrain.cell }))
       .filter(({ s, d }) => d < (s.lengthM > 100 ? 9000 : 5000))
-      .sort((a, b) => a.d - b.d)
-      .slice(0, MAX_SHIP_LABELS);
+      .sort((a, b) => a.d - b.d);
+    let shipLabels = 0;
     for (const { s } of near) {
+      // de seks nærmeste som faktisk er i bildet: skip bak kameraet skal ikke bruke opp plassene
+      if (shipLabels >= MAX_SHIP_LABELS) break;
       // navnet står litt over overbygget; samme form som et stedsnavn, så sikt og utforming gjenbrukes
       const place: PlaceName = { name: s.name, x: s.x, y: s.y, z: Math.min(Math.max(s.lengthM * 0.13, 5), 28), size: 7, type: "skip", group: "skip" };
       const at = renderer.project(s.x * terrain.cell, place.z + 8, s.y * terrain.cell);
@@ -214,6 +216,7 @@ async function main(): Promise<void> {
       // med en linje til under navnet flyttes navnet opp, så linja får plass over streken ned til skipet
       const lift = s.detail ? 2.6 : 0;
       boxes.push({ x: px - w / 2 - 2, y: py - 6 - size - lift, w: w + 4, h: size + 3 + lift, place, px, py: py - lift, font, detail: s.detail });
+      shipLabels++;
     }
     for (const { place, distanceM } of candidates(terrain, cx, cy, ey)) {
       const at = renderer.project(place.x * terrain.cell, place.z + 20, place.y * terrain.cell);
@@ -229,7 +232,7 @@ async function main(): Promise<void> {
     g.textAlign = "center"; g.textBaseline = "alphabetic"; g.lineJoin = "round";
     // Dempet: liten, halvgjennomsiktig skrift med tynn skygge. Navnene skal kunne leses, ikke ta over bildet.
     g.globalAlpha = 0.63;
-    for (const b of declutter(boxes, 16 + near.length)) {
+    for (const b of declutter(boxes, 16 + shipLabels)) {
       const { color } = labelStyle(b.place);
       g.strokeStyle = "rgba(0,0,0,.4)"; g.lineWidth = 0.25;
       const foot = b.detail ? b.py + 2.6 : b.py;
