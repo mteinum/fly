@@ -341,6 +341,21 @@ og hva som ble endret.
   unna i stedet for å si at punktet lå utenfor.
 - Rettet: testen sier nå fra når et punkt er utenfor.
 
+**41. Autopiloten landet ved siden av banen**
+- Meldt av brukeren. Loggen: koblet inn 1,7 km til venstre for senterlinja
+  3,6 km ute, med kurs bort fra banen. Den fløy inn mot linja i 30°, men
+  rettet opp for sent og satte flyet ned 45 m til siden for senterlinja.
+  Banen er 45 m bred, så det ble «Ground contact!».
+- Årsak: den siktet alltid 900 m fram. Nær banen er det for langt; da
+  hentes avviket inn først etter terskelen.
+- Forrige feil (punkt 35) gjaldt høyde. Jeg la da inn en grense for høyde,
+  men prøvde ikke det samme sideveis. Samme hull, andre akse.
+- Rettet: sikteavstanden krymper mot banen (20 % av avstanden til
+  terskelen, minst 350 m). Den avslår når flyet er mer enn halve
+  avstanden til siden, og avbryter hvis den ikke er over banen 400 m før
+  terskelen. Testene dekker nå et rutenett av avstander og sideavvik, og
+  krever at den enten lander på senterlinja eller gir fra seg flyet.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

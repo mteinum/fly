@@ -27,6 +27,9 @@ const SCHEDULE = [
 const FLARE_HEIGHT_M = 12; // herfra flates det ut
 const FLARE_KT = 126;
 const LOOKAHEAD_M = 900; // siktepunkt på senterlinja foran flyet: kortere gir krappere inndreining
+const LOOKAHEAD_SHARE = 0.2, LOOKAHEAD_MIN_M = 350;
+const MAX_OFFSET_SHARE = 0.5; // største avstand til siden, som andel av avstanden til terskelen
+const LINED_UP_BY_M = 400; // så nær terskelen må flyet være over banens bredde, ellers avbryter den
 const MAX_INTERCEPT = 30 * RAD, MAX_BANK = 0.4;
 const MAX_SINK = 8; // m/s: brattere enn dette går den ikke ned
 /** Bratteste vinkel ned mot siktepunktet den tar på seg. Over dette rekker den ikke ned før banen er brukt opp. */
@@ -54,13 +57,20 @@ export function autopilot(P: Plane, t: Terrain, rw: Runway, end: RunwayEnd): Aut
   const length = Math.hypot(rw.ends[1].x - rw.ends[0].x, rw.ends[1].y - rw.ends[0].y) * cell;
   if (along > length || Math.cos(P.hdg - h) < 0) return { unable: "no runway ahead" };
 
+  // For langt til siden til å rekke inn på senterlinja: grensen er prøvd ut (den lander fra 0,45 x avstanden)
+  if (Math.abs(right) > MAX_OFFSET_SHARE * Math.max(0, end.displacedThresholdM - along) + 60) return { unable: "too far off the centreline, go around" };
+  // Ikke på linje med banen helt inne: da ville den satt flyet ned ved siden av
+  if (end.displacedThresholdM - along < LINED_UP_BY_M && Math.abs(right) > rw.widthM / 2) return { unable: "not lined up with the runway, go around" };
+
   // Kurs: sikt mot et punkt på senterlinja et stykke foran, og krenge etter kursfeilen
-  const intercept = clamp(Math.atan2(right, LOOKAHEAD_M), -MAX_INTERCEPT, MAX_INTERCEPT);
+  const toThreshold = end.displacedThresholdM - along;
+  // kortere sikt nær banen, så de siste meterne hentes inn før terskelen i stedet for etter
+  const lookahead = clamp(toThreshold * LOOKAHEAD_SHARE, LOOKAHEAD_MIN_M, LOOKAHEAD_M);
+  const intercept = clamp(Math.atan2(right, lookahead), -MAX_INTERCEPT, MAX_INTERCEPT);
   const bank = clamp(wrap(h - intercept - P.hdg) * 2, -MAX_BANK, MAX_BANK);
 
   // Høyde: synkeraten som følger glidebanen, pluss en korreksjon som henter inn avviket
   const aim = aimPoint(t, end), toAim = aim.fromEndM - along;
-  const toThreshold = end.displacedThresholdM - along;
   const step = SCHEDULE.find((s) => toThreshold > s.beyondM)!;
   const agl = P.alt - Math.max(0, t.heightAt(P.x, P.y));
   const flare = toThreshold < 150 && agl < FLARE_HEIGHT_M;

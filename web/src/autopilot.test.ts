@@ -79,6 +79,45 @@ describe("autopilot", () => {
     expect(autopilot(P, t, rw, end)).toEqual({ unable: "too high to land, go around" });
   });
 
+  it("fra en ekte logg: koblet inn 1,7 km til siden, 3,6 km ute og på vei bort, sier den nei mens det er god tid", () => {
+    // første utgave fløy mot senterlinja i 30°, rakk ikke å rette opp og satte flyet ned 45 m ved siden av banen.
+    // Geometrien er for trang: flyet må først snu 50°, og da er det mer enn halve avstanden til siden.
+    const P = newPlane(), h = (end.headingGridDeg * Math.PI) / 180, d = (3627 + end.displacedThresholdM) / t.cell, c = 1733 / t.cell;
+    startApproach(P, t, end);
+    Object.assign(P, { x: end.x - Math.sin(h) * d - Math.cos(h) * c, y: end.y + Math.cos(h) * d - Math.sin(h) * c, alt: 231, hdg: h - (20.8 * Math.PI) / 180, spd: 82, gearDown: false, gear: 0, flapCfg: 2, flaps: 2 });
+    fly(t, rw, end, P, 1 / 60);
+    expect(P.state).toBe("fly");
+    expect(autopilot(P, t, rw, end)).toEqual({ unable: "too far off the centreline, go around" });
+    const toThreshold = Math.hypot(P.x - end.x, P.y - end.y) * t.cell;
+    expect(toThreshold).toBeGreaterThan(2500); // lenge før banen, og høyt nok til å fly videre selv
+    expect(P.alt - Math.max(0, t.heightAt(P.x, P.y))).toBeGreaterThan(100);
+  });
+
+  it("lander fra 30 % av avstanden til siden, på alle avstander", () => {
+    const h = (end.headingGridDeg * Math.PI) / 180;
+    for (const distM of [1500, 2500, 4000, 7000]) for (const side of [1, -1]) {
+      const P = newPlane(), d = (distM + end.displacedThresholdM) / t.cell, c = (side * distM * 0.3) / t.cell;
+      startApproach(P, t, end);
+      Object.assign(P, { x: end.x - Math.sin(h) * d + Math.cos(h) * c, y: end.y + Math.cos(h) * d + Math.sin(h) * c, alt: glidePathAltitude(t, end, distM + end.displacedThresholdM) });
+      fly(t, rw, end, P, 1 / 60);
+      expect(P.state, `${distM} m ute`).toBe("landed");
+      expect(P.touchdown!.crossM, `${distM} m ute`).toBeLessThan(5);
+    }
+  });
+
+  it("lander eller avbryter, men setter aldri flyet ned ved siden av banen", () => {
+    const h = (end.headingGridDeg * Math.PI) / 180;
+    for (const distM of [500, 800, 1500, 3000, 6000]) for (const ratio of [-2, -1, -0.45, 0.2, 0.45, 1, 2]) {
+      const P = newPlane(), d = (distM + end.displacedThresholdM) / t.cell, c = (distM * ratio) / t.cell;
+      startApproach(P, t, end);
+      Object.assign(P, { x: end.x - Math.sin(h) * d + Math.cos(h) * c, y: end.y + Math.cos(h) * d + Math.sin(h) * c, alt: glidePathAltitude(t, end, distM + end.displacedThresholdM) });
+      fly(t, rw, end, P, 1 / 60);
+      // «fly» betyr at autopiloten ga fra seg flyet i lufta
+      expect(["landed", "fly"], `${distM} m ute, ${distM * ratio} m til siden: ${P.state}`).toContain(P.state);
+      if (P.state === "landed") expect(P.touchdown!.crossM, `${distM} m ute, ${distM * ratio} m til siden`).toBeLessThan(10);
+    }
+  });
+
   it("det den tar på seg, lander den i første halvdel av banen", () => {
     // 150 m over glidebanen 4 km ute er innenfor grensen
     for (const [distM, extraM] of [[4000, 150], [2500, 80], [6000, 250]]) {
