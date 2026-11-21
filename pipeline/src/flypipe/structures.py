@@ -40,6 +40,8 @@ HEIGHT_RANGE = (4.0, 80.0)  # m, grenser for høyde målt fra DOM
 # Kirketårn, lest ut av DOM 1 m rundt kirkens punkt i Matrikkelen
 TOWER_SEARCH_RADIUS = 20.0  # m: tårnet står på kirka, og punktet ligger et sted i bygget
 TOWER_MIN_HEIGHT = 16.0  # m over bakken: lavere enn dette er et kapell eller en kirke uten tårn
+LIGHTHOUSE_MIN_HEIGHT = 8.0  # m: fyrtårn er lavere enn kirketårn. Under dette er det en lykt
+LANTERN_HEIGHT = 5.0  # m, NOMINELL høyde på en fyrlykt (ingen data)
 TOWER_MAX_TIP_AREA = 30  # m2 innen 3 m av toppen: et tårn er smalt øverst, et stort tak er det ikke
 
 
@@ -125,8 +127,10 @@ def building_heights(vectors: dict[str, gpd.GeoDataFrame], hgt: np.ndarray, grid
     return height, roof
 
 
-def church_towers(churches: gpd.GeoDataFrame, hgt: np.ndarray, grid: GridSpec, raw_dir: Path) -> list[list[float]]:
-    """Kirketårn som [x, y, bunn, topp]: posisjon i rutenettkoordinater, høyder i m (NN2000).
+def church_towers(
+    churches: gpd.GeoDataFrame, hgt: np.ndarray, grid: GridSpec, raw_dir: Path, min_height: float = TOWER_MIN_HEIGHT, cache: str = "churches"
+) -> list[list[float]]:
+    """Tårn som [x, y, bunn, topp]: posisjon i rutenettkoordinater, høyder i m (NN2000). Brukes for kirker og fyr.
 
     Matrikkelen sier hvilke bygg som er kirker, men ikke om de har tårn eller hvor høyt det er. Det leses
     ut av overflatemodellen (DOM 1 m): høyeste punkt innen 20 m fra kirkens punkt er tårnet, hvis det
@@ -141,7 +145,7 @@ def church_towers(churches: gpd.GeoDataFrame, hgt: np.ndarray, grid: GridSpec, r
         gx, gy = grid.utm_to_grid(p.x, p.y)
         if not (r / grid.cell <= gx < grid.width - r / grid.cell and r / grid.cell <= gy < grid.height - r / grid.cell):
             continue  # for nær kartkanten til å lese et helt vindu
-        dom, t = dtm.load_dom_window(x - r, y - r, x + r, y + r, raw_dir / "churches")
+        dom, t = dtm.load_dom_window(x - r, y - r, x + r, y + r, raw_dir / cache)
         rows, cols = np.indices(dom.shape)
         # cellesentrenes avstand fra kirkens punkt
         east, north = t.c + cols + 0.5, t.f - rows - 0.5
@@ -151,7 +155,7 @@ def church_towers(churches: gpd.GeoDataFrame, hgt: np.ndarray, grid: GridSpec, r
         terrain_here = map_coordinates(hgt, [(grid.north - north) / grid.cell - 0.5, (east - grid.west) / grid.cell - 0.5], order=1, mode="nearest")
         above = np.where(near, dom - np.maximum(terrain_here, 0), -np.inf)
         top = float(above.max())
-        if top < TOWER_MIN_HEIGHT or int((above > top - 3).sum()) > TOWER_MAX_TIP_AREA:
+        if top < min_height or int((above > top - 3).sum()) > TOWER_MAX_TIP_AREA:
             continue
         i, j = np.unravel_index(int(np.argmax(above)), dom.shape)
         tx, ty = grid.utm_to_grid(float(east[i, j]), float(north[i, j]))
@@ -164,6 +168,29 @@ def church_towers(churches: gpd.GeoDataFrame, hgt: np.ndarray, grid: GridSpec, r
         if all(np.hypot(t[0] - k[0], t[1] - k[1]) * grid.cell > 2 * TOWER_SEARCH_RADIUS for k in kept):
             kept.append(t)
     return sorted(kept)
+
+
+def lighthouses(points: list[tuple[float, float, str]], hgt: np.ndarray, grid: GridSpec, raw_dir: Path) -> list[list[float]]:
+    """Fyr som [x, y, bunn, topp, tårn]: tårn = 1 for fyrtårn med målt høyde, 0 for lykt med nominell høyde.
+
+    `points` er (øst, nord, type) fra stedsnavnregisteret, type «fyrstasjon» eller «fyrlykt». For
+    fyrstasjoner letes tårnet opp i DOM 1 m som for kirkene. Finnes det ikke noe tårn der, og for alle
+    lykter, settes et lite merke med nominell høyde på stedet.
+    """
+    from shapely.geometry import Point
+
+    out = []
+    for east, north, kind in points:
+        gx, gy = grid.utm_to_grid(east, north)
+        if not (0 <= gx < grid.width and 0 <= gy < grid.height):
+            continue
+        found = church_towers(gpd.GeoDataFrame(geometry=[Point(east, north)], crs=25833), hgt, grid, raw_dir, LIGHTHOUSE_MIN_HEIGHT, "lighthouses") if kind == "fyrstasjon" else []
+        if found:
+            out.append([*found[0], 1])
+        else:
+            ground = max(0.0, float(hgt[int(gy), int(gx)]))
+            out.append([round(gx, 3), round(gy, 3), round(ground, 1), round(ground + LANTERN_HEIGHT, 1), 0])
+    return sorted(out)
 
 
 def build_structures(

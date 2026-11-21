@@ -122,3 +122,20 @@ def test_fargeprofil_og_type_per_celle():
     assert (t[2:4, 1:4] == 322).all()  # hele flaten får butikkens type; rad 2-3 = nord 60-80
     assert t[8, 8] == 111 and t[4, 5] == 613
     assert (t[1:4, 6:9] == 0).all()  # flaten uten punkt er ukjent
+
+
+def test_fyr_i_flisene():
+    """Oksøy og Grønningen fyr: tårnhøyden målt i overflatemodellen mot det som er kjent om fyrene."""
+    area = TILES / "kjevik10"
+    if not (area / "metadata.json").exists():
+        pytest.skip("kjevik10 er ikke bygget")
+    meta = json.loads((area / "metadata.json").read_text(encoding="utf-8"))
+    s = json.loads((area / "structures.json").read_text(encoding="utf-8"))
+    names = {(round(n[1]), round(n[2])): n[0] for n in json.loads((area / "names.json").read_text(encoding="utf-8"))["items"] if n[5] in ("fyrstasjon", "fyrlykt")}
+    by_name = {names.get((round(x), round(y))): (top - base, tower) for x, y, base, top, tower in s["lighthouses"]}
+    assert meta["structures"]["lighthouses"] == len(s["lighthouses"]) == 8
+    # Oksøy fyr er 36 m høyt og Grønningen 14 m, slik jeg husker det (ikke slått opp i Norsk fyrliste)
+    assert by_name["Oksøy"] == (pytest.approx(36, abs=1.5), 1)
+    assert by_name["Grønningen"] == (pytest.approx(14, abs=1.5), 1)
+    # lyktene har nominell høyde og er ikke tårn
+    assert by_name["Odderøya"] == (pytest.approx(5.0), 0)

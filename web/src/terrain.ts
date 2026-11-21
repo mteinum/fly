@@ -82,6 +82,8 @@ export interface StructureFile {
   churchTowers?: [number, number, number, number][];
   /** Veitunneler som polylinjer [x, y] i rutenettkoordinater. De ligger under bakken og tegnes stiplet oppå den. */
   tunnels?: [number, number][][];
+  /** Fyr: [x, y, bunn, topp, tårn]. tårn = 1: fyrtårn med målt høyde; 0: fyrlykt med nominell høyde. */
+  lighthouses?: [number, number, number, number, number][];
 }
 
 export class Terrain {
@@ -96,6 +98,7 @@ export class Terrain {
   readonly bridges: StructureFile["bridges"];
   readonly churchTowers: NonNullable<StructureFile["churchTowers"]>;
   readonly tunnels: NonNullable<StructureFile["tunnels"]>;
+  readonly lighthouses: NonNullable<StructureFile["lighthouses"]>;
   /** Stedsnavn fra N50, viktigste først. */
   names: PlaceName[] = [];
   private readonly waterCodes: Uint8Array;
@@ -120,6 +123,7 @@ export class Terrain {
     this.bridges = structures.bridges;
     this.churchTowers = structures.churchTowers ?? [];
     this.tunnels = structures.tunnels ?? [];
+    this.lighthouses = structures.lighthouses ?? [];
     for (const [col, row, kind, base, top, r, g, b] of structures.items) {
       const i = row * this.width + col;
       this.sKind[i] = kind;

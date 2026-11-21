@@ -14,7 +14,7 @@ import { addGroundDetail, type GroundDetail } from "./groundDetail";
 import { buildRunwayDecal } from "./runwayDecal";
 import type { Plane } from "./plane";
 import type { RGB } from "./sky";
-import { CHURCH_TOWER_HALF_WIDTH } from "./physics";
+import { CHURCH_TOWER_HALF_WIDTH, LIGHTHOUSE_RADIUS } from "./physics";
 import { BUILDING, type Terrain, type TerrainAssets } from "./terrain";
 import { SCOPE, TOWER_FOV, towerView } from "./tower";
 import { H as SCREEN_H, horizonShift, OX, PANEL_TOP, TOP, TOWER_SILL } from "./screen";
@@ -68,6 +68,8 @@ export class GlRenderer {
   private stars: THREE.Points;
   private runwayLights: THREE.Points;
   private lamps: THREE.Points;
+  /** Fyrlys: ett punkt per fyr, med hver sin blinketakt (SYNTETISK). */
+  private beacons: { light: THREE.Points; period: number; phase: number }[] = [];
   private size = new THREE.Vector2(1, 1);
   private groundDetail: GroundDetail;
 
@@ -130,6 +132,7 @@ export class GlRenderer {
     this.buildingCount = this.addBuildings();
     this.addChurchTowers();
     this.addTunnels();
+    this.addLighthouses();
     this.addBridges();
     this.runwayLights = this.pointLights(this.runwayLightPositions(), 3.2);
     this.lamps = this.pointLights(this.bridgeLampPositions(), 2.4);
@@ -309,6 +312,46 @@ export class GlRenderer {
     });
     shaft.frustumCulled = spire.frustumCulled = false;
     this.scene.add(shaft, spire);
+  }
+
+  /** Fyr. Tårnets plass og høyde er målt (DOM) for fyrstasjoner; lykter er små merker med nominell høyde.
+   *  Formen er SYNTETISK (hvitt, rundt tårn med rød lykt), og det er lyset også: alle blinker hvitt med et
+   *  kort blink, i en takt valgt fra posisjonen. Ekte fyr har hver sin karakter, farge og sektorer. */
+  private addLighthouses(): void {
+    const all = this.t.lighthouses, { cell } = this.t;
+    if (!all.length) return;
+    const towers = all.filter((l) => l[4]), lanterns = all.filter((l) => !l[4]);
+    const white = new THREE.Color(0xf4f2ec), red = new THREE.Color(0xc23a2e), m = new THREE.Matrix4();
+    const cylinder = (rTop: number, rBottom: number) => new THREE.CylinderGeometry(rTop, rBottom, 1, 12).translate(0, 0.5, 0);
+    if (towers.length) {
+      const shaft = new THREE.InstancedMesh(cylinder(0.72, 1), this.buildingMat, towers.length);
+      const top = new THREE.InstancedMesh(cylinder(0.8, 0.8), this.buildingMat, towers.length);
+      towers.forEach(([x, y, base, t], k) => {
+        const gallery = base + (t - base) * 0.85;
+        m.makeScale(LIGHTHOUSE_RADIUS, gallery - base, LIGHTHOUSE_RADIUS).setPosition(x * cell, base, y * cell);
+        shaft.setMatrixAt(k, m); shaft.setColorAt(k, white);
+        m.makeScale(LIGHTHOUSE_RADIUS, t - gallery, LIGHTHOUSE_RADIUS).setPosition(x * cell, gallery, y * cell);
+        top.setMatrixAt(k, m); top.setColorAt(k, red);
+      });
+      shaft.frustumCulled = top.frustumCulled = false;
+      this.scene.add(shaft, top);
+    }
+    if (lanterns.length) {
+      const post = new THREE.InstancedMesh(cylinder(0.8, 1), this.buildingMat, lanterns.length);
+      lanterns.forEach(([x, y, base, t], k) => {
+        m.makeScale(1.3, t - base, 1.3).setPosition(x * cell, base, y * cell);
+        post.setMatrixAt(k, m); post.setColorAt(k, white);
+      });
+      post.frustumCulled = false;
+      this.scene.add(post);
+    }
+    for (const [x, y, , t, tower] of all) {
+      const light = this.pointLights([[x * cell, t + 1, y * cell, 255, 244, 214]], tower ? 7 : 4.5);
+      // fast «tilfeldig» takt per fyr: 4-9 s mellom blinkene, forskjøvet i forhold til hverandre
+      const seed = Math.abs(Math.sin(x * 12.9898 + y * 78.233) * 43758.5453) % 1;
+      this.beacons.push({ light, period: 4 + Math.floor(seed * 6), phase: (seed * 97) % 1 });
+      this.scene.add(light);
+    }
   }
 
   /** Veitunneler: stiplet linje oppå bakken og sjøen der tunnelen går under, slik et kart tegner dem.
@@ -550,6 +593,13 @@ export class GlRenderer {
     // svak glød: med alle hus fra matrikkelen ville sterkere glød blitt et lysteppe som skjuler lyspunktene på bakken
     this.buildingMat.emissiveIntensity = sky.night * 0.09;
     (this.runwayLights.material as THREE.PointsMaterial).opacity = 0.45 + 0.55 * sky.night;
+    // Fyrlys: et kort blink per periode, tydeligst om natta, så vidt synlig i dagslys
+    const now = performance.now() / 1000;
+    for (const { light, period, phase } of this.beacons) {
+      const on = (now / period + phase) % 1 < 0.7 / period; // 0,7 s lys per periode
+      light.visible = on;
+      (light.material as THREE.PointsMaterial).opacity = 0.25 + 0.75 * sky.night;
+    }
     this.lamps.visible = sky.night > 0.05;
     (this.lamps.material as THREE.PointsMaterial).opacity = sky.night;
     this.landingLight.intensity = sky.night * 2.5;

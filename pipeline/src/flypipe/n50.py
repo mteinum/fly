@@ -146,6 +146,8 @@ SKIP_NAME_TYPES: set[str] = set()
 # Navn med minst denne skriftstørrelsen flyttes fra kartteksten til stedets eget punkt i SSR
 SSR_POINT_MIN_SIZE = 8.5
 SSR_URL = "https://ws.geonorge.no/stedsnavn/v1/sted"
+# Fyr står på små skjær: kartteksten ved siden av ville lagt dem i sjøen. De flyttes alltid til stedets punkt.
+LIGHTHOUSE_TYPES = ("fyrstasjon", "fyrlykt")
 
 
 SSR_POINTS = Path(__file__).resolve().parents[3] / "data" / "ssr_points.json"
@@ -206,7 +208,7 @@ def load_names(county: str, grid: GridSpec, raw_dir: Path) -> list[dict]:
         x, y = grid.utm_to_grid(where.x, where.y)
         if not (0 <= x < grid.width and 0 <= y < grid.height):
             continue
-        if float(parts["FontSize"].max()) >= SSR_POINT_MIN_SIZE:
+        if float(parts["FontSize"].max()) >= SSR_POINT_MIN_SIZE or first["navneobjekttype"] in LIGHTHOUSE_TYPES:
             point = ssr_point(int(first["stedsnummer"]), raw_dir)
             if point:
                 sx, sy = grid.utm_to_grid(*point)
@@ -221,5 +223,6 @@ def load_names(county: str, grid: GridSpec, raw_dir: Path) -> list[dict]:
             "size": round(float(parts["FontSize"].max()), 2),
             "type": str(first["navneobjekttype"]),
             "group": str(first["navneobjekthovedgruppe"]),
+            "stedsnummer": int(first["stedsnummer"]),
         })
     return sorted(names, key=lambda n: (-n["size"], n["name"]))

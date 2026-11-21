@@ -249,3 +249,19 @@ describe("kirketårn", () => {
     expect(flyPast(15, -10).state).toBe("fly"); // 15 m til siden
   });
 });
+
+describe("fyr", () => {
+  it("et fyrtårn er et hinder, en fyrlykt er det ikke", () => {
+    const flyAt = (tower: number) => {
+      const tt = loadTestTerrain(), [x, y] = [le.x + 30, le.y - 40], ground = Math.max(0, tt.heightAt(x, y));
+      (tt.lighthouses as [number, number, number, number, number][]).push([x, y, ground, ground + 30, tower]);
+      const P = newPlane();
+      Object.assign(P, { x, y: y + 300 / tt.cell, alt: ground + 20, hdg: 0, spd: 70, pitch: 0, thr: 0.4 });
+      let said = "";
+      for (let i = 0; i < 400 && P.state === "fly"; i++) { P.pitch = 0; update(P, tt, airport, {}, 1 / 60, (m) => { said = m; }); }
+      return said;
+    };
+    expect(flyAt(1)).toBe("Hit the lighthouse!");
+    expect(flyAt(0)).toBe("");
+  });
+});

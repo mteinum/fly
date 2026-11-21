@@ -150,6 +150,12 @@ def build(area: Area) -> Path:
             roofs = [it[4] for it in items if it[2] == structures.BUILDING and abs(it[0] - lx) < 3 and abs(it[1] - ly) < 3]
             z = max([max(0.0, float(hgt[int(ly), int(lx)])), *roofs])  # over takene rundt, så skiltet ikke står inne i et bygg
             landmarks.append({"id": lm["id"], "name": lm["name"], "x": round(lx, 2), "y": round(ly, 2), "z": round(z, 1), "image": lm["image"]})
+    # Fyr: stedet fra stedsnavnregisteret (navnene over er alt flyttet dit), tårn fra DOM der det finnes
+    lights_at = [(*grid.grid_to_utm(n["x"], n["y"]), n["type"]) for n in names if n["type"] in n50.LIGHTHOUSE_TYPES]
+    beacons = structures.lighthouses(lights_at, hgt, grid, raw) if lights_at else []
+    for n in names:  # navnet står i toppen av fyret, ikke ved foten
+        if n["type"] in n50.LIGHTHOUSE_TYPES:
+            n["z"] = max([n["z"], *[b[3] for b in beacons if abs(b[0] - n["x"]) < 3 and abs(b[1] - n["y"]) < 3]])
     flat_light = np.ones_like(shade)
     rgb = terrain.colormap(hgt, area.cell, shade if area.bake_hillshade else flat_light, lc, features, steep_slope=area.steep_slope)
     # Tunneler ses ikke fra lufta. Spillet tegner dem som stiplet linje oppå bakken og sjøen, slik et kart gjør.
@@ -177,7 +183,7 @@ def build(area: Area) -> Path:
     surface[on_runway] = landcover.SURFACE_RUNWAY
     surface.tofile(out / "surface.bin")
     (out / "structures.json").write_text(
-        json.dumps({"columns": ["col", "row", "kind", "base", "top", "r", "g", "b"], "kinds": structures.KINDS, "items": items, "bridges": bridge_lines, "churchTowers": towers, "tunnels": tunnels}, separators=(",", ":")) + "\n",
+        json.dumps({"columns": ["col", "row", "kind", "base", "top", "r", "g", "b"], "kinds": structures.KINDS, "items": items, "bridges": bridge_lines, "churchTowers": towers, "tunnels": tunnels, "lighthouses": beacons}, separators=(",", ":")) + "\n",
         encoding="utf-8",
     )
     n_bridge = sum(1 for it in items if it[2] == structures.BRIDGE)
@@ -242,6 +248,9 @@ def build(area: Area) -> Path:
                     if profile_cells.get(name)
                 ],
             } if profile_cells else None,
+            "lighthouses": len(beacons),
+            "lighthouseTowers": sum(b[4] for b in beacons),
+            "lighthouseSource": "fyrstasjoner og fyrlykter fra N50 og stedsnavnregisteret; tårnhøyde målt i DOM 1 m, lykter har nominell høyde; lyset er syntetisk",
             "churches": len(church),
             "churchTowers": len(towers),
             "churchTowerSource": "kirker fra Matrikkelen (type 671); tårnets plass og høyde målt i DOM 1 m, se structures.church_towers",
