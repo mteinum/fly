@@ -271,6 +271,42 @@
       "voice": "Eric",
       "text": "Teinum three two zero, welcome to Mehamn. Vacate when able."
     },
+    "cleared_ENTC_18": {
+      "file": "cleared_ENTC_18.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Tromsø tower. Runway one eight, cleared to land. Wind calm."
+    },
+    "cleared_ENTC_36": {
+      "file": "cleared_ENTC_36.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Tromsø tower. Runway three six, cleared to land. Wind calm."
+    },
+    "welcome_ENTC": {
+      "file": "welcome_ENTC.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, welcome to Tromsø. Vacate when able."
+    },
+    "cleared_ENAL_06": {
+      "file": "cleared_ENAL_06.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Vigra tower. Runway zero six, cleared to land. Wind calm."
+    },
+    "cleared_ENAL_24": {
+      "file": "cleared_ENAL_24.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Vigra tower. Runway two four, cleared to land. Wind calm."
+    },
+    "welcome_ENAL": {
+      "file": "welcome_ENAL.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, welcome to Ålesund. Vacate when able."
+    },
     "cleared_ENBO_07": {
       "file": "cleared_ENBO_07.mp3",
       "kind": "speech",

@@ -193,6 +193,18 @@ def build(area: Area) -> Path:
     out.mkdir(parents=True, exist_ok=True)
     if area.osm_footprints:
         footprints.write(out / "buildings.bin", shaped, grid)
+    if area.cell == 10:
+        # Oversiktskart til flyplassvelgeren (delingssiden): fargekartet i 320 x 320, med rullebanene tegnet inn
+        # i hvitt så de synes (en bane er smalere enn en piksel i den målestokken)
+        from PIL import ImageDraw
+
+        size = 320
+        thumb = Image.fromarray(rgb, "RGB").resize((size, size), Image.LANCZOS)
+        draw, k = ImageDraw.Draw(thumb), size / grid.width
+        for rw in airport["runways"]:
+            le, he = rw["ends"]
+            draw.line([(le["x"] * k, le["y"] * k), (he["x"] * k, he["y"] * k)], fill=(255, 255, 255), width=3)
+        thumb.save(out / "thumb.jpg", quality=82, optimize=True)
     hgt.astype("<f4").tofile(out / "heightmap.f32")
     Image.fromarray(rgb, "RGB").save(out / "colormap.png", optimize=True)
     has_lights = area.night_lights and lc is not None and features is not None

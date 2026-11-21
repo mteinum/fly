@@ -71,6 +71,22 @@
         "lat": 71.029701,
         "east": 962302.4020378566,
         "north": 7929894.981672333
+      },
+      {
+        "name": "ENTC referansepunkt",
+        "origin": "OurAirports airports.csv (longitude_deg, latitude_deg)",
+        "lon": 18.9189,
+        "lat": 69.683296,
+        "east": 651767.1551815207,
+        "north": 7735425.487412035
+      },
+      {
+        "name": "ENAL referansepunkt",
+        "origin": "OurAirports airports.csv (longitude_deg, latitude_deg)",
+        "lon": 6.110845,
+        "lat": 62.560443,
+        "east": 44044.140031285526,
+        "north": 6968097.119717366
       }
     ]
   },
@@ -256,6 +272,46 @@
           "east": 962356.53,
           "north": 7929583.16,
           "z": 10.98
+        }
+      ],
+      "tromso": [
+        {
+          "name": "ENTC bane 18/36, 15 % fra ende 18",
+          "east": 651903.03,
+          "north": 7736247.04,
+          "z": 4.42
+        },
+        {
+          "name": "ENTC bane 18/36, 50 % fra ende 18",
+          "east": 651763.25,
+          "north": 7735400.55,
+          "z": 6.69
+        },
+        {
+          "name": "ENTC bane 18/36, 85 % fra ende 18",
+          "east": 651623.48,
+          "north": 7734554.07,
+          "z": 9.47
+        }
+      ],
+      "alesund": [
+        {
+          "name": "ENAL bane 06/24, 15 % fra ende 06",
+          "east": 43234.25,
+          "north": 6967850.49,
+          "z": 11.3
+        },
+        {
+          "name": "ENAL bane 06/24, 50 % fra ende 06",
+          "east": 44009.04,
+          "north": 6968094.04,
+          "z": 20.9
+        },
+        {
+          "name": "ENAL bane 06/24, 85 % fra ende 06",
+          "east": 44783.84,
+          "north": 6968337.58,
+          "z": 15.87
         }
       ]
     },

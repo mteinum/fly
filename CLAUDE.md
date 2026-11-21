@@ -11,8 +11,9 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
   src/flypipe/
     crs.py        ALL koordinattransformasjon (WGS84 <-> UTM 33), konvergens
     grid.py       GridSpec: UTM-meter <-> rutenettceller
-    areas.py      definisjon av utsnitt: 10 m rundt ENCN, ENZV, ENBR, ENGM, ENBO og ENMH, og 50 m for Kjevik.
-                  Kjevik-utsnittet er flyttet 3,5 km sørover (center_offset) for å få med hele Flekkerøya
+    areas.py      definisjon av utsnitt: 10 m rundt ENCN, ENZV, ENBR, ENAL, ENGM, ENBO, ENTC og ENMH, og 50 m for Kjevik.
+                  Kjevik-utsnittet er flyttet 3,5 km sørover (center_offset) for å få med hele Flekkerøya,
+                  og Ålesund-utsnittet 4,5 km sørover for å få med byen
     dtm.py        Kartverket DTM og DOM via WCS, cache i data/raw/
     airports.py   OurAirports: flyplass + rullebaner; tårnposisjon fra N50-bygning type 411
     n50.py        N50 Kartdata: veier, bruer, bygninger -> feature-raster
@@ -78,6 +79,7 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 - `structures.json`: `[kol, rad, type, bunn, topp, r, g, b]` for bruer og bygninger, `churchTowers`: `[x, y, bunn, topp]`, `lighthouses`: `[x, y, bunn, topp, tårn]` og `tunnels`: polylinjer `[x, y]`
 - `buildings.bin` (10 m-utsnittene): bygg med form, se footprints.py for formatet.
   I `structures.json` har cellene under disse byggene et niende felt = 1 (tegnes ikke som boks)
+- `thumb.jpg` (10 m-utsnittene): oversiktskart 320 x 320 med rullebanene i hvitt, til flyplassvelgeren på delingssiden
 - `names.json`: `[navn, x, y, z, skriftstørrelse, type, gruppe]`, stedsnavn fra N50, viktigste først
 - `metadata.json`: bbox, CRS, cellestørrelse, min/maks høyde, konvergens,
   flyplasser med rullebaner (hver baneende har `approach` fra analysis.py), klasseliste, `analysis`
@@ -97,6 +99,20 @@ cd pipeline && uv run flypipe debrief        # hovedtallene for siste flylogg i 
 cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstjenesten på nytt (etter nytt opptak)
 ```
 
+## Ny flyplass
+
+1. `areas.py`: en linje med `_airport_10m(id, navn, ICAO, fylke)`. Fylkeskoden må finnes både for N50 og Matrikkelen
+   (se fillistene på nedlasting.geonorge.no). Bruk `center_offset` hvis byen ellers faller utenfor.
+2. `audio.py` AIRPORTS: navnet tårnet bruker. `uv run flypipe audio` lager de tre klippene (bruker ElevenLabs-kvote).
+3. `uv run flypipe osm <id>` henter bygningsomriss til data/osm/ (tar noen minutter; Overpass svarer ofte 502).
+4. Fasit i tests/fixtures/reference_points.json: referansepunktet fra Kartverkets transformasjons-API, og tre
+   høyder langs banen fra høyde-API-et (under `heights.areas.<id uten 10>`).
+5. Legg id-en i testlistene: pipeline/tests/conftest.py, test_matrikkel.py, test_traffic.py, og AREAS i
+   web/src/airports.test.ts og autopilot.test.ts.
+6. `uv run flypipe build <id>`, så testene. Se på analysetallene i metadata (klaring under innflygingene): en
+   negativ klaring betyr at en rett 3°-bane går gjennom terreng, og da duger ikke flyplassen i spillet.
+7. Tekster som ramser opp flyplasser: web/index.html (beskrivelse og om-skjerm), README.md, docs/datakilder.md.
+
 ## CRS-regler
 
 1. Arbeidsprojeksjon er EUREF89 UTM 33, EPSG:25833. Alt internt er (øst, nord) i meter.
@@ -114,7 +130,8 @@ cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstje
    klokka): `x += sin(hdg)`, `y -= cos(hdg)`.
 5. Rutenett-nord er ikke sann nord. `sann = rutenett + gridConvergenceDeg`.
    Konvergensen er -5,88° i Kjevik-utsnittet (regnet i utsnittets sentrum, som ligger 3,5 km sør for flyplassen), -8,03° på Sola, -8,52° på Flesland, -3,39° på
-   Gardermoen, -0,59° i Bodø og +12,15° på Mehamn (øst for sentralmeridianen: eneste med positivt fortegn). Den står i hvert utsnitts metadata.json; bruk aldri én verdi for flere utsnitt.
+   Gardermoen, -0,59° i Bodø, -7,89° i Ålesund, +3,68° i Tromsø og +12,15° på Mehamn (Tromsø og Mehamn ligger øst
+   for sentralmeridianen og har positivt fortegn). Den står i hvert utsnitts metadata.json; bruk aldri én verdi for flere utsnitt.
    Retninger fra kilder (rullebane, vind, sol) er sanne og må korrigeres;
    rullebaneretning regnes ALLTID fra baneendene, både rutenettkurs (headingGridDeg) og sann kurs
    (headingTrueDeg, geodetisk asimut). Kildens kurs er feil for Mehamn (magnetisk i feltet for sann) og

@@ -57,6 +57,20 @@ function diploma(array $q): ?array {
     ];
 }
 
+/** Flyplassene til velgeren: [['icao', 'name', 'id'], ...] i indeksens rekkefølge. `id` er mappa flisene ligger i,
+ *  og brukes til oversiktskartet (data/<id>/thumb.jpg). Alt kommer fra indeksen pipeline skriver, og avgrenses her. */
+function airport_cards(): array {
+    $path = getenv('FLY_INDEX') ?: __DIR__ . '/../data/index.json';
+    $index = is_file($path) ? json_decode((string) file_get_contents($path), true) : null;
+    $out = [];
+    foreach (($index['areas'] ?? []) as $a) {
+        if (($a['cellSize'] ?? 0) == 10 && preg_match('/^[A-Z]{4}$/', (string) ($a['icao'] ?? '')) && preg_match('/^[a-z0-9]{2,24}$/', (string) ($a['id'] ?? ''))) {
+            $out[] = ['icao' => $a['icao'], 'name' => (string) $a['name'], 'id' => $a['id']];
+        }
+    }
+    return $out;
+}
+
 /** Adressefeltene for et avgrenset diplom, i fast rekkefølge. */
 function query(array $d): string {
     return http_build_query(['n' => $d['name'], 'a' => $d['icao'], 'r' => $d['runway'], 's' => $d['stars'], 'k' => $d['kt'],
@@ -67,6 +81,11 @@ function query(array $d): string {
 function place(string $airport): string {
     $parts = explode(',', $airport);
     return trim(end($parts));
+}
+
+/** «Kristiansand» fra «Kristiansand Airport, Kjevik»: byen flyplassen hører til. */
+function city(string $airport): string {
+    return trim(preg_replace('/\s+Airport\b.*$/u', '', $airport) ?? $airport);
 }
 
 function touchdown(int $past): string {

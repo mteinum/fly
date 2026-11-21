@@ -128,7 +128,7 @@ def test_tower_stands_on_the_terminal_building_beside_the_runway(any_tiles):
 
     assert 60 < min(cross(rw) for rw in meta["airports"][0]["runways"]) < 1300  # Mehamn: 88 m, en liten flyplass
     assert tower["groundM"] == pytest.approx(max(0, hgt[int(tower["y"]), int(tower["x"])]), abs=0.06)
-    assert tower["eyeM"] - tower["groundM"] == 32.0  # antatt høyde, se airports.TOWER_EYE_HEIGHT
+    assert tower["eyeM"] - tower["groundM"] == pytest.approx(32.0)  # antatt høyde, se airports.TOWER_EYE_HEIGHT
 
 
 def test_place_names_are_whole_names_inside_the_map(any_tiles):

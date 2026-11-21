@@ -24,6 +24,17 @@ page index.php "$good" > "$out/share.html"
 grep -q 'property="og:image" content="https://fly.teinum.no/share/image.php?n=Morten+%C3%98&amp;a=ENBO&amp;r=25&amp;s=5&amp;k=111&amp;f=183&amp;c=0&amp;t=153&amp;d=2026-11-20"' "$out/share.html" || fail 'og:image peker ikke på diplombildet'
 grep -q 'property="og:title" content="Morten Ø landed an Airbus A320 at Bodø Airport: ★★★★★ Butter landing"' "$out/share.html" || fail 'og:title er feil'
 
+# Flyplassvelgeren: ett kort per flyplass med 10 m-fliser (ikke 50 m-utsnittet), med lenke og oversiktskart
+grep -q 'href="https://fly.teinum.no/?apt=ENBO"' "$out/share.html" || fail 'velgeren mangler lenke til flyplassen'
+grep -q 'src="../data/bodo10/thumb.jpg"' "$out/share.html" || fail 'velgeren mangler oversiktskart'
+grep -q 'class="same"' "$out/share.html" || fail 'diplomets flyplass er ikke merket'
+! grep -q 'apt=ENCN' "$out/share.html" || fail '50 m-utsnittet skal ikke være med i velgeren'
+# En indeks med rare verdier skal ikke kunne gi lenker eller stier utenfor data/
+printf '%s' '{"areas":[{"id":"bodo10","name":"Bodø Airport","icao":"ENBO","cellSize":10},{"id":"../../x","name":"<b>","icao":"ENZZ","cellSize":10},{"id":"ok10","name":"\"><script>","icao":"ENYY","cellSize":10}]}' > "$FLY_INDEX"
+page index.php "$good" > "$out/weird.html"
+! grep -q '\.\./\.\./x\|<script' "$out/weird.html" || fail 'rare verdier i indeksen slapp gjennom'
+printf '%s' '{"areas":[{"id":"bodo10","name":"Bodø Airport","icao":"ENBO","cellSize":10},{"id":"kjevik","name":"x","icao":"ENCN","cellSize":50}]}' > "$FLY_INDEX"
+
 # Alt i adressen skal avgrenses: ingen HTML slipper gjennom, tall holdes innenfor grensene
 evil='{"n":"<script>alert(1)</script>\" onload=x","a":"enbo","r":"25","s":"99","k":"1e9","f":"-5","c":"abc","t":"-99999"}'
 page index.php "$evil" > "$out/evil.html"

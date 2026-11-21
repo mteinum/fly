@@ -65,4 +65,8 @@ AREAS = {
     "bodo10": _airport_10m("bodo10", "Bodø Airport", "ENBO", "18_Nordland"),
     # Mehamn ligger 12,8° øst for sentralmeridianen i UTM 33: konvergensen er +12,15° (de andre er negative)
     "mehamn10": _airport_10m("mehamn10", "Mehamn Airport", "ENMH", "56_Finnmark"),
+    "tromso10": _airport_10m("tromso10", "Tromsø Airport, Langnes", "ENTC", "55_Troms"),
+    # Ålesund ligger 10 km sør for flyplassen på Vigra: utsnittet er flyttet 4,5 km sørover så hele byen er med.
+    # Innflygingene (8 km fra hver baneende, nordøst og sørvest for banen) har fortsatt over 3 km til kartkanten.
+    "alesund10": _airport_10m("alesund10", "Ålesund Airport, Vigra", "ENAL", "15_More_og_Romsdal", center_offset=(0.0, -4500.0)),
 }
