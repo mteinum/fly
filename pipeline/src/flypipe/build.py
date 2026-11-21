@@ -158,6 +158,10 @@ def build(area: Area) -> Path:
         return max(0.0, float(hgt[int(n["y"]), int(n["x"])]))
 
     for n in names:
+        # Flyplassens navn står i kartet ved siden av plassen (ved Kjevik 1,5 km unna, ute i fjorden).
+        # Det flyttes til flyplassens referansepunkt, som vi har fra OurAirports.
+        if n["type"] == "flyplass" and np.hypot(n["x"] - airport["arp"]["x"], n["y"] - airport["arp"]["y"]) * area.cell < 3000:
+            n["x"], n["y"] = airport["arp"]["x"], airport["arp"]["y"]
         n["z"] = ground(n)
         if n["type"] == "bru" and deck:
             px, py, pz = min(deck, key=lambda p: (p[0] - n["x"]) ** 2 + (p[1] - n["y"]) ** 2)

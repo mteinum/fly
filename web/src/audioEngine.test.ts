@@ -46,7 +46,7 @@ beforeAll(() => {
 describe("lydmotoren", () => {
   it("leser alle lydene og starter de tre sløyfene", async () => {
     const { audio } = await setup();
-    expect(audio.status).toMatchObject({ state: "running", loaded: 28, loops: 3 });
+    expect(audio.status).toMatchObject({ state: "running", loaded: 29, loops: 3 });
   });
 
   it("gir landingsklarering 2,5 s etter at innflygingen starter, over radio i cockpit", async () => {
@@ -73,6 +73,18 @@ describe("lydmotoren", () => {
     for (let i = 0; i < 200; i++) frame(450);
     expect(played().filter((n) => n === "go_around")).toHaveLength(1);
     expect(played().filter((n) => n === "too_low_gear").length).toBeGreaterThanOrEqual(3);
+  });
+
+it("luftbremsene høres når de settes ut og inn, men ikke i tårnet", async () => {
+    const { frame, played, P } = await setup();
+    frame(2000);
+    P.speedBrake = true; frame(2000);
+    P.speedBrake = false; frame(2000);
+    expect(played().filter((n) => n === "speedbrake")).toHaveLength(2);
+    const tower = await setup("tower");
+    tower.frame(2000);
+    tower.P.speedBrake = true; tower.frame(2000);
+    expect(tower.played()).not.toContain("speedbrake");
   });
 
   it("spiller understell og klaff når spakene flyttes, men ikke ved ny innflyging", async () => {

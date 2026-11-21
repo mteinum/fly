@@ -34,6 +34,7 @@ EFFECTS: dict[str, tuple[str, float, bool]] = {
     "tower_room": ("Quiet air traffic control tower room tone: soft ventilation and faint electronic equipment hum, no voices", 6, True),
     "gear": ("Aircraft landing gear extending: hydraulic whine, then a heavy mechanical clunk as it locks", 4, False),
     "flaps": ("Electric motor whirring as aircraft wing flaps move, short, mechanical", 3, False),
+    "speedbrake": ("Short hydraulic actuator whine as airliner wing spoiler panels move, followed by a brief rush of buffeting air, heard from the cabin, no voices", 2, False),
     "touchdown": ("Airliner main wheels touching down on a runway: brief tyre screech and a low thump with rumble", 3, False),
     "crash": ("Heavy aircraft crash impact: metal crunching and debris, short", 3, False),
     "splash": ("Very large object hitting water at speed: huge splash", 3, False),

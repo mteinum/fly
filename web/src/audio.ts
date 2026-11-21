@@ -12,7 +12,7 @@ import { towerView } from "./tower";
 
 const FT = 3.28084;
 const LOOPS = ["engine", "wind", "tower_room"] as const;
-const ONE_SHOTS = ["gear", "flaps", "touchdown", "crash", "splash", "warning", "radio", "retard", "too_low_gear", "stall", "go_around"];
+const ONE_SHOTS = ["gear", "flaps", "speedbrake", "touchdown", "crash", "splash", "warning", "radio", "retard", "too_low_gear", "stall", "go_around"];
 /** Radiohøyder (fot) flyet roper ut på vei ned. */
 export const CALLOUTS = [1000, 500, 400, 300, 200, 100, 50, 40, 30, 20, 10];
 
@@ -36,7 +36,7 @@ export class GameAudio {
   /** Når hver talekanal er ledig igjen (AudioContext-tid), så utrop ikke snakker i munnen på hverandre. */
   private busy = { callout: 0, tower: 0 };
   private repeatAt = { stall: 0, gear: 0, warning: 0 };
-  private prev = { ra: Infinity, state: "", gearDown: true, flapCfg: -1, approach: -1 };
+  private prev = { ra: Infinity, state: "", gearDown: true, flapCfg: -1, speedBrake: false, approach: -1 };
   private pending: { at: number; run: () => void }[] = [];
   private warnedGear = -1;
   private played: string[] = [];
@@ -156,7 +156,8 @@ export class GameAudio {
     const wind = this.loops.get("wind");
     if (wind) {
       wind.source.playbackRate.setTargetAtTime(0.8 + P.spd / 250, now, 0.3);
-      set("wind", flying && !tower ? Math.min(1, (P.spd / 95) ** 2) * (inside ? 0.16 : 0.22) : 0);
+      // luftbremsene ute: mer sus og rumling så lenge de står oppe i luftstrømmen
+      set("wind", flying && !tower ? Math.min(1, (P.spd / 95) ** 2) * (inside ? 0.16 : 0.22) * (1 + 0.8 * P.brake) : 0);
     }
     set("tower_room", tower ? 5 : 0);
 
@@ -179,6 +180,7 @@ export class GameAudio {
     } else if (P.state === "fly") {
       if (P.gearDown !== prev.gearDown && !tower) this.play("gear", 0.5);
       if (P.flapCfg !== prev.flapCfg && prev.flapCfg >= 0 && !tower) this.play("flaps", 0.4);
+      if (P.speedBrake !== prev.speedBrake && !tower) this.play("speedbrake", 0.2); // klippet er 7 dB sterkere enn klaffelyden
     }
 
     if (P.state !== prev.state) {
@@ -207,6 +209,6 @@ export class GameAudio {
         this.say("tower", "go_around", 0.9, { radio: !tower, force: true });
       }
     }
-    Object.assign(prev, { ra, state: P.state, gearDown: P.gearDown, flapCfg: P.flapCfg });
+    Object.assign(prev, { ra, state: P.state, gearDown: P.gearDown, flapCfg: P.flapCfg, speedBrake: P.speedBrake });
   }
 }

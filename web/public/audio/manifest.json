@@ -31,6 +31,12 @@
       "loop": false,
       "prompt": "Electric motor whirring as aircraft wing flaps move, short, mechanical"
     },
+    "speedbrake": {
+      "file": "speedbrake.mp3",
+      "kind": "effect",
+      "loop": false,
+      "prompt": "Short hydraulic actuator whine as airliner wing spoiler panels move, followed by a brief rush of buffeting air, heard from the cabin, no voices"
+    },
     "touchdown": {
       "file": "touchdown.mp3",
       "kind": "effect",
