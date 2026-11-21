@@ -22,6 +22,17 @@ export function drawMap(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImag
     g.lineTo(x + rw.ends[1].x * k, y + rw.ends[1].y * k);
     g.stroke();
   }
+  // Skip (fra AIS): en liten gul kile i fartsretningen når skipet går, en prikk når det ligger stille
+  g.fillStyle = "#ffe14d"; g.strokeStyle = "rgba(0,0,0,.7)"; g.lineWidth = 0.25;
+  for (const s of game.ships) {
+    g.save();
+    g.translate(x + s.x * k, y + s.y * k);
+    g.beginPath();
+    if (s.speed > 1) { g.rotate(s.heading); g.moveTo(0, -1.5); g.lineTo(0.9, 1); g.lineTo(-0.9, 1); g.closePath(); }
+    else g.arc(0, 0, 0.6, 0, Math.PI * 2);
+    g.fill(); g.stroke();
+    g.restore();
+  }
   g.translate(x + P.x * k, y + P.y * k);
   g.rotate(P.hdg); // kartet er rutenett-nord opp, så rutenettkursen brukes direkte
   g.fillStyle = "#ff4a3d"; g.strokeStyle = "#fff"; g.lineWidth = 0.4;

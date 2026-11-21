@@ -28,7 +28,7 @@ async function setup(cam: Game["cam"] = "cockpit") {
   const audio = new GameAudio("/audio", airport);
   await audio.startNow();
   const P = Object.assign(newPlane(), rwy, { spd: 70, thr: 0.3 });
-  const game = { P, cam, airport, approach: { count: 1, ident: "03", autopilot: false, platformFt: 1500 }, autopilot: false, apTarget: null, msg: { text: "", t: 0 }, time: 0, env: { sunAzimuth: 0, sunElevation: 0, sky: skyState(30) }, step() {}, restart() {}, replay: null, flightLog: null } as Game;
+  const game = { P, cam, airport, approach: { count: 1, ident: "03", autopilot: false, platformFt: 1500 }, autopilot: false, apTarget: null, msg: { text: "", t: 0 }, time: 0, env: { sunAzimuth: 0, sunElevation: 0, sky: skyState(30) }, step() {}, restart() {}, replay: null, flightLog: null, ships: [] } as Game;
   const ground = Math.max(0, t.heightAt(P.x, P.y));
   /** Sett radiohøyden (fot) og kjør én ramme. */
   const frame = (raFt: number, dt = 0.05) => { P.alt = ground + raFt / FT; clock += dt; audio.update(game, t); };

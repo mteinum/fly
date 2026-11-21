@@ -53,6 +53,8 @@ export interface Game {
   restart(): void;
   /** Satt mens reprisen etter en krasj spilles av. Fysikken står stille imens. */
   replay: Replay | null;
+  /** Skipene akkurat nå, til kartet: posisjon i rutenettet, rutenettkurs (rad) og fart (m/s). Settes av main.ts. */
+  ships: { x: number; y: number; heading: number; speed: number }[];
   /** Loggen fra forrige innflyging som ble avsluttet (landing, krasj eller avbrutt), eller null. */
   flightLog: FlightLog | null;
 }
@@ -124,6 +126,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     P, airport, msg, time, approach,
     autopilot: false,
     apTarget: null,
+    ships: [],
     flightLog: null,
     cam: CAMERAS.find((c) => c === params.get("cam")) ?? "external",
     env: environment(time),

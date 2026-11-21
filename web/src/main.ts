@@ -221,10 +221,12 @@ async function main(): Promise<void> {
   runLoop((dt) => {
     game.step(dt);
     const shipNow = performance.now() / 1000;
-    renderer.setShips(fleet.list.map((s) => {
+    const ships = fleet.list.map((s) => {
       const [x, y] = position(s, terrain, shipNow);
       return { x, y, heading: s.heading, lengthM: s.lengthM, beamM: s.beamM, speed: s.speed, color: shipColor(s.type) };
-    }));
+    });
+    renderer.setShips(ships);
+    game.ships = ships; // samme liste til oversiktskartet
     showInfo();
     audio.update(game, terrain);
     if (game.replay) renderer.render(game.replay.plane, "replay", game.env, game.replay.spectator);
