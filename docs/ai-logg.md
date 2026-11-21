@@ -241,6 +241,25 @@ og hva som ble endret.
 - Rettet: punktene ligger i en fil i git. API-et brukes bare for steder som
   mangler der, med nye forsøk og en feilmelding som sier hva man skal gjøre.
 
+**30. Brukte avrundet sann kurs der prosjektets egen regel sier rutenettkurs fra endepunktene**
+- Flyloggen fikk bare med banens publiserte sanne kurs. Gjennomgangen regnet
+  avstand til senterlinja med «sann kurs minus konvergens».
+- OurAirports oppgir kursen i hele grader (35°). Rutenettkursen fra
+  baneendene er 40,84°, mens 35 + 5,89 gir 40,89°. Forskjellen på 0,05° ble
+  6,4 m til siden på 8 km: flyet så ut til å starte ved siden av
+  senterlinja det sto på.
+- CRS-regel 5 i CLAUDE.md sier nettopp dette («regnes helst direkte fra
+  transformerte endepunkter»). Jeg skrev regelen og brøt den i ny kode.
+- Fanget av en test som krevde under 2 m. Rettet: loggen har
+  `headingGridDeg`, og geometrien bruker den.
+
+**31. Autopiloten strøk på mine egne kriterier**
+- Første utgave satte ut full klaff 4 km fra banen. Gjennomgangen jeg skrev
+  like etterpå krever landingsoppsett ved 1000 fot (ca. 5,5 km ute), og
+  dømte autopiloten som «ikke stabilisert».
+- Ingen av delene var feil hver for seg; de var bare ikke laget mot samme
+  mål. Rettet: autopiloten setter ut alt før 1000 fot.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

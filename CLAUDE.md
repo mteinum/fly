@@ -20,6 +20,8 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     lights.py     nattlys (syntetisk plassert)
     terrain.py    blokkmiddel, hillshade, fargekart
     build.py      setter det sammen og skriver fliser + metadata.json
+    debrief.py    regner ut fakta fra en flylogg (avvik, porter, fart, terreng under flyet)
+    mcp_server.py MCP-server som gir en KI-agent verktøyene i debrief.py (kun lokalt, `--group agent`)
     audio.py      lyd generert med ElevenLabs -> web/public/audio/ (krever ELEVENLABS_API_KEY)
 web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
   src/
@@ -29,6 +31,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     physics.ts     flymodell (enkel, med A320-lignende fartsgrenser), landing, kollisjon
     autopilot.ts   regelstyrt autopilot for innflyging og landing (A), flyr med spillerens kontroller
     guidance.ts    avvik fra senterlinje og 3° glidebane (vises som ILS på PFD, syntetisk)
+    flightlog.ts   flylogg per innflyging (UTM 33, sann kurs); L laster ned, utviklingsserveren lagrer i data/flights/
     replay.ts      opptak av de siste 5 s og reprise utenfra etter krasj
     sun.ts         solas posisjon fra tid og sted
     sky.ts         himmelfarger og lysstyrke fra solhøyden
@@ -45,9 +48,11 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     towerPanel.ts  tårnets interiør: sprosser, benk med radar, stripe, værpanel
 data/raw/        cache av nedlastede rådata (ikke i git)
 data/processed/  GeoTIFF-kopier for kontroll i QGIS (ikke i git)
+data/flights/    flylogger fra spillet i utviklingsmodus (ikke i git)
+.mcp.json        MCP-serveren `teinum-fly` for Claude Code; .claude/skills/debrief/ sier hvordan en innflyging gås gjennom
 deploy/          publisering til fly.teinum.no (SSH + rsync), kjøres av .github/workflows/deploy.yml
 web/public/share/  delingssiden for diplomer (PHP på webhotellet): index.php, image.php, lib.php
-tests/fixtures/  fasitpunkter fra Kartverkets API-er, delt av pytest og vitest
+tests/fixtures/  fasitpunkter fra Kartverkets API-er, og flylogger (flights/, lages av vitest), delt av pytest og vitest
 reference/       opprinnelig piksel-prototype (én HTML-fil), kun til oppslag
 docs/            datakilder.md, resampling.md, ai-logg.md
 ```
@@ -74,6 +79,8 @@ cd pipeline && uv run pytest                   # tester (krever bygde fliser)
 cd pipeline && uv run flypipe audio            # generer manglende lydfiler (bruker ElevenLabs-kvote)
 cd web && npm run dev                        # spill på http://localhost:5173
 cd web && npm test && npm run typecheck
+cd web && UPDATE_FIXTURES=1 npm test         # lag flyloggene i tests/fixtures/flights/ på nytt (etter endring i flymodell/autopilot)
+cd pipeline && uv run flypipe debrief        # hovedtallene for siste flylogg i data/flights/
 ```
 
 ## CRS-regler
@@ -144,6 +151,10 @@ cd web && npm test && npm run typecheck
   diplomet tegnes fra tallene i adressen, og alt derfra avgrenses i lib.php. Titlene der må
   holdes like TITLES i web/src/diploma.ts. PHP kan ikke kjøres lokalt på denne maskinen;
   `deploy/test_share.sh` kjøres i GitHub Actions.
+- KI i spillet koster ingenting å spille: ingen språkmodell kalles fra den publiserte siden. Det som trenger en
+  modell (gjennomgang av flylogger) kjører bare lokalt, og modellen får alle tall fra verktøy (debrief.py).
+- Geometri i UTM-planet bruker `headingGridDeg` (fra baneendene), aldri publisert sann kurs minus konvergens:
+  den sanne kursen er avrundet til hele grader.
 - API-nøkler leses fra miljøet i pipeline og skrives aldri til fil, logg eller nettleser.
 - Generert lyd er ikke reproduserbar. `flypipe audio` lager bare filer som mangler;
   slett en fil for å lage den på nytt. Lydfilene ligger i git.

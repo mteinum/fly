@@ -15,3 +15,5 @@ web/public/data/kjevik10/
 web/public/data/*10/
 web/public/data/index.json
 share-test/
+# Flylogger fra spillet i utviklingsmodus (til lokal gjennomgang)
+data/flights/

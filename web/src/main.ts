@@ -1,5 +1,6 @@
 import { GameAudio } from "./audio";
 import { createDiplomaUi, gradeLanding } from "./diploma";
+import { type FlightLog, flightLogName } from "./flightlog";
 import { createGame, isTyping, runLoop } from "./game";
 import { GlRenderer } from "./glRenderer";
 import { drawCornerMap, drawHud, drawMessage } from "./hud";
@@ -93,6 +94,22 @@ async function main(): Promise<void> {
   // R og T starter ny innflyging og lukker diplomet - men ikke når de er bokstaver i navnet som skrives
   addEventListener("keydown", (e) => { if (!isTyping(e) && (e.code === "KeyR" || e.code === "KeyT")) diploma.hide(); });
 
+  // Flylogg: L laster ned loggen fra forrige innflyging. I utviklingsmodus lagres hver logg også i data/flights/
+  // (se vite.config.ts), så den kan gås gjennom lokalt. Den publiserte siden sender ingenting noe sted.
+  let savedLog: FlightLog | null = null;
+  addEventListener("keydown", (e) => {
+    if (e.code !== "KeyL" || e.repeat || isTyping(e)) return;
+    const log = game.flightLog;
+    if (log) {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(new Blob([JSON.stringify(log)], { type: "application/json" }));
+      link.download = flightLogName(log);
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+    game.msg.text = log ? "Flight log downloaded" : "No flight log yet: finish an approach first"; game.msg.t = 2.5;
+  });
+
   // Stedsnavn tegnes under paneler og skjermtekst, så de aldri ligger oppå instrumentene. N slår dem av og på.
   let showNames = true;
   addEventListener("keydown", (e) => {
@@ -131,6 +148,10 @@ async function main(): Promise<void> {
     audio.update(game, terrain);
     if (game.replay) renderer.render(game.replay.plane, "replay", game.env, game.replay.spectator);
     else renderer.render(game.P, game.cam, game.env);
+    if (game.flightLog !== savedLog) {
+      savedLog = game.flightLog;
+      if (import.meta.env.DEV && savedLog) void fetch("/__flightlog", { method: "POST", body: JSON.stringify(savedLog) }).catch(() => {});
+    }
     const landed = game.P.state === "landed";
     if (landed && !wasLanded) {
       // WebGL-bildet må kopieres i samme ramme som det ble tegnet, ellers er det tomt

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "teinum-fly": {
+      "command": "uv",
+      "args": ["run", "--directory", "pipeline", "--group", "agent", "flypipe", "mcp"]
+    }
+  }
+}

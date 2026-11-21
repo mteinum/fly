@@ -16,11 +16,12 @@ const RAD = Math.PI / 180, KT = 1.943844;
 const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
 const wrap = (a: number): number => Math.atan2(Math.sin(a), Math.cos(a));
 
-/** Oppsett etter avstand til terskelen (m): understell, klaffstilling og fart (kt). Første rad som passer gjelder. */
+/** Oppsett etter avstand til terskelen (m): understell, klaffstilling og fart (kt). Første rad som passer gjelder.
+ *  Alt er ute før 1000 fot over banen (ca. 5,5 km ute), så innflygingen er stabilisert derfra. */
 const SCHEDULE = [
-  { beyondM: 6500, gear: false, flaps: 2, kt: 160 },
-  { beyondM: 5500, gear: true, flaps: 2, kt: 160 },
-  { beyondM: 4000, gear: true, flaps: 3, kt: 148 },
+  { beyondM: 7600, gear: false, flaps: 2, kt: 160 },
+  { beyondM: 7000, gear: true, flaps: 2, kt: 160 },
+  { beyondM: 6200, gear: true, flaps: 3, kt: 148 },
   { beyondM: -Infinity, gear: true, flaps: 4, kt: 135 },
 ];
 const FLARE_HEIGHT_M = 12; // herfra flates det ut

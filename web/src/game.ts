@@ -1,6 +1,8 @@
 /* Spilltilstand, klokke og inndata. */
 import { autopilot } from "./autopilot";
 import { startTime } from "./clock";
+import { gradeLanding } from "./diploma";
+import { type FlightLog, FlightLogger } from "./flightlog";
 import { type Keys, moveFlaps, startApproach, toggleGear, update } from "./physics";
 import { Recorder, REPLAY_HOLD } from "./replay";
 import { newPlane, type Plane } from "./plane";
@@ -49,6 +51,8 @@ export interface Game {
   restart(): void;
   /** Satt mens reprisen etter en krasj spilles av. Fysikken står stille imens. */
   replay: Replay | null;
+  /** Loggen fra forrige innflyging som ble avsluttet (landing, krasj eller avbrutt), eller null. */
+  flightLog: FlightLog | null;
 }
 
 const TIME_STEP_MS = 30 * 60 * 1000;
@@ -83,13 +87,17 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     if (cmd.flapCfg !== P.flapCfg) moveFlaps(P, Math.sign(cmd.flapCfg - P.flapCfg), say);
     return cmd.keys;
   };
-  const recorder = new Recorder();
+  const recorder = new Recorder(), logger = new FlightLogger(terrain, airport);
   let replayTime = 0;
   const reset = () => {
+    // en innflyging som avbrytes i lufta logges også, hvis den varte lenge nok til å si noe
+    const aborted = P.state === "fly" ? logger.finish(P, "", null, game.autopilot) : null;
+    if (aborted && aborted.samples.length > 20) game.flightLog = aborted;
     recorder.clear();
     game.replay = null;
     game.autopilot = approach.autopilot = false;
     startApproach(P, terrain, ends[endIdx]);
+    logger.start(P, runwayOf(ends[endIdx]), ends[endIdx], new Date());
     approach.count++;
     approach.ident = ends[endIdx].ident;
     say(`Approach ${airport.icao} runway ${ends[endIdx].ident}`, 3);
@@ -108,6 +116,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   const game: Game = {
     P, airport, msg, time, approach,
     autopilot: false,
+    flightLog: null,
     cam: CAMERAS.find((c) => c === params.get("cam")) ?? "external",
     env: environment(time),
     restart: () => reset(),
@@ -125,6 +134,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
       if (msg.t > 0) msg.t -= dt;
       const wasFlying = P.state === "fly";
       const again = update(P, terrain, airport, controls(), dt, say);
+      if (wasFlying) logger.step(P, dt, game.autopilot);
+      if (wasFlying && P.state !== "fly") game.flightLog = logger.finish(P, msg.text, P.touchdown && gradeLanding(P.touchdown), game.autopilot) ?? game.flightLog;
       if (P.state !== "fly") game.autopilot = false;
       if (wasFlying) recorder.record(P, dt); // også steget der det smalt, så reprisen ender i sammenstøtet
       if (wasFlying && P.state === "crash" && recorder.duration > 0.5) {
