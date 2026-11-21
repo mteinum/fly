@@ -1,3 +1,4 @@
+import { execSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
@@ -35,4 +36,11 @@ const flightLogs = (): Plugin => ({
   },
 });
 
-export default defineConfig({ plugins: [flightLogs()] });
+/** Hvilken utgave som kjører, til Om-skjermen: dato og git-commit på byggetidspunktet. */
+const build = () => {
+  let commit = process.env.GITHUB_SHA?.slice(0, 7) ?? "";
+  try { commit ||= execSync("git rev-parse --short=7 HEAD", { stdio: ["ignore", "pipe", "ignore"] }).toString().trim(); } catch { /* ikke et git-repo */ }
+  return { date: new Date().toISOString().slice(0, 10), commit };
+};
+
+export default defineConfig({ plugins: [flightLogs()], define: { __BUILD__: JSON.stringify(build()) } });

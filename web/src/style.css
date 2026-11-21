@@ -32,3 +32,16 @@ h1{font-size:15px;margin:0 0 4px;color:#ffb366}
 #diploma .actions button{padding:7px 12px}
 #diplomaShare{background:#8a5a12;border-color:#d9b25a}
 .clean #diploma{display:none}
+/* Om-skjermen: en egen flate over spillet. Knappen står ved siden av Help */
+#aboutOpen{position:fixed;top:8px;left:calc(50% + 34px);z-index:3;font-size:12.5px;line-height:1.55;padding:2px 10px;border:0;border-radius:10px;background:rgba(0,0,0,.45);color:#9fd0ff;opacity:.75}
+#aboutOpen:hover{opacity:1;background:rgba(0,0,0,.45)}
+#about{position:fixed;inset:0;z-index:6;display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:24px 12px;background:rgba(4,6,12,.72)}
+#about[hidden]{display:none}
+#about .sheet{max-width:640px;padding:18px 22px;border-radius:8px;background:rgba(11,11,20,.96);border:1px solid #2c2c3a;font-family:"Helvetica Neue",Helvetica,Arial,sans-serif;font-size:14.5px;line-height:1.5}
+#about h1{font-size:22px;margin:0 0 6px}
+#about h2{font-size:13px;margin:16px 0 4px;color:#ffb366;text-transform:uppercase;letter-spacing:.06em}
+#about p{margin:6px 0}
+#about ul{margin:4px 0;padding-left:20px}
+#about a{color:#9fd0ff}
+#about #aboutBuild{font-size:12px;margin-top:14px}
+.clean #aboutOpen{display:none}

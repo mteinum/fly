@@ -159,6 +159,8 @@ cd pipeline && uv run flypipe debrief        # hovedtallene for siste flylogg i 
   må den andre følge; airports.test.ts sammenligner dem.
 - Geometri i UTM-planet bruker `headingGridDeg` (fra baneendene), aldri publisert sann kurs minus konvergens:
   den sanne kursen er avrundet til hele grader.
+- Om-skjermen (About, i web/index.html) sier hva som er ekte og hva som er syntetisk, hvem som krediteres og hva
+  siden gjør med personvern. Endres noe av dette, må teksten der følge med.
 - Besøksmåling: Google Tag Manager (GTM-KJ2W4NZK) lastes i web/index.html. Det er den eneste tredjeparten
   siden kontakter. Spilldata (flylogg, navn på diplom) skal ikke sendes dit.
 - API-nøkler leses fra miljøet i pipeline og skrives aldri til fil, logg eller nettleser.

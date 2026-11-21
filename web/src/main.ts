@@ -93,6 +93,17 @@ async function main(): Promise<void> {
   };
   document.getElementById("credits")!.textContent = [...terrain.meta.attribution, "Audio: generated with ElevenLabs"].join(" · ");
 
+  // Om-skjermen. Spillet går videre bak den; Esc, Close eller et klikk utenfor lukker.
+  const about = document.getElementById("about")!;
+  const showAbout = (on: boolean) => { about.hidden = !on; if (!on) overlay.focus(); };
+  document.getElementById("aboutBuild")!.textContent = `Build ${__BUILD__.date}${__BUILD__.commit ? ` · ${__BUILD__.commit}` : ""}`;
+  for (const id of ["aboutOpen", "aboutOpen2"]) document.getElementById(id)!.onclick = () => showAbout(true);
+  document.getElementById("aboutClose")!.onclick = () => showAbout(false);
+  about.addEventListener("click", (e) => { if (e.target === about) showAbout(false); });
+  addEventListener("keydown", (e) => { if (e.code === "Escape" && !about.hidden) showAbout(false); });
+  // ?about: åpne den med en gang (til skjermbilder)
+  if (params.has("about")) showAbout(true);
+
   // ?clean: bare 3D-bildet, uten skjermtekst, hjelp og kreditering. Til skjermbilder (f.eks. delingsbildet).
   const clean = new URLSearchParams(location.search).has("clean");
   document.body.classList.toggle("clean", clean);
