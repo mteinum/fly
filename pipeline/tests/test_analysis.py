@@ -66,7 +66,7 @@ def test_klynger():
     village = rng.normal((1000, 1000), 40, (60, 2))
     hamlet = rng.normal((5000, 2000), 30, (8, 2))
     farms = np.array([[9000.0, 9000.0], [12000.0, 500.0], [300.0, 7000.0]])
-    labels = analysis.building_clusters(np.vstack([village, hamlet, farms]))
+    labels = analysis.building_clusters(np.vstack([village, hamlet, farms]), analysis.CLUSTER_EPS_GENERALISED_M)
     assert len(set(labels[:60])) == 1 and labels[0] >= 0
     assert len(set(labels[60:68])) == 1 and labels[60] not in (-1, labels[0])
     assert list(labels[68:]) == [-1, -1, -1]

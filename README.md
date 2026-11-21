@@ -12,7 +12,7 @@ Forutsetninger: [uv](https://docs.astral.sh/uv/) og Node 22.
 ```bash
 # 1. Pipeline: hent data og skriv fliser (laster ned ca. 280 MB første gang, deretter fra cache)
 cd pipeline
-uv run flypipe build all        # alle flyplasser (42 MB hver, ikke i git; ca. 1 GB nedlasting første gang)
+uv run flypipe build all        # alle flyplasser (42 MB hver, ikke i git; ca. 1,3 GB nedlasting første gang)
 uv run flypipe build kjevik10   # eller bare én: kjevik10, sola10, flesland10, gardermoen10, bodo10
 uv run pytest
 

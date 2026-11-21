@@ -23,6 +23,8 @@ class Area:
     # False: fargekartet er ren flatefarge, og spillet lyssetter selv etter tid på døgnet.
     bake_hillshade: bool = True
     night_lights: bool = False  # skriv lights.png (gatelys og vinduslys, syntetisk plassert)
+    # True: bygningspunkter fra Matrikkelen (alle bygg) i stedet for N50 (et utvalg). Samme fylkeskode som N50.
+    matrikkel_buildings: bool = False
 
     @property
     def raw_id(self) -> str:
@@ -39,6 +41,7 @@ def _airport_10m(id: str, name: str, icao: str, county: str, cache: str = "") ->
         dom_building_heights=True,
         bake_hillshade=False,
         night_lights=True,
+        matrikkel_buildings=True,
     )
 
 

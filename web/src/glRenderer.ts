@@ -461,7 +461,8 @@ export class GlRenderer {
     (this.sunDisc.material as THREE.MeshBasicMaterial).color.copy(color(sky.sunColor));
     (this.stars.material as THREE.PointsMaterial).opacity = Math.max(0, sky.night * 2.5 - 1.5); // først når det er skikkelig mørkt
     this.terrainMat.emissiveIntensity = sky.night * 4;
-    this.buildingMat.emissiveIntensity = sky.night * 0.22;
+    // svak glød: med alle hus fra matrikkelen ville sterkere glød blitt et lysteppe som skjuler lyspunktene på bakken
+    this.buildingMat.emissiveIntensity = sky.night * 0.09;
     (this.runwayLights.material as THREE.PointsMaterial).opacity = 0.45 + 0.55 * sky.night;
     this.lamps.visible = sky.night > 0.05;
     (this.lamps.material as THREE.PointsMaterial).opacity = sky.night;

@@ -23,9 +23,10 @@ APPROACH_DIST_M = 8000.0
 CORRIDOR_HALF_WIDTH_M = 150.0  # klaringen måles i et belte rundt senterlinja, ikke bare rett under
 CLEARANCE_FROM_M = 1000.0  # nærmere banen enn dette skal klaringen gå mot null, så det sier ingenting
 
-# Bygningsklynger (DBSCAN). N50 er generalisert, så ikke alle hus er med: avstanden må være romsligere
-# enn SSBs tettstedsdefinisjon (50 m mellom husene) for at en grend skal henge sammen.
-CLUSTER_EPS_M = 100.0
+# Bygningsklynger (DBSCAN). Med alle bygg (Matrikkelen) brukes SSBs tettstedsavstand, 50 m mellom husene.
+# N50 er generalisert og har ikke med alle hus: der må avstanden være romsligere for at en grend skal henge sammen.
+CLUSTER_EPS_M = 50.0
+CLUSTER_EPS_GENERALISED_M = 100.0
 CLUSTER_MIN_BUILDINGS = 5
 
 
@@ -139,7 +140,7 @@ def approach_facts(end: dict, hgt: np.ndarray, top: np.ndarray, need: np.ndarray
     return out
 
 
-def building_clusters(xy_m: np.ndarray) -> np.ndarray:
+def building_clusters(xy_m: np.ndarray, eps_m: float = CLUSTER_EPS_M) -> np.ndarray:
     """Klyngenummer per bygning (DBSCAN), -1 for bygninger som står for seg selv.
 
     `xy_m` er (øst, nord) i meter. Avstand regnes i projisert CRS, aldri i grader.
@@ -148,13 +149,13 @@ def building_clusters(xy_m: np.ndarray) -> np.ndarray:
 
     if len(xy_m) == 0:
         return np.zeros(0, dtype=int)
-    return DBSCAN(eps=CLUSTER_EPS_M, min_samples=CLUSTER_MIN_BUILDINGS).fit(xy_m).labels_
+    return DBSCAN(eps=eps_m, min_samples=CLUSTER_MIN_BUILDINGS).fit(xy_m).labels_
 
 
-def cluster_summary(labels: np.ndarray) -> dict:
+def cluster_summary(labels: np.ndarray, eps_m: float = CLUSTER_EPS_M) -> dict:
     sizes = np.bincount(labels[labels >= 0]) if (labels >= 0).any() else np.zeros(0, dtype=int)
     return {
-        "method": f"DBSCAN, eps {CLUSTER_EPS_M:g} m, minst {CLUSTER_MIN_BUILDINGS} bygninger",
+        "method": f"DBSCAN, eps {eps_m:g} m, minst {CLUSTER_MIN_BUILDINGS} bygninger",
         "buildings": int(len(labels)),
         "clusters": int(len(sizes)),
         "inClustersShare": round(float((labels >= 0).mean()), 3) if len(labels) else 0.0,

@@ -61,8 +61,9 @@ tegnes ikke. Kommunale og private veier (1050 km i utsnittet) er utelatt fordi
 de ville fylt nesten hver celle i tettbygde strøk på 50 m-rutenett.
 
 N50 er generalisert for 1:50 000: bygninger er punkter (store bygg er flater),
-og ikke alle hus er med. Antallet i `metadata.json` er N50-objekter, ikke
-faktiske bygninger.
+og ikke alle hus er med. I by og tettsted er det ingen enkelthus. 10 m-flisene
+bruker derfor Matrikkelen for bygningspunktene (neste avsnitt); N50 gir fortsatt
+formen på store bygg, og alle bygninger i 50 m-flisene.
 
 Stedsnavnene vises i lufta når man flyr (`names.json`). Navn, type og hvor
 viktig navnet er (kartets skriftstørrelse) er fra N50. Plasseringen er
@@ -78,8 +79,38 @@ spillet (`web/src/labels.ts`).
 N50 har ikke bygningshøyde. I 50 m-flisene er høyden nominell: 7 m for
 bygningspunkter og 12 m for bygninger som er flater i N50. I 10 m-flisene får
 flatene høyde fra DOM minus DTM (median innenfor flaten, begrenset til
-4–80 m, flatt tak); punktene er fortsatt 7 m. 10 m-flisene tar også med
+4–80 m, flatt tak). 10 m-flisene tar også med
 kommunale og private bilveier (1384 km mot 329 km).
+
+### Bygninger: Matrikkelen - Bygningspunkt – Kartverket
+
+| | |
+|---|---|
+| Fil | `https://nedlasting.geonorge.no/geonorge/Basisdata/MatrikkelenBygning/FGDB/Basisdata_<fylke>_25833_MatrikkelenBygning_FGDB.zip`. Verifisert 2026-11-21 for `42_Agder` (40 MB), `11_Rogaland`, `46_Vestland`, `32_Akershus` og `18_Nordland` |
+| Format | Esri filgeodatabase, laget `bygning`, punkt, EPSG:25833 |
+| Lisens | CC BY 4.0 (Geonorges kartkatalog, lest 2026-11-21) |
+| Kreditering | © Kartverket |
+| Kode | `pipeline/src/flypipe/matrikkel.py` |
+| Brukes i | 10 m-flisene |
+
+Ett punkt per bygning i Norges offisielle eiendomsregister. Det som tas med:
+
+- Bygg som står: status tatt i bruk, ferdigattest eller midlertidig brukstillatelse.
+- Ikke garasjer, uthus og naust (type 181-183). De står inntil hus som alt fyller en 10 m-celle.
+
+Ved Kjevik gir det 35 751 bygninger mot 7 340 bygningspunkter i N50; ved Sola 77 319 mot 6 557.
+
+Begrensninger:
+- **Bare et punkt.** Hvert bygg tegnes som én celle på 10 x 10 m, uansett størrelse og retning.
+  Store bygg har i tillegg form fra N50.
+- **Ingen høyde.** Høyden er antatt ut fra bygningstypen: 7 m for enebolig, 8 m for rekkehus, 14 m for
+  boligblokk, 5 m for fritidsbolig, 8–12 m for næringsbygg og offentlige bygg (`HEIGHT_BY_GROUP` i koden). Det er anslag,
+  ikke målinger.
+- **Ujevn kvalitet.** Bygg registrert før 1983 har ifølge Kartverket få opplysninger, og punktet er
+  ikke alltid kontrollert.
+- **Endres fortløpende.** Fylkesfilene lages på nytt jevnlig, så en ny nedlasting kan gi andre tall
+  enn de som står her. Rådata caches i `data/raw/matrikkel/`.
+- Fila har ID-er for adresse og eiendom per bygning. De leses ikke, og er ikke med i flisene.
 
 ### Flyplasser og rullebaner: OurAirports
 
@@ -142,7 +173,7 @@ regulert vannstand over regulerte innsjøer (`innsjohoyde`). Bare punkter med
 |---|---|---|
 | Solas posisjon | Regnes i `web/src/sun.ts` fra klokke og flyplassens posisjon (lavpresisjonsformler, ca. 0,01°) | Testet mot middagshøyde ved solverv og jevndøgn. Erstatter planen om MET sitt sunrise-API: lyssetting trenger asimut og høyde hvert øyeblikk, ikke bare tidspunkt for soloppgang |
 | Himmelfarger og lysstyrke | Tabell per solhøyde i `web/src/sky.ts` | Valgt for utseende. Grensene -6°/-12°/-18° er de vanlige for tussmørke |
-| Gatelys og vinduslys (`lights.png`) | `pipeline/src/flypipe/lights.py`: 2–18 % av cellene i bebygde arealklasser; utenfor dem lys ved N50-bygningene (80 % av dem i en klynge, 50 % av de enslige); gatelys på hver 5. veicelle nær bebyggelse, nær en bygningsklynge og på europa-/riksvei | Viser hvor N50 har vei og bygninger, ikke hvor det faktisk er lys. Hva som er en klynge er et valg (DBSCAN, 100 m, minst 5 bygninger), se docs/analyser.md |
+| Gatelys og vinduslys (`lights.png`) | `pipeline/src/flypipe/lights.py`: lys på bakken ved annethvert hus (Matrikkelen); 2–18 % av cellene i sentrum, industri og på flyplassen; gatelys på hver 5. veicelle nær bebyggelse, nær en bygningsklynge og på europa-/riksvei | Viser hvor det er vei og bygninger, ikke hvor det faktisk er lys. Hvilke hus som lyser er tilfeldig (fast støyfrø). Hva som er en klynge er et valg (DBSCAN, 50 m, minst 5 bygninger), se docs/analyser.md |
 | Rullebanelys | Kantlys hver 60. m, grønne terskellys, 420 m innflygingslys med tverrbjelke | Vanlig mønster, ikke ENCNs faktiske lysanlegg (AIP er ikke slått opp) |
 | Lykter på bruer | Hver 30. m langs senterlinja, 8 m over dekket | Syntetisk |
 | Bakkedetaljer | `web/src/groundDetail.ts`: mønster per overflateklasse (trekroner, furer, bølger, korn) og uregelmessige klassegrenser, regnet i shaderen | Hvilken klasse som ligger hvor er ekte (N50, `surface.bin`). Mønsteret er ikke: trærne står ikke der trær står, og grensene er forskjøvet opptil ca. 6 m med støy |
@@ -194,7 +225,9 @@ Begrensninger: oppløsningen er 10 m (som fargekartet vi har), så bakken blir
 ikke skarpere på nært hold. Bildet har sommerens solskygger bakt inn, og
 vann er nesten svart.
 
-## Undersøkt, ikke i bruk: flere og bedre bygninger (2026-11-21)
+## Undersøkt: flere og bedre bygninger (2026-11-21)
+
+Matrikkelen er tatt i bruk etter denne undersøkelsen (se over). De andre kildene er ikke i bruk.
 
 Bakgrunn: N50 har 8 098 bygninger i Kjevik-utsnittet, de fleste som punkter, og ingen enkelthus i
 by og tettsted. Spørsmålet var hva som finnes av mer detaljerte, åpne kilder.

@@ -297,6 +297,18 @@ og hva som ble endret.
   siktepunktet er over 5,5°. Testen bruker tallene fra loggen.
 - Første feil som ble funnet med flyloggen i stedet for med gjetting.
 
+**36. Husene skjulte sine egne lys**
+- Med alle bygg fra Matrikkelen la jeg et lys i cella til hvert hus. I
+  spillet ble natta mørkere, ikke lysere: huset tegnes som en boks oppå
+  cella og dekker lyset under. Sterke lyspunkter i samme bilde falt fra
+  36 926 til 17 044.
+- Med N50 var dette ikke synlig, fordi de fleste lysene var strødd i celler
+  uten hus.
+- Rettet: lyset legges på bakken i en ledig nabocelle, og boksene gløder
+  svakere om natta. Etterpå: 26 489 sterke lyspunkter, og langt flere hus.
+- Antallet lyse celler i lyskartet gikk opp hele veien. Det var først i
+  bildet feilen viste seg: tell i det spilleren ser, ikke bare i fila.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

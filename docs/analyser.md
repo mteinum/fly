@@ -49,9 +49,9 @@ terrenget med bygninger og bruer fra `structures.json` lagt oppå.
 | Baneende | Laveste klaring | Avstand fra baneenden |
 |---|---|---|
 | Kjevik 03 / 21 | 86 m / 70 m | 1,0 km / 1,8 km |
-| Sola 10 / 28 / 18 / 36 | 76 / 43 / 80 / 60 m | ca. 1,0 km |
+| Sola 10 / 28 / 18 / 36 | 76 / 42 / 80 / 60 m | ca. 1,0 km |
 | Flesland 17 / 35 | 84 m / 94 m | 1,0 km |
-| Gardermoen 01L / 19R / 01R / 19L | 87 / 67 / 72 / 58 m | ca. 1,0 km |
+| Gardermoen 01L / 19R / 01R / 19L | 87 / 67 / 72 / 56 m | ca. 1,0 km |
 | Bodø 07 / 25 | 93 m / 51 m | ca. 1,0 km |
 
 **Valgene som styrer svaret:**
@@ -61,36 +61,38 @@ terrenget med bygninger og bruer fra `structures.json` lagt oppå.
 - **Beltebredden.** ±150 m er valgt. Et bredere belte tar med mer terreng og gir lavere tall.
 - **Glidebanen er syntetisk** (3° fra baneendene), ikke flyplassens ILS. Tallene er ikke
   hinderfrihet i flyoperativ forstand.
-- Bygningshøyder under 10 m-oppløsning er nominelle for små hus, se docs/datakilder.md.
+- Høyden på småhus er antatt ut fra bygningstypen, se docs/datakilder.md. To av tallene endret seg med
+  et par meter da bygningene fra Matrikkelen kom inn (Sola 28 og Gardermoen 19L).
 
 Samme geometri finnes i spillet (`web/src/guidance.ts`). En test sammenligner glidebanens høyde
 8 km ute i de to utgavene for hver baneende.
 
 ## 3. Bygningsklynger (tetthet)
 
-**Spørsmål:** hvilke hus hører sammen i en grend, og hvilke står for seg selv?
+**Spørsmål:** hvilke hus hører sammen i en grend eller by, og hvilke står for seg selv?
 
-**Metode:** DBSCAN på N50-bygningene (punkter, og tyngdepunktet for bygninger som er flater),
-med avstand 100 m og minst 5 bygninger. Avstanden er regnet i meter i UTM 33.
+**Metode:** DBSCAN på bygningspunktene fra Matrikkelen (bygg som står, uten garasjer, uthus og
+naust), med avstand 50 m og minst 5 bygninger. Avstanden er regnet i meter i UTM 33.
 
 | Flyplass | Bygninger | Klynger | Andel i klynge | Største |
 |---|---|---|---|---|
-| Kjevik | 8 098 | 344 | 51 % | 144 |
-| Sola | 8 407 | 315 | 39 % | 108 |
-| Flesland | 12 726 | 537 | 64 % | 160 |
-| Gardermoen | 6 481 | 242 | 42 % | 119 |
-| Bodø | 2 922 | 115 | 52 % | 67 |
+| Kjevik | 35 751 | 661 | 76 % | 1 516 |
+| Sola | 77 319 | 746 | 86 % | 5 946 |
+| Flesland | 68 501 | 1 169 | 79 % | 3 314 |
+| Gardermoen | 25 008 | 594 | 68 % | 1 257 |
+| Bodø | 13 841 | 142 | 81 % | 2 354 |
 
-**Bruk i spillet:** nattlysene. Veier nær en klynge får gatelys, og hus i en klynge har oftere
-lys i vinduet enn enslige hus. Ved Kjevik ga det 29 % flere lyse celler, alle utenfor de bebygde flatene eller langs veier nær en klynge.
+**Bruk i spillet:** nattlysene. Veier nær en klynge får gatelys; enslige hus har bare lys ved huset.
 
 **Valgene som styrer svaret:**
-- **Avstanden.** SSB regner tettsted med høyst 50 m mellom husene. N50 er generalisert for
-  1:50 000 og har ikke med alle hus, så 50 m ville delt grender i småbiter. 100 m er valgt, ikke målt.
+- **Avstanden.** 50 m er SSBs grense for tettsted (høyst 50 m mellom husene). Med N50, som bare har
+  et utvalg av husene, måtte den være 100 m for at grender skulle henge sammen. Da var det
+  344 klynger ved Kjevik og 51 % av byggene i klynge; tallene over er ikke sammenlignbare med de gamle.
 - **Minste antall.** 5 bygninger er en grend her. SSBs tettsted krever 200 innbyggere.
-- **Hva som mangler.** I by og tettsted tegner N50 bebyggelsen som flate, ikke som hus.
-  Klyngene viser derfor spredt bebyggelse, ikke byene: «største klynge 144» er ikke Kristiansand.
-  Byene får lys fra arealdekket som før.
+- **Hva som telles.** Garasjer og uthus er holdt utenfor. Med dem ville nesten hvert hus vært en
+  «klynge» på to-tre bygg, og flere ville nådd grensen på 5.
+- **Én klynge er ikke én by.** DBSCAN kjeder sammen alt som ligger tett nok. Den største klyngen
+  ved Sola (5 946 bygg) er sammenhengende bebyggelse, ikke en kommune eller et tettsted med navn.
 
 ## Kjøre selv
 

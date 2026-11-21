@@ -15,6 +15,7 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     dtm.py        Kartverket DTM og DOM via WCS, cache i data/raw/
     airports.py   OurAirports: flyplass + rullebaner; tårnposisjon fra N50-bygning type 411
     n50.py        N50 Kartdata: veier, bruer, bygninger -> feature-raster
+    matrikkel.py  Matrikkelen: alle bygninger som punkt med type (10 m-flisene); høyde er antatt etter type
     landcover.py  N50 Arealdekke -> palettindeks per celle
     structures.py bruer (dekkhøyde fra DOM) og bygninger som egen liste
     lights.py     nattlys (syntetisk plassert; bygningsklynger avgjør hvor det er gatelys)
@@ -73,7 +74,7 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 ## Kommandoer
 
 ```bash
-cd pipeline && uv run flypipe build all        # alle utsnitt (ca. 1 GB nedlasting første gang)
+cd pipeline && uv run flypipe build all        # alle utsnitt (ca. 1,3 GB nedlasting første gang)
 cd pipeline && uv run flypipe build sola10     # ett utsnitt: kjevik10, sola10, flesland10, gardermoen10, bodo10 (42 MB hver, ikke i git)
 cd pipeline && uv run flypipe build kjevik     # 50 m-fliser: grovt nivå, brukes av testene (i git)
 cd pipeline && uv run pytest                   # tester (krever bygde fliser)

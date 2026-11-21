@@ -11,7 +11,7 @@ Alt internt er EUREF89 UTM 33 (EPSG:25833), (øst, nord) i meter. CRS-reglene st
 Krever [uv](https://docs.astral.sh/uv/). Python 3.12 og pakkene installeres av `uv run`.
 
 ```bash
-uv run flypipe build all        # alle utsnitt (ca. 1 GB nedlasting første gang, deretter fra cache)
+uv run flypipe build all        # alle utsnitt (ca. 1,3 GB nedlasting første gang, deretter fra cache)
 uv run flypipe build kjevik10   # ett utsnitt
 uv run pytest                   # tester (krever bygde fliser)
 uv run flypipe audio            # generer manglende lydfiler (krever ELEVENLABS_API_KEY)
@@ -41,8 +41,8 @@ Hvert utsnitt er 25,6 x 25,6 km, sentrert på flyplassens referansepunkt. De er 
 1. **Flyplass** (`airports.py`): rullebaner fra OurAirports, transformert til UTM 33. Tårnet plasseres på
    terminalbygningen fra N50.
 2. **Terreng** (`dtm.py`, `terrain.py`): Kartverkets DTM hentes med WCS og midles til spillrutenettet.
-3. **Kartdata** (`n50.py`, `landcover.py`): arealdekke, veier, bruer, bygninger og stedsnavn fra N50,
-   rasterisert til rutenettet.
+3. **Kartdata** (`n50.py`, `landcover.py`, `matrikkel.py`): arealdekke, veier, bruer og stedsnavn fra N50,
+   og bygninger fra Matrikkelen, rasterisert til rutenettet.
 4. **Strukturer** (`structures.py`): bruer og bygninger som egen liste, med høyde fra overflatemodellen (DOM).
 5. **Analyser** (`analysis.py`): synlighet fra tårnet, klaring under innflygingene og bygningsklynger.
 6. **Nattlys** (`lights.py`): syntetisk plassert langs veier og ved bebyggelse.
@@ -64,6 +64,7 @@ Flisformatet er beskrevet i [../CLAUDE.md](../CLAUDE.md).
 | `terrain.py` | Blokkmiddel, hillshade og fargekart |
 | `airports.py` | Flyplass og rullebaner fra OurAirports, og tårnposisjon |
 | `n50.py` | N50 Kartdata: veier, bruer, bygninger og stedsnavn |
+| `matrikkel.py` | Matrikkelen: alle bygninger som punkt med type, brukt i 10 m-flisene |
 | `landcover.py` | N50 Arealdekke til én klasse per celle (flertall) |
 | `structures.py` | Bruer (dekkhøyde fra DOM) og bygninger med høyde |
 | `lights.py` | Nattlys (syntetisk) |
@@ -81,6 +82,7 @@ Flisformatet er beskrevet i [../CLAUDE.md](../CLAUDE.md).
 | `test_landcover.py` | Flertallsresampling av arealdekke |
 | `test_n50.py` | Rasterisering av veier, bruer og bygninger, og hva som tegnes oppå hva |
 | `test_tiles.py` | De bygde flisene: metadata, høyder mot fasitpunkter, rullebaner, tårn og stedsnavn |
+| `test_matrikkel.py` | Bygningshøyde etter type, og at flisene har hus også i tettbebyggelse |
 | `test_analysis.py` | Analysene mot tilfeller som kan regnes for hånd, og mot en uavhengig siktlinje |
 | `test_debrief.py` | Gjennomgangen mot tre flylogger i `../tests/fixtures/flights/` |
 

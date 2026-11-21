@@ -4,8 +4,9 @@ Høydekartet (DTM) røres ikke. Strukturene skrives som egen liste, og
 renderne legger dem oppå terrenget.
 
 Bruer:     vegsenterlinje fra N50 (medium = L), dekkhøyde fra DOM 1 m.
-Bygninger: posisjon fra N50. Store bygg (flater i N50) kan få høyde fra
-           DOM - DTM; bygningspunkter har NOMINELL høyde (N50 har ingen).
+Bygninger: posisjon fra N50, eller fra Matrikkelen der den brukes (10 m-flisene).
+           Store bygg (flater i N50) kan få høyde fra DOM - DTM; bygningspunkter
+           har NOMINELL høyde (ingen av kildene har høyde).
 """
 
 from __future__ import annotations
@@ -126,6 +127,7 @@ def build_structures(
     raw_dir: Path,
     ndsm: np.ndarray | None = None,
     seed: int = 7,
+    point_heights: np.ndarray | None = None,
 ) -> tuple[list[list], list[dict], np.ndarray]:
     """Returnerer (celleliste, brulinjer, justert feature-raster).
 
@@ -133,6 +135,7 @@ def build_structures(
     Brulinjer:  [{"width": m, "points": [[x, y, z], ...]}] i rutenettkoordinater.
     Brucellene fjernes fra feature-rasteret (bakken under er vann eller
     terreng); lave «bruer» gjøres om til vei.
+    `point_heights` er nominell høyde per celle for bygningspunkter (NaN = bruk HEIGHT_HOUSE).
     """
     features = features.copy()
     features[features == n50.BRIDGE] = n50.NONE
@@ -150,7 +153,8 @@ def build_structures(
     _, roof = building_heights(vectors, hgt, grid, ndsm)
     for row, col in zip(*np.nonzero(features == n50.BUILDING)):
         ground = max(0.0, float(hgt[row, col]))
-        top = ground + HEIGHT_HOUSE if np.isnan(roof[row, col]) else max(float(roof[row, col]), ground + HEIGHT_RANGE[0])
+        nominal = HEIGHT_HOUSE if point_heights is None or np.isnan(point_heights[row, col]) else float(point_heights[row, col])
+        top = ground + nominal if np.isnan(roof[row, col]) else max(float(roof[row, col]), ground + HEIGHT_RANGE[0])
         color = terrain.ROOFS[0] if noise[row, col] else terrain.ROOFS[1]
         items.append([int(col), int(row), BUILDING, round(ground, 1), round(top, 1), *color])
 

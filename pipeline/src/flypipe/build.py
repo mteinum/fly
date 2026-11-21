@@ -11,7 +11,7 @@ from PIL import Image
 from rasterio.features import rasterize
 from shapely.geometry import LineString
 
-from . import airports, analysis, dtm, landcover, lights, n50, structures, terrain
+from . import airports, analysis, dtm, landcover, lights, matrikkel, n50, structures, terrain
 from .areas import AREAS, Area
 from .crs import UTM33, grid_convergence_deg, scale_factor
 from .grid import GridSpec
@@ -69,13 +69,21 @@ def build(area: Area) -> Path:
         print(f"[{area.id}] N50 {area.n50_county}: arealdekke, veier, bruer, bygninger")
         lc = landcover.load_landcover(n50.gdb_path(area.n50_county, RAW), grid)
         vectors = n50.load_features(area.n50_county, grid, RAW, area.road_categories)
+        point_heights = None
+        if area.matrikkel_buildings:
+            # alle bygg fra Matrikkelen erstatter N50s utvalg av bygningspunkter. N50s flater (store bygg) beholdes:
+            # de gir form, og høyde fra DOM
+            print(f"[{area.id}] Matrikkelen {area.n50_county}: bygningspunkter")
+            n50_points = len(vectors["buildingPoints"])
+            vectors["buildingPoints"] = matrikkel.load_buildings(area.n50_county, grid, RAW)
+            point_heights = matrikkel.height_raster(vectors["buildingPoints"], grid)
         ndsm = None
         if area.dom_building_heights:
             print(f"[{area.id}] DOM {area.source_res:g} m (bygningshøyder)")
             ndsm = terrain.block_mean(dtm.load_source_dom(grid, area.source_res, raw), factor) - hgt
         print(f"[{area.id}] DOM 1 m rundt bruene (dekkhøyde)")
         items, bridge_lines, features = structures.build_structures(
-            vectors, n50.rasterize_features(vectors, grid), hgt, grid, raw, ndsm
+            vectors, n50.rasterize_features(vectors, grid), hgt, grid, raw, ndsm, point_heights=point_heights
         )
     airport["tower"] = airports.tower_position(airport, vectors["buildingAreas"] if area.n50_county else None, hgt, grid)
 
@@ -97,9 +105,11 @@ def build(area: Area) -> Path:
     building_xy = np.zeros((0, 2))
     clusters = np.zeros(0, dtype=int)
     if area.n50_county:
-        centres = [vectors["buildingPoints"].geometry, vectors["buildingAreas"].geometry.centroid]
+        # Matrikkelen har alle bygg som punkt. Med N50 må flatene (store bygg) tas med i tillegg til punktene.
+        centres = [vectors["buildingPoints"].geometry] + ([] if area.matrikkel_buildings else [vectors["buildingAreas"].geometry.centroid])
         building_xy = np.array([(p.x, p.y) for series in centres for p in series], dtype=float).reshape(-1, 2)
-        clusters = analysis.building_clusters(building_xy)
+        cluster_eps = analysis.CLUSTER_EPS_M if area.matrikkel_buildings else analysis.CLUSTER_EPS_GENERALISED_M
+        clusters = analysis.building_clusters(building_xy, cluster_eps)
     # Stedsnavn: høyden er terrenget under navnet. Brunavn flyttes opp på brua, til nærmeste punkt på dekket.
     names: list[dict] = n50.load_names(area.n50_county, grid, RAW) if area.n50_county else []
     deck = [(px, py, pz) for b in bridge_lines for px, py, pz in b["points"]]
@@ -129,7 +139,7 @@ def build(area: Area) -> Path:
         bx, by = (building_xy[:, 0] - grid.west) / area.cell, (grid.north - building_xy[:, 1]) / area.cell
         ok = (bx >= 0) & (bx < grid.width) & (by >= 0) & (by < grid.height)
         placed = (by[ok].astype(int), bx[ok].astype(int), clusters[ok] >= 0)
-        glow = lights.night_lights(lc, features, n50.major_road_mask(vectors, grid), buildings=placed, cell=area.cell)
+        glow = lights.night_lights(lc, features, n50.major_road_mask(vectors, grid), buildings=placed, cell=area.cell, every_house=area.matrikkel_buildings)
         Image.fromarray(glow, "RGB").save(out / "lights.png", optimize=True)
     if lc is None:
         lc = np.where(hgt <= terrain.SEA_LEVEL_MAX, landcover.CLASSES[1].code, landcover.UNKNOWN).astype(np.uint8)
@@ -168,7 +178,7 @@ def build(area: Area) -> Path:
         "scaleFactor": round(scale_factor(cx, cy), 6),
         "heightmap": {"file": "heightmap.f32", "dtype": "float32", "byteOrder": "little", "unit": "m"},
         "colormap": {"file": "colormap.png", "hillshadeBaked": area.bake_hillshade},
-        "lights": {"file": "lights.png", "placement": "syntetisk: langs veier, i bebygde flater og ved bygninger fra N50; bygningsklynger avgjør hvor det er gatelys"} if has_lights else None,
+        "lights": {"file": "lights.png", "placement": "syntetisk: langs veier, i bebygde flater og ved bygningene; bygningsklynger avgjør hvor det er gatelys"} if has_lights else None,
         "landcover": {
             "unknownShare": round(float((lc == landcover.UNKNOWN).mean()), 5),
             "file": "landcover.bin",
@@ -196,7 +206,7 @@ def build(area: Area) -> Path:
             "bridgeHeights": "DOM 1 m (nhm_dom_topo_25833), median langs senterlinja per celle",
             "bridgeLines": len(bridge_lines),
             "buildingHeights": (
-                f"punkt: nominell {structures.HEIGHT_HOUSE:g} m; flate: "
+                ("punkt: nominell etter bygningstype (Matrikkelen har ikke høyde); flate: " if area.matrikkel_buildings else f"punkt: nominell {structures.HEIGHT_HOUSE:g} m; flate: ")
                 + ("median av DOM - DTM innenfor flaten" if area.dom_building_heights else f"nominell {structures.HEIGHT_LARGE:g} m")
             ),
         },
@@ -215,7 +225,12 @@ def build(area: Area) -> Path:
             "roadCells": int((features == n50.ROAD).sum()),
             "roadKm": round(float(vectors["roads"].length.sum()) / 1000, 1),
             "bridgeKm": round(float(vectors["bridges"].length.sum()) / 1000, 1),
-            "buildings": int(len(vectors["buildingPoints"]) + len(vectors["buildingAreas"])),
+            "buildings": int(len(vectors["buildingPoints"]) + (0 if area.matrikkel_buildings else len(vectors["buildingAreas"]))),
+            "buildingSource": (
+                f"Matrikkelen - Bygningspunkt, {area.n50_county}: bygg som står, uten garasjer, uthus og naust (N50 hadde {n50_points} punkter). "
+                "Store bygg har i tillegg form fra N50"
+                if area.matrikkel_buildings else "N50 Kartdata"
+            ),
         },
         "analysis": {
             "towerViewshed": viewshed,
@@ -225,11 +240,12 @@ def build(area: Area) -> Path:
                 "clearance": f"laveste klaring fra glidebanen til terreng, bygninger og bruer i et belte på ±{analysis.CORRIDOR_HALF_WIDTH_M:g} m, "
                 f"fra {analysis.CLEARANCE_FROM_M:g} til {analysis.APPROACH_DIST_M:g} m før baneenden",
             },
-            "buildingClusters": analysis.cluster_summary(clusters),
+            "buildingClusters": analysis.cluster_summary(clusters, cluster_eps if area.n50_county else analysis.CLUSTER_EPS_M),
         },
         "airports": [airport],
         "attribution": [
-            "Elevation data (DTM, DOM) and N50 map data: © Kartverket (CC BY 4.0)",
+            "Elevation data (DTM, DOM), N50 map data and building points (Matrikkelen): © Kartverket (CC BY 4.0)"
+            if area.matrikkel_buildings else "Elevation data (DTM, DOM) and N50 map data: © Kartverket (CC BY 4.0)",
             "Airport data: OurAirports (public domain)",
         ],
     }
