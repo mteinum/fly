@@ -284,6 +284,19 @@ og hva som ble endret.
   dobbelt så mange i den venstre, spredtbygde halvdelen av bildet).
 - Et bilde er ikke en måling. Tell når det er mulig.
 
+**35. Autopiloten tok på seg landinger den ikke kunne rekke**
+- Meldt av brukeren: «autopilot lander helt i enden av rullebanen».
+- Flyloggen viste hvorfor: autopiloten ble koblet inn 2,2 km før terskelen
+  i 444 m høyde, 22 merker over glidebanen. Den gikk ned så bratt den kunne
+  (1575 fot/min), nådde bakken 1,9 km inne på banen, slapp taket da banen
+  tok slutt, og flyet traff bakken bak den.
+- Testene mine startet alle fra innflygingens startpunkt eller litt til
+  siden. Ingen prøvde å koble den inn sent og høyt, som er det en spiller
+  gjør.
+- Rettet: den avslår («too high to land, go around») når vinkelen ned mot
+  siktepunktet er over 5,5°. Testen bruker tallene fra loggen.
+- Første feil som ble funnet med flyloggen i stedet for med gjetting.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

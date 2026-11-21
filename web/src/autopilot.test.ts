@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { autopilot } from "./autopilot";
 import { gradeLanding } from "./diploma";
+import { glidePathAltitude } from "./guidance";
 import { moveFlaps, startApproach, toggleGear, update } from "./physics";
 import { newPlane, type Plane } from "./plane";
 import type { Runway, RunwayEnd, Terrain } from "./terrain";
@@ -14,7 +15,7 @@ function fly(t: Terrain, rw: Runway, end: RunwayEnd, P: Plane, dt: number): Plan
   const airport = t.meta.airports[0];
   for (let i = 0; i < 300 / dt && P.state === "fly"; i++) {
     const cmd = autopilot(P, t, rw, end);
-    if (!cmd) break;
+    if ("unable" in cmd) break;
     if (cmd.gearDown !== P.gearDown) toggleGear(P, quiet);
     if (cmd.flapCfg !== P.flapCfg) moveFlaps(P, Math.sign(cmd.flapCfg - P.flapCfg), quiet);
     update(P, t, airport, cmd.keys, dt, quiet);
@@ -67,7 +68,28 @@ describe("autopilot", () => {
     const P = newPlane();
     startApproach(P, t, end);
     P.hdg += Math.PI;
-    expect(autopilot(P, t, rw, end)).toBeNull();
+    expect(autopilot(P, t, rw, end)).toEqual({ unable: "no runway ahead" });
+  });
+
+  it("tar ikke på seg en landing den ikke rekker: 440 m høyde 2,2 km før terskelen", () => {
+    // fra en ekte logg: autopiloten ble koblet inn her, gikk ned så bratt den kunne og satte flyet ned bak banen
+    const P = newPlane(), h = (end.headingGridDeg * Math.PI) / 180, d = (2200 + end.displacedThresholdM) / t.cell;
+    startApproach(P, t, end);
+    Object.assign(P, { x: end.x - Math.sin(h) * d, y: end.y + Math.cos(h) * d, alt: 444, pitch: 0, gearDown: true, gear: 1, flapCfg: 4, flaps: 4 });
+    expect(autopilot(P, t, rw, end)).toEqual({ unable: "too high to land, go around" });
+  });
+
+  it("det den tar på seg, lander den i første halvdel av banen", () => {
+    // 150 m over glidebanen 4 km ute er innenfor grensen
+    for (const [distM, extraM] of [[4000, 150], [2500, 80], [6000, 250]]) {
+      const P = newPlane(), h = (end.headingGridDeg * Math.PI) / 180, d = distM / t.cell;
+      startApproach(P, t, end);
+      Object.assign(P, { x: end.x - Math.sin(h) * d, y: end.y + Math.cos(h) * d, alt: glidePathAltitude(t, end, distM) + extraM, gearDown: true, gear: 1, flapCfg: 4, flaps: 4 });
+      expect("unable" in autopilot(P, t, rw, end), `${distM} m, +${extraM} m`).toBe(false);
+      fly(t, rw, end, P, 1 / 60);
+      expect(P.state, `${distM} m, +${extraM} m`).toBe("landed");
+      expect(P.touchdown!.pastThresholdM, `${distM} m, +${extraM} m`).toBeLessThan(900);
+    }
   });
 
   it("setter ut understell og klaffer i rekkefølge, og aldri over fartsgrensen for dem", () => {

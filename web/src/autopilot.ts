@@ -28,6 +28,9 @@ const FLARE_HEIGHT_M = 12; // herfra flates det ut
 const FLARE_KT = 126;
 const LOOKAHEAD_M = 900; // siktepunkt på senterlinja foran flyet: kortere gir krappere inndreining
 const MAX_INTERCEPT = 30 * RAD, MAX_BANK = 0.4;
+const MAX_SINK = 8; // m/s: brattere enn dette går den ikke ned
+/** Bratteste vinkel ned mot siktepunktet den tar på seg. Over dette rekker den ikke ned før banen er brukt opp. */
+const MAX_DESCENT_DEG = 5.5;
 
 export interface AutopilotCommand {
   /** Utslag på rorene og gassen, i samme form som tastene. */
@@ -39,14 +42,17 @@ export interface AutopilotCommand {
   speedKt: number;
 }
 
-/** Hva autopiloten vil gjøre nå for å lande fra baneenden `end`, eller null når den ikke kan (flyr bort fra banen eller er forbi den). */
-export function autopilot(P: Plane, t: Terrain, rw: Runway, end: RunwayEnd): AutopilotCommand | null {
+/** Autopiloten kan ikke lande herfra. `unable` er grunnen, slik den vises for piloten. */
+export interface AutopilotUnable { unable: string }
+
+/** Hva autopiloten vil gjøre nå for å lande fra baneenden `end`, eller hvorfor den ikke kan. */
+export function autopilot(P: Plane, t: Terrain, rw: Runway, end: RunwayEnd): AutopilotCommand | AutopilotUnable {
   const h = end.headingGridDeg * RAD, cell = t.cell;
   const ex = (P.x - end.x) * cell, ey = (P.y - end.y) * cell;
   // langs landingsretningen (nord = -y), og til høyre for den: samme regnestykke som i guidance.ts
   const along = ex * Math.sin(h) - ey * Math.cos(h), right = ex * Math.cos(h) + ey * Math.sin(h);
   const length = Math.hypot(rw.ends[1].x - rw.ends[0].x, rw.ends[1].y - rw.ends[0].y) * cell;
-  if (along > length || Math.cos(P.hdg - h) < 0) return null;
+  if (along > length || Math.cos(P.hdg - h) < 0) return { unable: "no runway ahead" };
 
   // Kurs: sikt mot et punkt på senterlinja et stykke foran, og krenge etter kursfeilen
   const intercept = clamp(Math.atan2(right, LOOKAHEAD_M), -MAX_INTERCEPT, MAX_INTERCEPT);
@@ -58,8 +64,11 @@ export function autopilot(P: Plane, t: Terrain, rw: Runway, end: RunwayEnd): Aut
   const step = SCHEDULE.find((s) => toThreshold > s.beyondM)!;
   const agl = P.alt - Math.max(0, t.heightAt(P.x, P.y));
   const flare = toThreshold < 150 && agl < FLARE_HEIGHT_M;
+  // For høyt til å rekke ned: da ville den brukt opp banen i lufta og satt flyet ned bak den.
+  // Gjelder ikke i utflatingen, der flyet er nede over banen.
+  if (!flare && agl > FLARE_HEIGHT_M && (toAim <= 0 || (P.alt - aim.elevationM) / toAim > Math.tan(MAX_DESCENT_DEG * RAD))) return { unable: "too high to land, go around" };
   const pathAlt = aim.elevationM + Math.max(0, toAim) * Math.tan(GLIDE_ANGLE_DEG * RAD);
-  let sink = clamp(-P.spd * Math.sin(GLIDE_ANGLE_DEG * RAD) - 0.25 * (P.alt - pathAlt), -8, 3);
+  let sink = clamp(-P.spd * Math.sin(GLIDE_ANGLE_DEG * RAD) - 0.25 * (P.alt - pathAlt), -MAX_SINK, 3);
   // utflating: synkeraten avtar med høyden, til ca. 1 m/s i det hjulene tar bakken
   if (flare || toAim <= 0) sink = Math.max(sink, -(0.8 + 0.25 * Math.max(0, agl - 1.5)));
   const pitch = Math.asin(clamp(sink / P.spd, -0.3, 0.3));

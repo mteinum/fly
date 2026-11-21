@@ -85,7 +85,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     if (!game.autopilot || P.state !== "fly") return K;
     if (MANUAL.some((k) => K[k])) { setAutopilot(false); return K; }
     const cmd = autopilot(P, terrain, runwayOf(ends[endIdx]), ends[endIdx]);
-    if (!cmd) { setAutopilot(false, ": no runway ahead"); return K; }
+    if ("unable" in cmd) { setAutopilot(false, `: ${cmd.unable}`); return K; }
     if (cmd.gearDown !== P.gearDown) toggleGear(P, say);
     if (cmd.flapCfg !== P.flapCfg) moveFlaps(P, Math.sign(cmd.flapCfg - P.flapCfg), say);
     game.apTarget = { speedKt: cmd.speedKt, courseTrueDeg: ends[endIdx].headingTrueDeg };

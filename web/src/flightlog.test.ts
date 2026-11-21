@@ -39,7 +39,7 @@ function fly(name: string): FlightLog {
   for (let i = 0; i < 300 / dt && P.state === "fly"; i++) {
     const h = (end.headingGridDeg * Math.PI) / 180;
     const along = ((P.x - end.x) * Math.sin(h) - (P.y - end.y) * Math.cos(h)) * t.cell;
-    const cmd = pilot(autopilot(P, t, rw, end)!, P, end.displacedThresholdM - along);
+    const cmd = pilot(autopilot(P, t, rw, end) as AutopilotCommand, P, end.displacedThresholdM - along);
     if (cmd.gearDown !== P.gearDown) toggleGear(P, say);
     if (cmd.flapCfg !== P.flapCfg) moveFlaps(P, Math.sign(cmd.flapCfg - P.flapCfg), say);
     update(P, t, airport, cmd.keys, dt, say);
