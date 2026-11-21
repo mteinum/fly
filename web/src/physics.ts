@@ -61,6 +61,18 @@ export type Keys = Record<string, boolean | number | undefined>;
 const axis = (k: boolean | number | undefined): number => (typeof k === "number" ? clamp(k, 0, 1) : k ? 1 : 0);
 export type Say = (msg: string, seconds?: number) => void;
 
+const STICK = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+/** Hvor fort utslaget bygger seg opp mens en piltast holdes (per sekund): fullt utslag etter ca. 0,8 s. */
+export const STICK_RAMP = 1.25;
+
+/** Mykere stikke på tastatur: et kort trykk gir et lite utslag, og utslaget vokser mens tasten holdes.
+ *  Slippes tasten, går det rett til null. `held` husker utslaget mellom stegene. Gassen (W/S) er som før. */
+export function softStick(held: Record<string, number>, K: Keys, dt: number): Keys {
+  const out: Keys = { ...K };
+  for (const k of STICK) out[k] = held[k] = K[k] ? Math.min(1, (held[k] ?? 0) + STICK_RAMP * dt) : 0;
+  return out;
+}
+
 /** Posisjon relativt til banen: langs (m fra baneende 0) og på tvers (m fra senterlinja). */
 export function runwayOffset(t: Terrain, rw: Runway, x: number, y: number): { along: number; cross: number } {
   const [a, b] = rw.ends;

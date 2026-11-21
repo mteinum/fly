@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { APPROACH_DIST_M, moveFlaps, onRunway, runwayOffset, speedLimit, stallSpeed, startApproach, toggleGear, update } from "./physics";
+import { APPROACH_DIST_M, moveFlaps, onRunway, runwayOffset, softStick, speedLimit, stallSpeed, startApproach, toggleGear, update } from "./physics";
 import { newPlane } from "./plane";
 import { BRIDGE, BUILDING } from "./terrain";
 import { loadTestTerrain } from "./testTerrain";
@@ -201,5 +201,33 @@ describe("klaffer og understell", () => {
     for (let i = 0; i < 100 && P.state === "fly"; i++) update(P, t, airport, {}, 0.02, (m) => { said = m; });
     expect(P.state).toBe("crash");
     expect(said).toMatch(/^Belly landing/);
+  });
+});
+
+describe("myk stikke på tastatur", () => {
+  /** Hold en tast i `seconds` og se hvor mye flyet har endret stilling. */
+  const press = (key: string, seconds: number, soft: boolean) => {
+    const P = newPlane(), held = {}, dt = 1 / 60;
+    startApproach(P, t, le);
+    P.pitch = 0;
+    for (let i = 0; i < Math.round(seconds / dt); i++) update(P, t, airport, soft ? softStick(held, { [key]: true }, dt) : { [key]: true }, dt, quiet);
+    return P;
+  };
+
+  it("et kort trykk gir et lite utslag, mye mindre enn før", () => {
+    const tap = press("ArrowDown", 0.1, true).pitch, before = press("ArrowDown", 0.1, false).pitch;
+    expect(tap * 57.3).toBeLessThan(0.5); // under en halv grad
+    expect(before * 57.3).toBeGreaterThan(3);
+    expect(Math.abs(press("ArrowRight", 0.2, true).roll)).toBeLessThan(Math.abs(press("ArrowRight", 0.2, false).roll) / 3);
+  });
+
+  it("holdes tasten, kommer fullt utslag", () => {
+    const held = {};
+    let keys = softStick(held, { ArrowLeft: true }, 0.5);
+    expect(keys.ArrowLeft).toBeCloseTo(0.625);
+    keys = softStick(held, { ArrowLeft: true }, 0.5);
+    expect(keys.ArrowLeft).toBe(1);
+    expect(softStick(held, {}, 0.016).ArrowLeft).toBe(0); // slipp: rett til null
+    expect(softStick(held, { KeyW: true }, 0.016).KeyW).toBe(true); // gassen er uendret
   });
 });

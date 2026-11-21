@@ -3,7 +3,7 @@ import { autopilot } from "./autopilot";
 import { startTime } from "./clock";
 import { gradeLanding } from "./diploma";
 import { type FlightLog, FlightLogger } from "./flightlog";
-import { type Keys, moveFlaps, startApproach, toggleGear, update } from "./physics";
+import { type Keys, moveFlaps, softStick, startApproach, toggleGear, update } from "./physics";
 import { Recorder, REPLAY_HOLD } from "./replay";
 import { newPlane, type Plane } from "./plane";
 import { type SkyState, skyState } from "./sky";
@@ -68,6 +68,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   let endIdx = Math.max(0, ends.findIndex((e) => e.ident === params.get("rwy")));
   const P = newPlane();
   const K: Keys = {};
+  const held: Record<string, number> = {}; // hvor lenge piltastene har vært holdt, som utslag 0-1
   const msg: Message = { text: "", t: 0 };
   const say = (text: string, t = 3) => { msg.text = text; msg.t = t; };
   const approach = { count: 0, ident: ends[endIdx].ident, autopilot: false, platformFt: 0 };
@@ -80,12 +81,13 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     say(on ? "Autopilot on" : `Autopilot off${why}`, 2.5);
   };
   /** Kontrollene dette steget: pilotens taster, eller autopilotens utslag når den flyr. */
-  const controls = (): Keys => {
+  const controls = (dt: number): Keys => {
+    const manual = softStick(held, K, dt);
     game.apTarget = null;
-    if (!game.autopilot || P.state !== "fly") return K;
-    if (MANUAL.some((k) => K[k])) { setAutopilot(false); return K; }
+    if (!game.autopilot || P.state !== "fly") return manual;
+    if (MANUAL.some((k) => K[k])) { setAutopilot(false); return manual; }
     const cmd = autopilot(P, terrain, runwayOf(ends[endIdx]), ends[endIdx]);
-    if ("unable" in cmd) { setAutopilot(false, `: ${cmd.unable}`); return K; }
+    if ("unable" in cmd) { setAutopilot(false, `: ${cmd.unable}`); return manual; }
     if (cmd.gearDown !== P.gearDown) toggleGear(P, say);
     if (cmd.flapCfg !== P.flapCfg) moveFlaps(P, Math.sign(cmd.flapCfg - P.flapCfg), say);
     game.apTarget = { speedKt: cmd.speedKt, courseTrueDeg: ends[endIdx].headingTrueDeg };
@@ -139,7 +141,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
       }
       if (msg.t > 0) msg.t -= dt;
       const wasFlying = P.state === "fly";
-      const again = update(P, terrain, airport, controls(), dt, say);
+      const again = update(P, terrain, airport, controls(dt), dt, say);
       if (wasFlying) logger.step(P, dt, game.autopilot);
       if (wasFlying && P.state !== "fly") game.flightLog = logger.finish(P, msg.text, P.touchdown && gradeLanding(P.touchdown), game.autopilot) ?? game.flightLog;
       if (P.state !== "fly") game.autopilot = false;
