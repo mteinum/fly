@@ -49,7 +49,7 @@ export class FlightLogger {
   private log: FlightLog | null = null;
   private clock = 0;
   private next = 0;
-  private was = { gearDown: false, flapCfg: 0, ap: false, overspeed: false, stall: false, gearNotDown: false };
+  private was = { gearDown: false, flapCfg: 0, speedBrake: false, ap: false, overspeed: false, stall: false, gearNotDown: false };
   private rw!: Runway;
   private end!: RunwayEnd;
 
@@ -60,7 +60,7 @@ export class FlightLogger {
     const t = this.terrain, h = (end.headingGridDeg * Math.PI) / 180, d = end.displacedThresholdM / t.cell;
     const [east, north] = t.gridToUtm(end.x + Math.sin(h) * d, end.y - Math.cos(h) * d);
     this.rw = rw; this.end = end; this.clock = 0; this.next = SAMPLE_INTERVAL;
-    this.was = { gearDown: P.gearDown, flapCfg: P.flapCfg, ap: false, overspeed: false, stall: false, gearNotDown: false };
+    this.was = { gearDown: P.gearDown, flapCfg: P.flapCfg, speedBrake: P.speedBrake, ap: false, overspeed: false, stall: false, gearNotDown: false };
     this.log = {
       version: 1, area: t.meta.id, icao: this.airport.icao, airportName: this.airport.name, runway: end.ident,
       startedUtc: startedUtc.toISOString(), crs: t.meta.crs, gridConvergenceDeg: t.meta.gridConvergenceDeg,
@@ -79,9 +79,10 @@ export class FlightLogger {
     const note = (what: string) => log.events.push({ t: round(this.clock), what });
     if (P.gearDown !== was.gearDown) note(P.gearDown ? "gear lever down" : "gear lever up");
     if (P.flapCfg !== was.flapCfg) note(`flap lever ${P.flapCfg}`);
+    if (P.speedBrake !== was.speedBrake) note(P.speedBrake ? "speed brakes out" : "speed brakes in");
     if (ap !== was.ap) note(ap ? "autopilot on" : "autopilot off");
     for (const k of ["overspeed", "stall", "gearNotDown"] as const) if (w[k] !== was[k]) note(`warning ${k} ${w[k] ? "on" : "off"}`);
-    this.was = { gearDown: P.gearDown, flapCfg: P.flapCfg, ap, ...w };
+    this.was = { gearDown: P.gearDown, flapCfg: P.flapCfg, speedBrake: P.speedBrake, ap, ...w };
     if (this.clock >= this.next - 1e-9) { this.next += SAMPLE_INTERVAL; this.sample(P, ap); }
   }
 

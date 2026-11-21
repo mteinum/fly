@@ -337,6 +337,7 @@ function ewd(g: G2D, x: number, y: number, d: Data, body: number): void {
       ["FLAPS FULL", "FLAPS.......FULL", P.flaps >= 3.98],
     ];
     text(g, "LDG", 3, 77.6, 3.9, GREEN, "left", MONO);
+    if (P.brake > 0.05) text(g, "SPEED BRK", 64, 77.6, 3.9, GREEN, "left", MONO); // som på flyet: grønn melding når de er ute
     memo.forEach(([done, todo, ok], i) => text(g, ok ? done : todo, 14, 77.6 + i * 4.8, 3.9, ok ? GREEN : CYAN, "left", MONO));
   }
   g.restore();

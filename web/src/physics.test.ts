@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { APPROACH_DIST_M, moveFlaps, onRunway, runwayOffset, softStick, speedLimit, stallSpeed, startApproach, toggleGear, update } from "./physics";
+import { APPROACH_DIST_M, moveFlaps, onRunway, PITCH_RATE, runwayOffset, softStick, speedLimit, stallSpeed, startApproach, toggleGear, toggleSpeedBrake, update } from "./physics";
 import { newPlane } from "./plane";
 import { BRIDGE, BUILDING } from "./terrain";
 import { loadTestTerrain } from "./testTerrain";
@@ -217,7 +217,7 @@ describe("myk stikke på tastatur", () => {
   it("et kort trykk gir et lite utslag, mye mindre enn før", () => {
     const tap = press("ArrowDown", 0.1, true).pitch, before = press("ArrowDown", 0.1, false).pitch;
     expect(tap * 57.3).toBeLessThan(0.5); // under en halv grad
-    expect(before * 57.3).toBeGreaterThan(3);
+    expect(before * 57.3).toBeGreaterThan(1); // uten opptrapping: fullt utslag fra første bilde
     expect(Math.abs(press("ArrowRight", 0.2, true).roll)).toBeLessThan(Math.abs(press("ArrowRight", 0.2, false).roll) / 3);
   });
 
@@ -263,5 +263,46 @@ describe("fyr", () => {
     };
     expect(flyAt(1)).toBe("Hit the lighthouse!");
     expect(flyAt(0)).toBe("");
+  });
+});
+
+describe("luftbremser og stampefart", () => {
+  it("bremser flyet, går inn og ut på litt over et sekund, og er sperret med full klaff", () => {
+    const level = (brake: boolean) => {
+      const P = newPlane(), said: string[] = [];
+      startApproach(P, t, le);
+      P.alt = 1200;
+      if (brake) toggleSpeedBrake(P, (m) => said.push(m));
+      for (let i = 0; i < 600; i++) { P.pitch = 0; update(P, t, airport, {}, 1 / 60, quiet); }
+      return { P, said };
+    };
+    const clean = level(false).P, braked = level(true);
+    expect(braked.said).toEqual(["Speed brakes out"]);
+    expect(braked.P.brake).toBe(1);
+    expect(clean.spd - braked.P.spd).toBeGreaterThan(8); // minst 15 kt lavere etter 10 s med samme gass
+    // inn igjen
+    toggleSpeedBrake(braked.P, quiet);
+    for (let i = 0; i < 90; i++) update(braked.P, t, airport, {}, 1 / 60, quiet);
+    expect(braked.P.brake).toBe(0);
+    // full klaff: de kan ikke settes ut, og går inn av seg selv hvis de er ute
+    const P = newPlane(), said: string[] = [];
+    startApproach(P, t, le);
+    toggleSpeedBrake(P, quiet);
+    moveFlaps(P, 1, quiet); moveFlaps(P, 1, (m) => said.push(m));
+    expect(P.flapCfg).toBe(4);
+    expect(P.speedBrake).toBe(false);
+    expect(said.at(-1)).toBe("Flaps FULL, speed brakes in");
+    toggleSpeedBrake(P, (m) => said.push(m));
+    expect(P.speedBrake).toBe(false);
+    expect(said.at(-1)).toBe("Speed brakes inhibited with flaps FULL");
+  });
+
+  it("full stikke i ett sekund flytter nesen 11 grader, ikke 34", () => {
+    const P = newPlane();
+    startApproach(P, t, le);
+    P.pitch = 0;
+    for (let i = 0; i < 60; i++) update(P, t, airport, { ArrowDown: 1 }, 1 / 60, quiet);
+    expect((P.pitch * 180) / Math.PI).toBeCloseTo((PITCH_RATE * 180) / Math.PI, 0);
+    expect((P.pitch * 180) / Math.PI).toBeLessThan(12);
   });
 });

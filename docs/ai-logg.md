@@ -387,6 +387,14 @@ og hva som ble endret.
 - Ikke bekreftet: et stillbilde viser ikke flimmer. Brukeren må se om det
   er borte.
 
+**44. Stampefarten var tre ganger for høy**
+- Tilbakemelding fra en som flyr: «litt følsom i pitch når man håndflyr».
+- Full stikke flyttet nesen 34° i sekundet. Tallet var arvet fra den
+  første prototypen og aldri vurdert. Da piltastene ble gjort mykere
+  (kort trykk gir lite utslag), rørte jeg ikke selve farten.
+- Rettet: 11° i sekundet. Autopiloten bruker samme tall og lander fortsatt
+  med toppkarakter på alle baner.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

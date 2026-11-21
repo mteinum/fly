@@ -16,6 +16,10 @@ export const GEAR_LIMIT_KT = 280; // høyeste fart med understellet ute (VLE)
 export const MAX_LANDING_SPEED = 85; // m/s (165 kt)
 const GEAR_TIME = 8; // s fra oppe til nede
 const FLAP_RATE = 0.3; // klaffstillinger per sekund
+const BRAKE_TIME = 1.2; // s fra inne til helt ute
+const BRAKE_DRAG = 26; // m/s lavere toppfart med luftbremsene ute
+/** Største stampefart med full stikke (rad/s), ca. 11°/s. Var 34°/s, som var altfor kvikt å håndfly. */
+export const PITCH_RATE = 0.2;
 const APPROACH_FLAPS = 2;
 const APPROACH_SPEED = 82; // m/s (160 kt)
 
@@ -43,7 +47,7 @@ export function warnings(P: Plane, raFt: number): Warnings {
 }
 
 /** Fart (m/s) flyet går mot med gitt gass i flat flyging. */
-const targetSpeed = (P: Plane, thr: number): number => 40 + thr * (table(TOP_SPEED, P.flaps) - GEAR_DRAG * P.gear - 40);
+const targetSpeed = (P: Plane, thr: number): number => 40 + thr * (table(TOP_SPEED, P.flaps) - GEAR_DRAG * P.gear - 40) - BRAKE_DRAG * P.brake;
 /** Gassen (0-1) som holder `speed` (m/s) i flat flyging slik klaffer og understell står nå. */
 export const throttleFor = (P: Plane, speed: number): number => clamp((speed - 40) / (targetSpeed(P, 1) - 40), 0, 1);
 
@@ -123,7 +127,7 @@ export function startApproach(P: Plane, t: Terrain, end: RunwayEnd): void {
     y: end.y + Math.cos(hdg) * d,
     alt: glidePathAltitude(t, end, APPROACH_DIST_M), // på glidebanen som PFD viser
     hdg, spd: APPROACH_SPEED, pitch: -0.05, roll: 0, thr: 0,
-    gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, state: "fly", t: 0, touchdown: null,
+    gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, speedBrake: false, brake: 0, state: "fly", t: 0, touchdown: null,
   } satisfies Plane);
   // gass som holder startfarten i flat flyging
   P.thr = throttleFor(P, APPROACH_SPEED);
@@ -136,6 +140,14 @@ export function toggleGear(P: Plane, say: Say): void {
   say(P.gearDown ? "Gear down" : "Gear up", 2);
 }
 
+/** Luftbremsespaken. Virker bare i lufta, og ikke med full klaff (da er de sperret, som på A320). */
+export function toggleSpeedBrake(P: Plane, say: Say): void {
+  if (P.state !== "fly") return;
+  if (!P.speedBrake && P.flapCfg >= FLAP_NAMES.length - 1) { say("Speed brakes inhibited with flaps FULL", 2.5); return; }
+  P.speedBrake = !P.speedBrake;
+  say(P.speedBrake ? "Speed brakes out" : "Speed brakes in", 2);
+}
+
 /** Klaffspaken ett hakk ut (+1) eller inn (-1). */
 export function moveFlaps(P: Plane, step: number, say: Say): void {
   if (P.state !== "fly") return;
@@ -143,6 +155,7 @@ export function moveFlaps(P: Plane, step: number, say: Say): void {
   if (cfg === P.flapCfg) return;
   P.flapCfg = cfg;
   say(`Flaps ${FLAP_NAMES[cfg]}`, 2);
+  if (cfg >= FLAP_NAMES.length - 1 && P.speedBrake) { P.speedBrake = false; say("Flaps FULL, speed brakes in", 2.5); }
 }
 
 /** Ett fysikksteg. Returnerer true når flyet skal settes tilbake på innflyging. */
@@ -160,13 +173,14 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
   const rollT = 0.75 * (axis(K.ArrowRight) - axis(K.ArrowLeft));
   P.roll += (rollT - P.roll) * Math.min(1, 3 * dt);
   const pin = axis(K.ArrowDown) - axis(K.ArrowUp);
-  if (pin) P.pitch = clamp(P.pitch + pin * 0.6 * dt, -0.5, 0.5);
+  if (pin) P.pitch = clamp(P.pitch + pin * PITCH_RATE * dt, -0.5, 0.5);
   else P.pitch *= 1 - 0.5 * dt;
   P.thr = clamp(P.thr + 0.4 * dt * (axis(K.KeyW) - axis(K.KeyS)), 0, 1);
   P.gear = clamp(P.gear + ((P.gearDown ? 1 : -1) * dt) / GEAR_TIME, 0, 1);
   P.flaps += clamp(P.flapCfg - P.flaps, -FLAP_RATE * dt, FLAP_RATE * dt);
+  P.brake = clamp(P.brake + ((P.speedBrake ? 1 : -1) * dt) / BRAKE_TIME, 0, 1);
   // mer motstand gir også raskere fartsendring
-  const response = 0.35 * (1 + 0.075 * P.flaps + 0.2 * P.gear);
+  const response = 0.35 * (1 + 0.075 * P.flaps + 0.2 * P.gear + 0.3 * P.brake);
   P.spd += (targetSpeed(P, P.thr) - P.spd) * response * dt - G * Math.sin(P.pitch) * dt;
   if (P.spd < stallSpeed(P)) P.pitch -= 0.5 * dt;
   P.spd = Math.max(20, P.spd);

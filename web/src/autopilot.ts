@@ -8,7 +8,7 @@
  * SYNTETISK: tallene er valgt for spillets flymodell, ikke hentet fra en ekte A320.
  */
 import { aimPoint, GLIDE_ANGLE_DEG } from "./guidance";
-import { type Keys, stallSpeed, throttleFor } from "./physics";
+import { type Keys, PITCH_RATE, stallSpeed, throttleFor } from "./physics";
 import type { Plane } from "./plane";
 import type { Runway, RunwayEnd, Terrain } from "./terrain";
 
@@ -90,7 +90,7 @@ export function autopilot(P: Plane, t: Terrain, rw: Runway, end: RunwayEnd): Aut
   const keys: Keys = {};
   const push = (plus: string, minus: string, v: number) => { keys[plus] = Math.max(0, v); keys[minus] = Math.max(0, -v); };
   push("ArrowRight", "ArrowLeft", bank / 0.75); // rorutslaget er krengingen flyet går mot
-  push("ArrowDown", "ArrowUp", ((pitch - P.pitch) * 4) / 0.6); // pil ned = nese opp
+  push("ArrowDown", "ArrowUp", ((pitch - P.pitch) * 4) / PITCH_RATE); // pil ned = nese opp
   push("KeyW", "KeyS", ((thr - P.thr) * 2) / 0.4);
   return { keys, gearDown: step.gear, flapCfg: step.flaps, speedKt: speed * KT };
 }

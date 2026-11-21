@@ -41,6 +41,7 @@ const color = (c: RGB): THREE.Color => new THREE.Color().setRGB(c[0] / 255, c[1]
 
 /** Utslag i grader for klaffstilling 0, 1, 2, 3 og FULL, som på A320 (1 = 1+F). */
 const FLAP_DEG = [0, 10, 15, 20, 35], SLAT_DEG = [0, 18, 22, 22, 27];
+const SPOILER_DEG = 40; // luftbremsenes utslag når de er helt ute (SYNTETISK tall)
 
 const SRGB_TO_LINEAR = Uint8Array.from({ length: 256 }, (_, v) => Math.round(255 * (v / 255 <= 0.04045 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4)));
 
@@ -60,6 +61,8 @@ export class GlRenderer {
   private gear = new THREE.Group();
   /** Klaffer (bak) og slats (foran) på vingene: hver plate glir ut og vipper ned med klaffstillingen. */
   private highLift: { panel: THREE.Mesh; chord: number; slat: boolean }[] = [];
+  /** Luftbremser: plater oppå vingene som vippes opp. */
+  private spoilers: THREE.Mesh[] = [];
   private towerMesh = new THREE.Group();
   private scopeCamera = new THREE.PerspectiveCamera(10, SCOPE.w / SCOPE.h, 5, 150000);
   private shadow: THREE.Mesh;
@@ -510,6 +513,17 @@ export class GlRenderer {
         this.highLift.push({ panel, chord, slat });
       }
     };
+    // Luftbremser (spoilere): plater oppå ytre del av vingen, hengslet i forkant, som vippes opp bakover
+    for (const side of [1, -1]) {
+      const [ax, az, bx, bz] = side > 0 ? [6.2, 1.9, 12.4, 3.4] : [-12.4, 3.4, -6.2, 1.9];
+      const group = new THREE.Group();
+      group.position.set((ax + bx) / 2, -0.86, (az + bz) / 2);
+      group.rotation.y = Math.atan2(-(bz - az), bx - ax);
+      const panel = new THREE.Mesh(new THREE.BoxGeometry(Math.hypot(bx - ax, bz - az), 0.1, 1.1).translate(0, 0, 0.55), plate);
+      group.add(panel);
+      body.add(group);
+      this.spoilers.push(panel);
+    }
     hinge(2.3, 3.55, 5.6, 3.4, 1.7, false); // indre klaff
     hinge(5.8, 3.45, 12.6, 5.12, 1.4, false); // ytre klaff
     hinge(2.6, -3.63, 16.4, 4.26, 0.75, true); // slats langs hele forkanten
@@ -676,6 +690,10 @@ export class GlRenderer {
     this.towerMesh.visible = cam !== "tower"; // i tårnkameraet står vi inne i det
     this.gear.visible = P.gear > 0.02;
     this.gear.scale.y = Math.max(P.gear, 0.02);
+    for (const panel of this.spoilers) {
+      panel.visible = P.brake > 0.02;
+      panel.rotation.x = (-SPOILER_DEG * P.brake * Math.PI) / 180; // negativ vinkel løfter bakkanten
+    }
     // Klaffer og slats: utslag i grader per klaffstilling (0, 1, 2, 3, FULL), interpolert mens de går
     const fi = Math.min(Math.floor(P.flaps), FLAP_DEG.length - 2), ff = P.flaps - fi;
     const flapDeg = FLAP_DEG[fi] + (FLAP_DEG[fi + 1] - FLAP_DEG[fi]) * ff, slatDeg = SLAT_DEG[fi] + (SLAT_DEG[fi + 1] - SLAT_DEG[fi]) * ff;

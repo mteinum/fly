@@ -3,7 +3,7 @@ import { autopilot } from "./autopilot";
 import { startTime } from "./clock";
 import { gradeLanding } from "./diploma";
 import { type FlightLog, FlightLogger } from "./flightlog";
-import { type Keys, moveFlaps, softStick, startApproach, toggleGear, update } from "./physics";
+import { type Keys, moveFlaps, softStick, startApproach, toggleGear, toggleSpeedBrake, update } from "./physics";
 import { Recorder, REPLAY_HOLD } from "./replay";
 import { newPlane, type Plane } from "./plane";
 import { type SkyState, skyState } from "./sky";
@@ -166,6 +166,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     if (e.code === "KeyT") { endIdx = (endIdx + 1) % ends.length; reset(); }
     if (e.code === "KeyA") setAutopilot(!game.autopilot);
     if (e.code === "KeyG") toggleGear(P, say);
+    if (e.code === "KeyB") toggleSpeedBrake(P, say);
     if (e.code === "KeyF") moveFlaps(P, 1, say);
     if (e.code === "KeyV") moveFlaps(P, -1, say);
     if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
@@ -179,6 +180,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   document.getElementById("tCam")!.onclick = toggleCam;
   document.getElementById("tAuto")!.onclick = () => setAutopilot(!game.autopilot);
   document.getElementById("tGear")!.onclick = () => toggleGear(P, say);
+  document.getElementById("tBrake")!.onclick = () => toggleSpeedBrake(P, say);
   document.getElementById("tFlapOut")!.onclick = () => moveFlaps(P, 1, say);
   document.getElementById("tFlapIn")!.onclick = () => moveFlaps(P, -1, say);
   document.getElementById("tTime")!.onclick = () => { game.time += 4 * TIME_STEP_MS; };
@@ -197,6 +199,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   // ?ap: la autopiloten fly fra start
   if (params.has("ap")) setAutopilot(true);
   // ?flaps=0-4: start med klaffene i denne stillingen (til å se dem på flyet)
+  if (params.has("brake")) Object.assign(P, { speedBrake: true, brake: 1 }); // ?brake: start med luftbremsene ute
   const flapsAt = params.has("flaps") ? Math.round(Number(params.get("flaps"))) : NaN;
   if (flapsAt >= 0 && flapsAt <= 4) Object.assign(P, { flapCfg: flapsAt, flaps: flapsAt });
   if (params.get("cfg") === "full") Object.assign(P, { gearDown: true, gear: 1, flapCfg: 4, flaps: 4 });

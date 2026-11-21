@@ -7,8 +7,8 @@ export const REPLAY_SECONDS = 5;
 export const REPLAY_HOLD = 1.2;
 
 /** Det rendereren trenger for å tegne flyet. */
-type Frame = Pick<Plane, "x" | "y" | "alt" | "hdg" | "pitch" | "roll" | "gear" | "flaps" | "thr" | "spd"> & { t: number };
-const KEYS = ["x", "y", "alt", "hdg", "pitch", "roll", "gear", "flaps", "thr", "spd"] as const;
+type Frame = Pick<Plane, "x" | "y" | "alt" | "hdg" | "pitch" | "roll" | "gear" | "flaps" | "brake" | "thr" | "spd"> & { t: number };
+const KEYS = ["x", "y", "alt", "hdg", "pitch", "roll", "gear", "flaps", "brake", "thr", "spd"] as const;
 
 export class Recorder {
   private frames: Frame[] = [];

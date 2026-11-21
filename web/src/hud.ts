@@ -57,7 +57,7 @@ export function drawHud(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImag
     `ALT ${Math.round(P.alt)} m  AGL ${Math.round(P.alt - gh)}`,
     `SPD ${Math.round(P.spd * 1.944)} kt  THR ${Math.round(P.thr * 100)}%`,
     `${airport.icao} ${dist.toFixed(1)} km  HDG ${pad3(t.trueHeadingDeg(P.hdg))}`,
-    `FLAPS ${FLAP_NAMES[P.flapCfg]}  GEAR ${P.gear >= 1 ? "DOWN" : P.gear <= 0 ? "UP" : "..."}  ${formatOslo(game.time)} LT`,
+    `FLAPS ${FLAP_NAMES[P.flapCfg]}  GEAR ${P.gear >= 1 ? "DOWN" : P.gear <= 0 ? "UP" : "..."}${P.brake > 0.05 ? "  SPD BRK" : ""}  ${formatOslo(game.time)} LT`,
   ];
   g.save();
   g.font = `7px ${FONT}`; g.textAlign = "left";

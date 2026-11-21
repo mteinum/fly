@@ -25,6 +25,8 @@ export interface Plane {
   gear: number; // understellets stilling: 0 = oppe, 1 = nede og låst
   flapCfg: number; // klaffspaken: 0, 1, 2, 3 eller 4 (FULL)
   flaps: number; // klaffenes stilling, 0-4, går gradvis mot flapCfg
+  speedBrake: boolean; // luftbremsespaken
+  brake: number; // luftbremsenes stilling: 0 = inne, 1 = helt ute
   state: PlaneState;
   t: number; // s igjen i ikke-flygende tilstand
   touchdown: Touchdown | null; // satt ved landing, nullstilt ved ny innflyging
@@ -33,5 +35,5 @@ export interface Plane {
 /** Nytt fly i landingsoppsett: understell nede, full klaff. */
 export const newPlane = (): Plane => ({
   x: 0, y: 0, alt: 0, hdg: 0, spd: 0, pitch: 0, roll: 0, thr: 0,
-  gearDown: true, gear: 1, flapCfg: 4, flaps: 4, state: "fly", t: 0, touchdown: null,
+  gearDown: true, gear: 1, flapCfg: 4, flaps: 4, speedBrake: false, brake: 0, state: "fly", t: 0, touchdown: null,
 });
