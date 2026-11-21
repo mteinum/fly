@@ -14,6 +14,7 @@ import { addGroundDetail, type GroundDetail } from "./groundDetail";
 import { buildRunwayDecal } from "./runwayDecal";
 import type { Plane } from "./plane";
 import type { RGB } from "./sky";
+import { CHURCH_TOWER_HALF_WIDTH } from "./physics";
 import { BUILDING, type Terrain, type TerrainAssets } from "./terrain";
 import { SCOPE, TOWER_FOV, towerView } from "./tower";
 import { H as SCREEN_H, horizonShift, OX, PANEL_TOP, TOP, TOWER_SILL } from "./screen";
@@ -122,6 +123,7 @@ export class GlRenderer {
 
     for (const rw of t.meta.airports[0].runways) this.scene.add(buildRunwayDecal(t, rw, map.anisotropy));
     this.buildingCount = this.addBuildings();
+    this.addChurchTowers();
     this.addBridges();
     this.runwayLights = this.pointLights(this.runwayLightPositions(), 3.2);
     this.lamps = this.pointLights(this.bridgeLampPositions(), 2.4);
@@ -280,6 +282,27 @@ export class GlRenderer {
     mesh.frustumCulled = false; // én felles avgrensning for hele kartet gir ingen gevinst
     this.scene.add(mesh);
     return count;
+  }
+
+  /** Kirketårn: hvitt tårn med mørkt spir. Plass og høyde er målt (DOM); formen er SYNTETISK:
+   *  alle tårn tegnes likt, kvadratiske, med spir på den øverste tredjedelen. */
+  private addChurchTowers(): void {
+    const towers = this.t.churchTowers, { cell } = this.t;
+    if (!towers.length) return;
+    const w = CHURCH_TOWER_HALF_WIDTH * 2;
+    const shaft = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0), this.buildingMat, towers.length);
+    // firesidet pyramide, dreid så sidene flukter med tårnet
+    const spire = new THREE.InstancedMesh(new THREE.ConeGeometry(Math.SQRT1_2, 1, 4).rotateY(Math.PI / 4).translate(0, 0.5, 0), this.buildingMat, towers.length);
+    const m = new THREE.Matrix4(), white = new THREE.Color(0xeeece4), roof = new THREE.Color(0x4a5a55);
+    towers.forEach(([x, y, base, top], k) => {
+      const eaves = base + (top - base) * 0.65;
+      m.makeScale(w, eaves - base, w).setPosition(x * cell, base, y * cell);
+      shaft.setMatrixAt(k, m); shaft.setColorAt(k, white);
+      m.makeScale(w * 1.15, top - eaves, w * 1.15).setPosition(x * cell, eaves, y * cell);
+      spire.setMatrixAt(k, m); spire.setColorAt(k, roof);
+    });
+    shaft.frustumCulled = spire.frustumCulled = false;
+    this.scene.add(shaft, spire);
   }
 
   /** Brudekker som bånd langs senterlinja, med høyde fra DOM i hvert punkt. */

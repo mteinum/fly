@@ -16,6 +16,7 @@ from pathlib import Path
 import geopandas as gpd
 import numpy as np
 from rasterio.features import rasterize
+from scipy.ndimage import map_coordinates
 
 from . import dtm, n50, terrain
 from .grid import GridSpec
@@ -35,6 +36,11 @@ BRIDGE_WIDTH_DEFAULT = 8.0
 HEIGHT_HOUSE = 7.0  # m, bygningspunkt (enebolig, hytte, naust ...)
 HEIGHT_LARGE = 12.0  # m, stor bygning når DOM ikke brukes
 HEIGHT_RANGE = (4.0, 80.0)  # m, grenser for høyde målt fra DOM
+
+# Kirketårn, lest ut av DOM 1 m rundt kirkens punkt i Matrikkelen
+TOWER_SEARCH_RADIUS = 20.0  # m: tårnet står på kirka, og punktet ligger et sted i bygget
+TOWER_MIN_HEIGHT = 16.0  # m over bakken: lavere enn dette er et kapell eller en kirke uten tårn
+TOWER_MAX_TIP_AREA = 30  # m2 innen 3 m av toppen: et tårn er smalt øverst, et stort tak er det ikke
 
 
 def sample_bridges(bridges: gpd.GeoDataFrame, raw_dir: Path) -> list[dict]:
@@ -117,6 +123,47 @@ def building_heights(vectors: dict[str, gpd.GeoDataFrame], hgt: np.ndarray, grid
         height.ravel()[cells] = h
         roof.ravel()[cells] = float(np.median(ground[cells])) + h
     return height, roof
+
+
+def church_towers(churches: gpd.GeoDataFrame, hgt: np.ndarray, grid: GridSpec, raw_dir: Path) -> list[list[float]]:
+    """Kirketårn som [x, y, bunn, topp]: posisjon i rutenettkoordinater, høyder i m (NN2000).
+
+    Matrikkelen sier hvilke bygg som er kirker, men ikke om de har tårn eller hvor høyt det er. Det leses
+    ut av overflatemodellen (DOM 1 m): høyeste punkt innen 20 m fra kirkens punkt er tårnet, hvis det
+    er høyt nok og smalt øverst. Posisjon og høyde er altså MÅLT, med to forbehold:
+    - Et høyt, slankt tre ved kirka kan bli tatt for et tårn.
+    - Tynne spir er smalere enn 1 m og kommer ikke med: tårnet er minst så høyt som dette.
+    """
+    r = int(TOWER_SEARCH_RADIUS) + 2
+    out = []
+    for p in churches.geometry:
+        x, y = int(round(p.x)), int(round(p.y))
+        gx, gy = grid.utm_to_grid(p.x, p.y)
+        if not (r / grid.cell <= gx < grid.width - r / grid.cell and r / grid.cell <= gy < grid.height - r / grid.cell):
+            continue  # for nær kartkanten til å lese et helt vindu
+        dom, t = dtm.load_dom_window(x - r, y - r, x + r, y + r, raw_dir / "churches")
+        rows, cols = np.indices(dom.shape)
+        # cellesentrenes avstand fra kirkens punkt
+        east, north = t.c + cols + 0.5, t.f - rows - 0.5
+        near = np.hypot(east - p.x, north - p.y) <= TOWER_SEARCH_RADIUS
+        # Høyde over terrenget i HVERT punkt, ikke over bakken ved kirka: i en bakke ville terrenget 20 m unna
+        # ellers blitt regnet som tårn. Terrenget er DTM i spillrutenettet, interpolert mellom cellesentrene.
+        terrain_here = map_coordinates(hgt, [(grid.north - north) / grid.cell - 0.5, (east - grid.west) / grid.cell - 0.5], order=1, mode="nearest")
+        above = np.where(near, dom - np.maximum(terrain_here, 0), -np.inf)
+        top = float(above.max())
+        if top < TOWER_MIN_HEIGHT or int((above > top - 3).sum()) > TOWER_MAX_TIP_AREA:
+            continue
+        i, j = np.unravel_index(int(np.argmax(above)), dom.shape)
+        tx, ty = grid.utm_to_grid(float(east[i, j]), float(north[i, j]))
+        ground = max(0.0, float(terrain_here[i, j]))
+        out.append([round(tx, 3), round(ty, 3), round(ground, 1), round(ground + min(top, HEIGHT_RANGE[1]), 1)])
+    # To kirkepunkter tett på hverandre (kirke og kapell, eller to registreringer) finner samme tårn: behold det høyeste
+    out.sort(key=lambda t: t[2] - t[3])
+    kept: list[list[float]] = []
+    for t in out:
+        if all(np.hypot(t[0] - k[0], t[1] - k[1]) * grid.cell > 2 * TOWER_SEARCH_RADIUS for k in kept):
+            kept.append(t)
+    return sorted(kept)
 
 
 def build_structures(

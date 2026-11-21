@@ -55,6 +55,8 @@ export const turnRate = (P: Plane): number => ((G * Math.tan(P.roll)) / P.spd) *
 /** Stigerate i m/s. */
 export const verticalSpeed = (P: Plane): number => P.spd * Math.sin(P.pitch);
 export const APPROACH_DIST_M = 8000;
+/** Halve bredden på et kirketårn slik det tegnes (m). SYNTETISK: dataene har høyde og plass, ikke bredde. */
+export const CHURCH_TOWER_HALF_WIDTH = 2.5;
 
 /** Kontrollene: en tast er av/på, autopiloten gir utslag trinnløst (0-1) på de samme kontrollene. */
 export type Keys = Record<string, boolean | number | undefined>;
@@ -184,6 +186,14 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
     P.state = "crash"; P.t = 2.5;
     say("Hit the bridge!", 2.5);
     return false;
+  }
+  // Kirketårn: smalere enn en celle, så de sjekkes for seg
+  for (const [tx, ty, , top] of t.churchTowers) {
+    if (P.alt <= top + 1.5 && Math.abs(P.x - tx) * t.cell < CHURCH_TOWER_HALF_WIDTH + 1.5 && Math.abs(P.y - ty) * t.cell < CHURCH_TOWER_HALF_WIDTH + 1.5) {
+      P.state = "crash"; P.t = 2.5;
+      say("Hit the church tower!", 2.5);
+      return false;
+    }
   }
   let gh = Math.max(0, t.heightAt(P.x, P.y));
   if (kind === BUILDING && t.sTop[ci] > gh) {

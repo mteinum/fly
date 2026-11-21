@@ -303,6 +303,10 @@
     "buildingCells": 7265,
     "bridgeHeights": "DOM 1 m (nhm_dom_topo_25833), median langs senterlinja per celle",
     "bridgeLines": 64,
+    "buildingColors": null,
+    "churches": 0,
+    "churchTowers": 0,
+    "churchTowerSource": "kirker fra Matrikkelen (type 671); tårnets plass og høyde målt i DOM 1 m, se structures.church_towers",
     "buildingHeights": "punkt: nominell 7 m; flate: nominell 12 m"
   },
   "resampling": {

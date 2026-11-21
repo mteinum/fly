@@ -15,9 +15,9 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     dtm.py        Kartverket DTM og DOM via WCS, cache i data/raw/
     airports.py   OurAirports: flyplass + rullebaner; tårnposisjon fra N50-bygning type 411
     n50.py        N50 Kartdata: veier, bruer, bygninger -> feature-raster
-    matrikkel.py  Matrikkelen: alle bygninger som punkt med type (10 m-flisene); høyde er antatt etter type
+    matrikkel.py  Matrikkelen: alle bygninger som punkt med type (10 m-flisene); høyde og farge er valgt etter type
     landcover.py  N50 Arealdekke -> palettindeks per celle
-    structures.py bruer (dekkhøyde fra DOM) og bygninger som egen liste
+    structures.py bruer (dekkhøyde fra DOM), bygninger og kirketårn (målt i DOM) som egen liste
     lights.py     nattlys (syntetisk plassert; bygningsklynger avgjør hvor det er gatelys)
     terrain.py    blokkmiddel, hillshade, fargekart
     build.py      setter det sammen og skriver fliser + metadata.json
@@ -66,7 +66,7 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 - `lights.png`: RGB, nattlys (kun 10 m). Syntetisk plassert langs veier og i bebyggelse
 - `surface.bin`: uint8, arealdekke med vei (16) og rullebane (17) lagt oppå; velger detaljmønster på bakken
 - `landcover.bin`: uint8 palettindeks (klasser i metadata.json; avgjør hva som er vann)
-- `structures.json`: `[kol, rad, type, bunn, topp, r, g, b]` for bruer og bygninger
+- `structures.json`: `[kol, rad, type, bunn, topp, r, g, b]` for bruer og bygninger, og `churchTowers`: `[x, y, bunn, topp]`
 - `names.json`: `[navn, x, y, z, skriftstørrelse, type, gruppe]`, stedsnavn fra N50, viktigste først
 - `metadata.json`: bbox, CRS, cellestørrelse, min/maks høyde, konvergens,
   flyplasser med rullebaner (hver baneende har `approach` fra analysis.py), klasseliste, `analysis`

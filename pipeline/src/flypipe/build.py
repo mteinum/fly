@@ -65,6 +65,9 @@ def build(area: Area) -> Path:
     features = lc = None
     items: list[list] = []
     bridge_lines: list[dict] = []
+    towers: list[list[float]] = []
+    church = []
+    profile_cells: dict[str, int] = {}
     if area.n50_county:
         print(f"[{area.id}] N50 {area.n50_county}: arealdekke, veier, bruer, bygninger")
         lc = landcover.load_landcover(n50.gdb_path(area.n50_county, RAW), grid)
@@ -85,6 +88,19 @@ def build(area: Area) -> Path:
         items, bridge_lines, features = structures.build_structures(
             vectors, n50.rasterize_features(vectors, grid), hgt, grid, raw, ndsm, point_heights=point_heights
         )
+        if area.matrikkel_buildings:
+            # Farge etter bygningstype (se matrikkel.PROFILE_*). Celler uten kjent type beholder fargen de har.
+            types = matrikkel.type_raster(vectors["buildingPoints"], vectors["buildingAreas"], grid)
+            for it in items:
+                code = int(types[it[1], it[0]])
+                if it[2] == structures.BUILDING and code:
+                    name, colors = matrikkel.profile(code)
+                    it[5:8] = colors[(it[0] * 7 + it[1] * 13) % 2]  # fast veksling, så naboer ikke blir helt like
+                    profile_cells[name] = profile_cells.get(name, 0) + 1
+            # Kirker med tårn der overflatemodellen viser et
+            church = vectors["buildingPoints"][vectors["buildingPoints"]["bygningstype"] == matrikkel.CHURCH]
+            print(f"[{area.id}] DOM 1 m rundt {len(church)} kirker (tårn)")
+            towers = structures.church_towers(church, hgt, grid, raw)
     airport["tower"] = airports.tower_position(airport, vectors["buildingAreas"] if area.n50_county else None, hgt, grid)
 
     # Analyser: hva tårnet ser, klaringen under hver innflyging, og bygningsklynger (se analysis.py)
@@ -150,7 +166,7 @@ def build(area: Area) -> Path:
     surface[on_runway] = landcover.SURFACE_RUNWAY
     surface.tofile(out / "surface.bin")
     (out / "structures.json").write_text(
-        json.dumps({"columns": ["col", "row", "kind", "base", "top", "r", "g", "b"], "kinds": structures.KINDS, "items": items, "bridges": bridge_lines}, separators=(",", ":")) + "\n",
+        json.dumps({"columns": ["col", "row", "kind", "base", "top", "r", "g", "b"], "kinds": structures.KINDS, "items": items, "bridges": bridge_lines, "churchTowers": towers}, separators=(",", ":")) + "\n",
         encoding="utf-8",
     )
     n_bridge = sum(1 for it in items if it[2] == structures.BRIDGE)
@@ -205,6 +221,19 @@ def build(area: Area) -> Path:
             "buildingCells": len(items) - n_bridge,
             "bridgeHeights": "DOM 1 m (nhm_dom_topo_25833), median langs senterlinja per celle",
             "bridgeLines": len(bridge_lines),
+            "buildingColors": {
+                "about": "farge etter bygningstype fra Matrikkelen; fargene er valgt, ikke observert",
+                "cells": dict(sorted(profile_cells.items(), key=lambda kv: -kv[1])),
+                # til forklaringen i spillet: navn og første farge, vanligste først
+                "legend": [
+                    [name, "#%02x%02x%02x" % colors[0]]
+                    for name, colors in {n: c for n, c in [*matrikkel.PROFILE_BY_MAIN.values(), *matrikkel.PROFILE_BY_GROUP.values()]}.items()
+                    if profile_cells.get(name)
+                ],
+            } if profile_cells else None,
+            "churches": len(church),
+            "churchTowers": len(towers),
+            "churchTowerSource": "kirker fra Matrikkelen (type 671); tårnets plass og høyde målt i DOM 1 m, se structures.church_towers",
             "buildingHeights": (
                 ("punkt: nominell etter bygningstype (Matrikkelen har ikke høyde); flate: " if area.matrikkel_buildings else f"punkt: nominell {structures.HEIGHT_HOUSE:g} m; flate: ")
                 + ("median av DOM - DTM innenfor flaten" if area.dom_building_heights else f"nominell {structures.HEIGHT_LARGE:g} m")

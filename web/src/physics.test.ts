@@ -231,3 +231,21 @@ describe("myk stikke på tastatur", () => {
     expect(softStick(held, { KeyW: true }, 0.016).KeyW).toBe(true); // gassen er uendret
   });
 });
+
+describe("kirketårn", () => {
+  it("er et hinder der det står, og bare der", () => {
+    const flyPast = (offsetM: number, altAboveTop: number) => {
+      const tt = loadTestTerrain(), [x, y] = [le.x + 30, le.y - 40], ground = Math.max(0, tt.heightAt(x, y));
+      (tt.churchTowers as [number, number, number, number][]).push([x, y, ground, ground + 40]);
+      const P = newPlane();
+      // flyr rett nordover forbi tårnet, `offsetM` til siden for det
+      Object.assign(P, { x: x + offsetM / tt.cell, y: y + 300 / tt.cell, alt: ground + 40 + altAboveTop, hdg: 0, spd: 70, pitch: 0, thr: 0.4 });
+      let said = "";
+      for (let i = 0; i < 400 && P.state === "fly"; i++) { P.pitch = 0; update(P, tt, airport, {}, 1 / 60, (m) => { said = m; }); }
+      return { state: P.state, said };
+    };
+    expect(flyPast(0, -10)).toEqual({ state: "crash", said: "Hit the church tower!" });
+    expect(flyPast(0, 10).state).toBe("fly"); // over tårnet
+    expect(flyPast(15, -10).state).toBe("fly"); // 15 m til siden
+  });
+});

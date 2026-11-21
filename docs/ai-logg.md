@@ -309,6 +309,16 @@ og hva som ble endret.
 - Antallet lyse celler i lyskartet gikk opp hele veien. Det var først i
   bildet feilen viste seg: tell i det spilleren ser, ikke bare i fila.
 
+**37. Bakken ble målt som kirketårn**
+- Tårnhøyden ble først regnet som overflatemodellen minus terrenghøyden
+  *ved kirkens punkt*. I en bakke ligger terrenget 20 m unna flere meter
+  høyere, og det ble lagt til tårnet.
+- Ikke oppdaget på Kjevik, der kirkene står flatt. Ved Sola forsvant to
+  «tårn» og ved Flesland ett da terrenget ble trukket fra i hvert punkt.
+- Det høyeste tårnet ved Flesland (58 m) så også mistenkelig ut. Oppslag i
+  stedsnavnregisteret viste at det er Nykirken i Bergen, 9 m fra punktet.
+  Den var altså riktig; mistanken var grunn til å sjekke, ikke til å rette.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

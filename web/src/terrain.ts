@@ -55,7 +55,8 @@ export interface TerrainMeta {
   lights: { file: string } | null;
   surface: { file: string; classes: { code: number; name: string; color: [number, number, number] }[] };
   landcover: { file: string; classes: { code: number; name: string; water: boolean }[] };
-  structures: { file: string };
+  /** `buildingColors.legend`: [navn, farge] per bygningstype som finnes i utsnittet (fra pipeline, matrikkel.py). */
+  structures: { file: string; buildingColors?: { legend: [string, string][] } | null };
   names?: { file: string; count: number };
   airports: Airport[];
   attribution: string[];
@@ -75,6 +76,8 @@ export interface StructureFile {
   items: [number, number, number, number, number, number, number, number][];
   /** Bruer som polylinjer: punkter [x, y, z] i rutenettkoordinater og m (NN2000), bredde i m. */
   bridges: { width: number; points: [number, number, number][] }[];
+  /** Kirketårn: [x, y, bunn, topp] i rutenettkoordinater og m (NN2000). Plass og høyde målt i DOM av pipeline. */
+  churchTowers?: [number, number, number, number][];
 }
 
 export class Terrain {
@@ -87,6 +90,7 @@ export class Terrain {
   readonly sTop: Float32Array;
   readonly sCol: Uint32Array; // 0xRRGGBB
   readonly bridges: StructureFile["bridges"];
+  readonly churchTowers: NonNullable<StructureFile["churchTowers"]>;
   /** Stedsnavn fra N50, viktigste først. */
   names: PlaceName[] = [];
   private readonly waterCodes: Uint8Array;
@@ -109,6 +113,7 @@ export class Terrain {
     this.sTop = new Float32Array(n);
     this.sCol = new Uint32Array(n);
     this.bridges = structures.bridges;
+    this.churchTowers = structures.churchTowers ?? [];
     for (const [col, row, kind, base, top, r, g, b] of structures.items) {
       const i = row * this.width + col;
       this.sKind[i] = kind;

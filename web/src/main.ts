@@ -71,6 +71,16 @@ async function main(): Promise<void> {
   };
   const mapInfo =
     `Map ${((terrain.width * terrain.cell) / 1000).toFixed(1)} km · cell ${terrain.cell} m · ${renderer.buildingCount} building cells · ${terrain.bridges.length} bridges · ${terrain.meta.crs}`;
+  // Forklaring til bygningsfargene: navn og farge kommer fra pipeline, så de to ikke kan komme i utakt
+  const legend = document.getElementById("legend")!;
+  for (const [name, color] of terrain.meta.structures.buildingColors?.legend ?? []) {
+    const item = document.createElement("span"), swatch = document.createElement("i");
+    swatch.style.cssText = `display:inline-block;width:.7em;height:.7em;margin:0 .3em 0 .7em;background:${color};border:1px solid rgba(255,255,255,.4)`;
+    item.append(swatch, name);
+    item.style.whiteSpace = "nowrap";
+    legend.append(item);
+    legend.hidden = false;
+  }
   // Det pipeline har regnet ut om innflygingen som flys nå (analysis.py)
   let infoFor = -1;
   const showInfo = () => {
