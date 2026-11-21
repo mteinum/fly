@@ -95,7 +95,7 @@ async function main(): Promise<void> {
   addEventListener("keydown", (e) => { if (!isTyping(e) && (e.code === "KeyR" || e.code === "KeyT")) diploma.hide(); });
 
   // Flylogg: L laster ned loggen fra forrige innflyging. I utviklingsmodus lagres hver logg også i data/flights/
-  // (se vite.config.ts), så den kan gås gjennom lokalt. Den publiserte siden sender ingenting noe sted.
+  // (se vite.config.ts), så den kan gås gjennom lokalt. Flyloggen sendes ingen steder fra den publiserte siden.
   let savedLog: FlightLog | null = null;
   addEventListener("keydown", (e) => {
     if (e.code !== "KeyL" || e.repeat || isTyping(e)) return;

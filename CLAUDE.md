@@ -155,6 +155,8 @@ cd pipeline && uv run flypipe debrief        # hovedtallene for siste flylogg i 
   modell (gjennomgang av flylogger) kjører bare lokalt, og modellen får alle tall fra verktøy (debrief.py).
 - Geometri i UTM-planet bruker `headingGridDeg` (fra baneendene), aldri publisert sann kurs minus konvergens:
   den sanne kursen er avrundet til hele grader.
+- Besøksmåling: Google Tag Manager (GTM-KJ2W4NZK) lastes i web/index.html. Det er den eneste tredjeparten
+  siden kontakter. Spilldata (flylogg, navn på diplom) skal ikke sendes dit.
 - API-nøkler leses fra miljøet i pipeline og skrives aldri til fil, logg eller nettleser.
 - Generert lyd er ikke reproduserbar. `flypipe audio` lager bare filer som mangler;
   slett en fil for å lage den på nytt. Lydfilene ligger i git.
