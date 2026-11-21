@@ -2,6 +2,7 @@
 import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { glidePathAltitude } from "./guidance";
 import { APPROACH_DIST_M, onRunway, runwayOffset, startApproach, update } from "./physics";
 import { newPlane } from "./plane";
 import { hasTiles, loadReference, loadTestTerrain } from "./testTerrain";
@@ -42,6 +43,13 @@ for (const area of AREAS) {
       // rett fram i 30 s uten å treffe noe
       for (let i = 0; i < 1500 && P.state === "fly"; i++) { P.pitch = 0; update(P, t, airport, {}, 0.02, () => {}); }
       expect(P.state).toBe("fly");
+    });
+
+    it.each(ends.map((e) => [e.end.ident, e] as const))("bane %s: pipeline og spill regner samme glidebane, og innflygingen er fri for hindre", (_, { end }) => {
+      // analysis.py (Python) og guidance.ts har hver sin utgave av geometrien: de skal gi samme høyde 8 km ute
+      expect(end.approach!.startAltitudeM).toBeCloseTo(glidePathAltitude(t, end, APPROACH_DIST_M), 0);
+      expect(end.approach!.lowestClearanceM).toBeGreaterThan(30);
+      expect(end.approach!.lowestClearanceAtM).toBeGreaterThanOrEqual(1000);
     });
 
     it.each(ends.map((e) => [e.end.ident, e] as const))("bane %s: rolig sett på banen gir landing", (_, { rw, end }) => {

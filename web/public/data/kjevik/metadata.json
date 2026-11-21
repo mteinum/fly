@@ -326,6 +326,27 @@
     "bridgeKm": 7.5,
     "buildings": 8098
   },
+  "analysis": {
+    "towerViewshed": {
+      "groundSeenShare": 0.049,
+      "seenAt300mShare": 0.741,
+      "method": "siktlinjer fra tårnets øyepunkt over terrenget (DTM), med jordkrumning og standard brytning (k = 0,13)",
+      "limits": "trær og bygninger sperrer ikke sikten her; tårnets plassering og øyehøyde er antatt"
+    },
+    "approach": {
+      "about": "per baneende i airports[].runways[].ends[].approach",
+      "glidePath": "3° mot et punkt 300 m innenfor terskelen (syntetisk, ikke flyplassens ILS)",
+      "clearance": "laveste klaring fra glidebanen til terreng, bygninger og bruer i et belte på ±150 m, fra 1000 til 8000 m før baneenden"
+    },
+    "buildingClusters": {
+      "method": "DBSCAN, eps 100 m, minst 5 bygninger",
+      "buildings": 8098,
+      "clusters": 344,
+      "inClustersShare": 0.51,
+      "largestCluster": 144,
+      "medianCluster": 8
+    }
+  },
   "airports": [
     {
       "icao": "ENCN",
@@ -357,7 +378,14 @@
               "elevationM": 12.5,
               "headingTrueDeg": 35.0,
               "displacedThresholdM": 120.1,
-              "headingGridDeg": 40.84
+              "headingGridDeg": 40.84,
+              "approach": {
+                "startAltitudeM": 452.3,
+                "lowestClearanceM": 85.5,
+                "lowestClearanceAtM": 1000,
+                "seenFromTowerShare": 1.0,
+                "hiddenFromTowerM": []
+              }
             },
             {
               "lon": 8.09527,
@@ -370,7 +398,14 @@
               "elevationM": 15.8,
               "headingTrueDeg": 215.0,
               "displacedThresholdM": 189.9,
-              "headingGridDeg": 220.84
+              "headingGridDeg": 220.84,
+              "approach": {
+                "startAltitudeM": 461.8,
+                "lowestClearanceM": 73.0,
+                "lowestClearanceAtM": 1800,
+                "seenFromTowerShare": 1.0,
+                "hiddenFromTowerM": []
+              }
             }
           ]
         }

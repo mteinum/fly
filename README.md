@@ -55,6 +55,42 @@ PFD viser en magenta rombe for glidebanen (til høyre for horisonten) og en for 
 senterlinja og på 3° glidebane. ND viser forlenget senterlinje med et merke per nautiske
 mil. Veiledningen er regnet fra banegeometrien, ikke fra flyplassens faktiske anlegg.
 
+## Autopilot
+
+`A` lar flyet lande selv: det følger senterlinja og glidebanen, setter ut understell og
+klaffer og flater ut over banen. Ta i stikka eller gassen, og du flyr igjen. Autopiloten er en
+regelstyrt regulator (`web/src/autopilot.ts`), ikke maskinlæring. Den får karakter, men ikke diplom.
+
+## Flylogg og gjennomgang med KI
+
+Hver innflyging logges (posisjon i UTM 33, høyde, fart, avvik, hendelser). `L` laster ned
+loggen fra forrige innflyging. Kjører du spillet lokalt (`npm run dev`), lagres loggene også
+i `data/flights/`.
+
+Gjennomgangen gjøres av en KI-agent på din egen maskin, ikke på nettsiden:
+
+```bash
+cd pipeline && uv run flypipe debrief        # hovedtallene for siste innflyging, som JSON
+```
+
+I Claude Code, startet i denne mappa: godkjenn MCP-serveren `teinum-fly` (`.mcp.json`) og be om
+en gjennomgang («debrief siste landing»). Agenten får fire verktøy som leser loggen og flisene
+(`pipeline/src/flypipe/debrief.py`), og en skill som sier hvordan en gjennomgang skal være
+(`.claude/skills/debrief/`). Alle tall kommer fra verktøyene; språkmodellen regner ikke og
+husker ikke flyplassen. Den publiserte siden kaller ingen språkmodell.
+
+## Analyser
+
+Pipeline regner tre ting per flyplass (`pipeline/src/flypipe/analysis.py`), og skriver dem til
+`metadata.json` og til `data/processed/` for QGIS:
+
+- **Synlighet fra tårnet** (`tower_viewshed.tif`): hvor høyt et fly må være over hver celle for å
+  ses, med jordkrumning og brytning.
+- **Klaring under innflygingen**: laveste avstand fra 3°-glidebanen til terreng, bygninger og
+  bruer for hver baneende. Vises i hjelpepanelet.
+- **Bygningsklynger** (`building_clusters.gpkg`): DBSCAN på N50-bygningene. Klynger får gatelys
+  om natta, enslige hus bare lys i vinduet.
+
 ## Reprise
 
 Etter en krasj spilles de siste fem sekundene av på nytt, sett fra et fast punkt ved siden
@@ -98,6 +134,7 @@ flisene og cache-regler.
 - [docs/datakilder.md](docs/datakilder.md) – kilder, lisenser, kreditering
 - [docs/resampling.md](docs/resampling.md) – 1 m -> 50 m, metode og måling
 - [docs/ai-logg.md](docs/ai-logg.md) – feil og rettelser underveis
+- [docs/analyser.md](docs/analyser.md) – synlighet, klaring og klynger: metode, valg og resultater
 
 ## Faser
 
@@ -105,6 +142,8 @@ flisene og cache-regler.
 2. **N50-arealdekke, veier, bruer og bygninger, tid på døgnet** (ferdig) · METAR-vind og -sikt (gjenstår)
 3. Fliser/LOD langs ENCN–ENGM, ruter fra Avinor
 4. AI-genererte sprite-stabler, LLM-briefing fra METAR/TAF
+
+Utenom fasene: autopilot, flylogg med lokal KI-gjennomgang, og analysene over (ferdig).
 
 ## Lisens
 

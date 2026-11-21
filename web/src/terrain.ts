@@ -16,6 +16,8 @@ export interface RunwayEnd {
   headingTrueDeg: number;
   headingGridDeg: number;
   displacedThresholdM: number;
+  /** Fra pipeline (analysis.py): glidebanens høyde 8 km ute, laveste klaring til terreng og bygg, og hva tårnet ser. */
+  approach?: { startAltitudeM: number; lowestClearanceM: number; lowestClearanceAtM: number; seenFromTowerShare?: number; hiddenFromTowerM?: [number, number][] };
 }
 
 export interface Runway {

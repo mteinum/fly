@@ -260,6 +260,30 @@ og hva som ble endret.
 - Ingen av delene var feil hver for seg; de var bare ikke laget mot samme
   mål. Rettet: autopiloten setter ut alt før 1000 fot.
 
+**32. Analysen svarte med min egen terskel**
+- «Laveste klaring under glidebanen» fant først punktet rett ved terskelen,
+  der flyet skal være lavt. Jeg satte en grense («fra 15 m over banen»), og
+  da ble svaret selve grensen. Det samme skjedde med 1000 m: på 15 av 16
+  baneender ligger laveste klaring innen 40 m fra den grensen.
+- Tallet er riktig regnet, men det sier mest om hvor jeg satte grensen.
+  Bare der hinderet ligger lenger ute (Kjevik 21: 70 m klaring 1,8 km ute)
+  forteller det noe om terrenget.
+- Ikke «rettet»: grensen står som konstant og i metadata, og
+  docs/analyser.md sier hva tallet kan og ikke kan brukes til.
+
+**33. Regnet feil for hånd i min egen test**
+- Testen la et 150 m høyt bygg 4 km ute og ventet at det ga laveste
+  klaring. Glidebanen er 230 m der, altså 80 m klaring, mens den er 68 m
+  1 km ute uten noe bygg. Koden hadde rett; fasiten min var feil.
+- Lærdom: en test som feiler er ikke bevis for at koden er feil. Regn
+  fasiten på nytt før koden endres.
+
+**34. Leste et skjermbilde feil**
+- Jeg sammenlignet nattbilder før og etter de nye lysene og mente det var
+  blitt færre lys. Telling av lyse piksler viste 39 % flere (og mer enn
+  dobbelt så mange i den venstre, spredtbygde halvdelen av bildet).
+- Et bilde er ikke en måling. Tell når det er mulig.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal

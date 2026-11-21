@@ -233,4 +233,12 @@ def terrain_profile(log: dict, tiles: Path = TILES, every_s: float = 5) -> dict:
         rows.append({"t": r["t"], "toThresholdM": r["toThresholdM"], "altM": r["altM"], "terrainM": round(g, 1), "clearanceM": round(r["altM"] - g, 1), "near": nearest(r["east"], r["north"])})
     before = [r for r in rows if r["toThresholdM"] > 300] or rows
     lowest = min(before, key=lambda r: r["clearanceM"])
-    return {"area": log["area"], "cellSizeM": cell, "lowestClearanceBeforeThreshold": lowest, "profile": rows[:MAX_ROWS]}
+    # det pipeline har regnet ut om denne innflygingen (analysis.py): klaring under glidebanen, og hva tårnet ser
+    ends = [e for a in meta["airports"] for rw in a["runways"] for e in rw["ends"] if e["ident"] == log["runway"]]
+    return {
+        "area": log["area"],
+        "cellSizeM": cell,
+        "onTheGlidePath": ends[0].get("approach") if ends else None,
+        "lowestClearanceBeforeThreshold": lowest,
+        "profile": rows[:MAX_ROWS],
+    }

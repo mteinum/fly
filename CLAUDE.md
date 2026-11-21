@@ -17,9 +17,10 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     n50.py        N50 Kartdata: veier, bruer, bygninger -> feature-raster
     landcover.py  N50 Arealdekke -> palettindeks per celle
     structures.py bruer (dekkhøyde fra DOM) og bygninger som egen liste
-    lights.py     nattlys (syntetisk plassert)
+    lights.py     nattlys (syntetisk plassert; bygningsklynger avgjør hvor det er gatelys)
     terrain.py    blokkmiddel, hillshade, fargekart
     build.py      setter det sammen og skriver fliser + metadata.json
+    analysis.py   synlighet fra tårnet, klaring under innflygingene, bygningsklynger (DBSCAN) -> metadata.json
     debrief.py    regner ut fakta fra en flylogg (avvik, porter, fart, terreng under flyet)
     mcp_server.py MCP-server som gir en KI-agent verktøyene i debrief.py (kun lokalt, `--group agent`)
     audio.py      lyd generert med ElevenLabs -> web/public/audio/ (krever ELEVENLABS_API_KEY)
@@ -54,7 +55,7 @@ deploy/          publisering til fly.teinum.no (SSH + rsync), kjøres av .github
 web/public/share/  delingssiden for diplomer (PHP på webhotellet): index.php, image.php, lib.php
 tests/fixtures/  fasitpunkter fra Kartverkets API-er, og flylogger (flights/, lages av vitest), delt av pytest og vitest
 reference/       opprinnelig piksel-prototype (én HTML-fil), kun til oppslag
-docs/            datakilder.md, resampling.md, ai-logg.md
+docs/            datakilder.md, resampling.md, analyser.md, ai-logg.md
 ```
 
 Flisformat per utsnitt (alle rad for rad fra nord):
@@ -67,7 +68,7 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 - `structures.json`: `[kol, rad, type, bunn, topp, r, g, b]` for bruer og bygninger
 - `names.json`: `[navn, x, y, z, skriftstørrelse, type, gruppe]`, stedsnavn fra N50, viktigste først
 - `metadata.json`: bbox, CRS, cellestørrelse, min/maks høyde, konvergens,
-  flyplasser med rullebaner, klasseliste
+  flyplasser med rullebaner (hver baneende har `approach` fra analysis.py), klasseliste, `analysis`
 
 ## Kommandoer
 
@@ -153,6 +154,8 @@ cd pipeline && uv run flypipe debrief        # hovedtallene for siste flylogg i 
   `deploy/test_share.sh` kjøres i GitHub Actions.
 - KI i spillet koster ingenting å spille: ingen språkmodell kalles fra den publiserte siden. Det som trenger en
   modell (gjennomgang av flylogger) kjører bare lokalt, og modellen får alle tall fra verktøy (debrief.py).
+- Glidebanens geometri finnes to steder: web/src/guidance.ts og pipeline/src/flypipe/analysis.py. Endres den ene,
+  må den andre følge; airports.test.ts sammenligner dem.
 - Geometri i UTM-planet bruker `headingGridDeg` (fra baneendene), aldri publisert sann kurs minus konvergens:
   den sanne kursen er avrundet til hele grader.
 - Besøksmåling: Google Tag Manager (GTM-KJ2W4NZK) lastes i web/index.html. Det er den eneste tredjeparten

@@ -69,8 +69,18 @@ async function main(): Promise<void> {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void document.documentElement.requestFullscreen();
   };
-  document.getElementById("info")!.textContent =
+  const mapInfo =
     `Map ${((terrain.width * terrain.cell) / 1000).toFixed(1)} km · cell ${terrain.cell} m · ${renderer.buildingCount} building cells · ${terrain.bridges.length} bridges · ${terrain.meta.crs}`;
+  // Det pipeline har regnet ut om innflygingen som flys nå (analysis.py)
+  let infoFor = -1;
+  const showInfo = () => {
+    if (infoFor === game.approach.count) return;
+    infoFor = game.approach.count;
+    const a = game.airport.runways.flatMap((rw) => rw.ends).find((e) => e.ident === game.approach.ident)?.approach;
+    const facts = a ? ` · Runway ${game.approach.ident}: lowest clearance under the glide path ${Math.round(a.lowestClearanceM)} m, ${(a.lowestClearanceAtM / 1000).toFixed(1)} km out` +
+      (a.seenFromTowerShare === undefined || a.seenFromTowerShare >= 0.995 ? "" : ` · the tower sees ${Math.round(a.seenFromTowerShare * 100)} % of the approach`) : "";
+    document.getElementById("info")!.textContent = mapInfo + facts;
+  };
   document.getElementById("credits")!.textContent = [...terrain.meta.attribution, "Audio: generated with ElevenLabs"].join(" · ");
 
   // ?clean: bare 3D-bildet, uten skjermtekst, hjelp og kreditering. Til skjermbilder (f.eks. delingsbildet).
@@ -145,6 +155,7 @@ async function main(): Promise<void> {
 
   runLoop((dt) => {
     game.step(dt);
+    showInfo();
     audio.update(game, terrain);
     if (game.replay) renderer.render(game.replay.plane, "replay", game.env, game.replay.spectator);
     else renderer.render(game.P, game.cam, game.env);

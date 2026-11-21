@@ -11,7 +11,7 @@ from PIL import Image
 from rasterio.features import rasterize
 from shapely.geometry import LineString
 
-from . import airports, dtm, landcover, lights, n50, structures, terrain
+from . import airports, analysis, dtm, landcover, lights, n50, structures, terrain
 from .areas import AREAS, Area
 from .crs import UTM33, grid_convergence_deg, scale_factor
 from .grid import GridSpec
@@ -78,6 +78,28 @@ def build(area: Area) -> Path:
             vectors, n50.rasterize_features(vectors, grid), hgt, grid, raw, ndsm
         )
     airport["tower"] = airports.tower_position(airport, vectors["buildingAreas"] if area.n50_county else None, hgt, grid)
+
+    # Analyser: hva tårnet ser, klaringen under hver innflyging, og bygningsklynger (se analysis.py)
+    print(f"[{area.id}] analyser: synlighet fra tårnet, klaring under innflygingene, bygningsklynger")
+    tower = airport["tower"]
+    need = analysis.required_altitude(hgt, area.cell, tower["x"], tower["y"], tower["eyeM"])
+    top = analysis.surface_top(hgt, items)
+    for rw in airport["runways"]:
+        for end in rw["ends"]:
+            end["approach"] = analysis.approach_facts(end, hgt, top, need, area.cell)
+    above_ground = need - np.maximum(hgt, 0)
+    viewshed = {
+        "groundSeenShare": round(float((above_ground < 1).mean()), 3),
+        "seenAt300mShare": round(float((above_ground <= 300).mean()), 3),
+        "method": "siktlinjer fra tårnets øyepunkt over terrenget (DTM), med jordkrumning og standard brytning (k = 0,13)",
+        "limits": "trær og bygninger sperrer ikke sikten her; tårnets plassering og øyehøyde er antatt",
+    }
+    building_xy = np.zeros((0, 2))
+    clusters = np.zeros(0, dtype=int)
+    if area.n50_county:
+        centres = [vectors["buildingPoints"].geometry, vectors["buildingAreas"].geometry.centroid]
+        building_xy = np.array([(p.x, p.y) for series in centres for p in series], dtype=float).reshape(-1, 2)
+        clusters = analysis.building_clusters(building_xy)
     # Stedsnavn: høyden er terrenget under navnet. Brunavn flyttes opp på brua, til nærmeste punkt på dekket.
     names: list[dict] = n50.load_names(area.n50_county, grid, RAW) if area.n50_county else []
     deck = [(px, py, pz) for b in bridge_lines for px, py, pz in b["points"]]
@@ -104,7 +126,10 @@ def build(area: Area) -> Path:
     Image.fromarray(rgb, "RGB").save(out / "colormap.png", optimize=True)
     has_lights = area.night_lights and lc is not None and features is not None
     if has_lights:
-        glow = lights.night_lights(lc, features, n50.major_road_mask(vectors, grid))
+        bx, by = (building_xy[:, 0] - grid.west) / area.cell, (grid.north - building_xy[:, 1]) / area.cell
+        ok = (bx >= 0) & (bx < grid.width) & (by >= 0) & (by < grid.height)
+        placed = (by[ok].astype(int), bx[ok].astype(int), clusters[ok] >= 0)
+        glow = lights.night_lights(lc, features, n50.major_road_mask(vectors, grid), buildings=placed, cell=area.cell)
         Image.fromarray(glow, "RGB").save(out / "lights.png", optimize=True)
     if lc is None:
         lc = np.where(hgt <= terrain.SEA_LEVEL_MAX, landcover.CLASSES[1].code, landcover.UNKNOWN).astype(np.uint8)
@@ -143,7 +168,7 @@ def build(area: Area) -> Path:
         "scaleFactor": round(scale_factor(cx, cy), 6),
         "heightmap": {"file": "heightmap.f32", "dtype": "float32", "byteOrder": "little", "unit": "m"},
         "colormap": {"file": "colormap.png", "hillshadeBaked": area.bake_hillshade},
-        "lights": {"file": "lights.png", "placement": "syntetisk: langs veier og i bebyggelse fra N50"} if has_lights else None,
+        "lights": {"file": "lights.png", "placement": "syntetisk: langs veier, i bebygde flater og ved bygninger fra N50; bygningsklynger avgjør hvor det er gatelys"} if has_lights else None,
         "landcover": {
             "unknownShare": round(float((lc == landcover.UNKNOWN).mean()), 5),
             "file": "landcover.bin",
@@ -192,6 +217,16 @@ def build(area: Area) -> Path:
             "bridgeKm": round(float(vectors["bridges"].length.sum()) / 1000, 1),
             "buildings": int(len(vectors["buildingPoints"]) + len(vectors["buildingAreas"])),
         },
+        "analysis": {
+            "towerViewshed": viewshed,
+            "approach": {
+                "about": "per baneende i airports[].runways[].ends[].approach",
+                "glidePath": f"{analysis.GLIDE_ANGLE_DEG:g}° mot et punkt {analysis.AIM_POINT_M:g} m innenfor terskelen (syntetisk, ikke flyplassens ILS)",
+                "clearance": f"laveste klaring fra glidebanen til terreng, bygninger og bruer i et belte på ±{analysis.CORRIDOR_HALF_WIDTH_M:g} m, "
+                f"fra {analysis.CLEARANCE_FROM_M:g} til {analysis.APPROACH_DIST_M:g} m før baneenden",
+            },
+            "buildingClusters": analysis.cluster_summary(clusters),
+        },
         "airports": [airport],
         "attribution": [
             "Elevation data (DTM, DOM) and N50 map data: © Kartverket (CC BY 4.0)",
@@ -213,5 +248,13 @@ def build(area: Area) -> Path:
     if features is not None:
         _write_geotiff(PROCESSED / area.id / "features.tif", features, grid)
     _write_geotiff(PROCESSED / area.id / "landcover.tif", lc, grid)
+    # m over bakken et fly må ha for å ses fra tårnet (0 = bakken ses)
+    _write_geotiff(PROCESSED / area.id / "tower_viewshed.tif", above_ground.astype(np.float32), grid)
+    if len(building_xy):
+        import geopandas as gpd
+
+        gpd.GeoDataFrame({"cluster": clusters}, geometry=gpd.points_from_xy(building_xy[:, 0], building_xy[:, 1]), crs=UTM33).to_file(
+            PROCESSED / area.id / "building_clusters.gpkg", driver="GPKG"
+        )
     print(f"[{area.id}] skrev {out.relative_to(REPO)} (høyde {meta['minHeight']}-{meta['maxHeight']} m, konvergens {conv:.2f}°)")
     return out
