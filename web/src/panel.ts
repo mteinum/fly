@@ -323,20 +323,25 @@ function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body:
     return [AX + e * cosH - n * sinH, AY - (e * sinH + n * cosH)];
   };
 
-  // Terreng som på et EGPWS-bilde: farge etter høyde i forhold til flyet
-  const STEP = 2, altM = P.alt;
-  for (let sy = 18; sy < AY + 6; sy += STEP) for (let sx = 0; sx < 100; sx += STEP) {
+  // Terreng slik EGPWS tegner det: prikker på svart, tettere jo høyere terrenget er i forhold til flyet.
+  // Tett rødt: mer enn 2000 fot over flyet. Tett gult: 1000-2000 over. Spredt gult: fra 500 fot under (250 med
+  // understellet nede) til 1000 over. Tett grønt: ned til 1000 under. Spredt grønt: 1000-2000 under.
+  // Lavere terreng vises ikke. Sjøen er spredte blå prikker. Prikkene står fast på skjermen; terrenget flytter seg under.
+  const STEP = 1.6, altM = P.alt, near = P.gear >= 1 ? -250 : -500;
+  for (let sy = 18, row = 0; sy < AY + 6; sy += STEP, row++) for (let sx = 0, col = 0; sx < 100; sx += STEP, col++) {
     const rx = sx + STEP / 2 - AX, fy = AY - (sy + STEP / 2);
     if (rx * rx + fy * fy > R * R) continue;
     const [gx, gy] = toGrid(rx, fy);
     if (!t.inBounds(gx, gy)) continue;
-    let c: string;
-    if (t.isWater(gx, gy)) c = "#0b3f5c";
+    let c: string, dense = true;
+    if (t.isWater(gx, gy)) { c = "#157a9c"; dense = false; }
     else {
       const rel = (t.heightAt(gx, gy) - altM) * FT;
-      if (rel > 2000) c = "#c01818"; else if (rel > -500) c = "#b98a12"; else if (rel > -2000) c = "#1d7a2c"; else continue;
+      if (rel > 2000) c = "#c82020"; else if (rel > 1000) c = "#b8960f"; else if (rel > near) { c = "#b8960f"; dense = false; }
+      else if (rel > -1000) c = "#1e8a34"; else if (rel > -2000) { c = "#1e8a34"; dense = false; } else continue;
     }
-    g.fillStyle = c; g.fillRect(sx + 0.25, sy + 0.25, STEP - 0.5, STEP - 0.5);
+    if (!dense && (row + col) % 2) continue;
+    g.fillStyle = c; g.fillRect(sx + 0.45, sy + 0.45, 0.7, 0.7);
   }
 
   // avstandsbuer
@@ -355,15 +360,21 @@ function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body:
   }
   line(g, AX, AY - R - 4, AX, AY - R + 2, 0.9, YELLOW);
 
-  // forlenget senterlinje for banen det flys mot: 10 NM ut fra baneenden, stiplet, med et merke per NM
+  // Innflygingen tegnet som en flygeplan: grønn linje langs forlenget senterlinje, 10 NM ut fra baneenden,
+  // med et merke per NM. SYNTETISK: veipunktene CF og FF (8 og 4 NM ute) er satt her for at bildet skal ligne;
+  // de finnes ikke i noen prosedyre for flyplassen.
   const end = game.airport.runways.flatMap((rw) => rw.ends).find((e) => e.ident === game.approach.ident);
   if (end) {
     const h = (end.headingGridDeg * Math.PI) / 180, nm = NM / t.cell;
     const out = (d: number, side = 0): [number, number] => toScreen(end.x - Math.sin(h) * d * nm + Math.cos(h) * side * nm, end.y + Math.cos(h) * d * nm + Math.sin(h) * side * nm);
-    g.setLineDash([1.6, 1.6]);
-    line(g, ...out(0), ...out(10), 0.5, CYAN);
-    g.setLineDash([]);
-    for (let d = 1; d <= 10; d++) line(g, ...out(d, -0.12), ...out(d, 0.12), 0.5, CYAN);
+    line(g, ...out(0), ...out(10), 0.6, GREEN);
+    for (let d = 1; d <= 10; d++) line(g, ...out(d, -0.1), ...out(d, 0.1), 0.4, GREEN);
+    for (const [dist, name] of [[8, "CF"], [4, "FF"]] as const) {
+      const [wx, wy] = out(dist);
+      g.fillStyle = "#020304"; g.strokeStyle = GREEN; g.lineWidth = 0.5;
+      g.beginPath(); g.moveTo(wx, wy - 2); g.lineTo(wx + 2, wy); g.lineTo(wx, wy + 2); g.lineTo(wx - 2, wy); g.closePath(); g.fill(); g.stroke();
+      text(g, name + end.ident, wx + 3, wy - 2.4, 3.6, GREEN, "left");
+    }
   }
 
   // flyplass og rullebane
