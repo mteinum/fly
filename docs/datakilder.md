@@ -268,6 +268,46 @@ Ikke avklart:
 - Hvor godt OSM-omrissene dekker landsbygda og de andre flyplassene er ikke sjekket.
 - Matrikkelen har adresse- og eiendoms-ID per bygning. De trengs ikke og skal ikke med i flisene.
 
+## Undersøkt, ikke i bruk: bygningsomriss fra OpenStreetMap (2026-11-21)
+
+Spørsmålet var om OpenStreetMap kan gi husene form i stedet for bokser, og hva lisensen krever.
+
+**Dekning** (bygningssentre hentet med Overpass API for hvert utsnitt, sammenlignet med Matrikkelen):
+
+| Utsnitt | OSM-bygg | Med matrikkelens bygningsnummer | Matrikkelbygg med OSM-omriss innen 20 m | Med etasjetall |
+|---|---|---|---|---|
+| Kjevik | 53 849 | 97 % | 95 % | 8 % |
+| Sola | 112 306 | 97 % | 97 % | 12 % |
+| Flesland | 109 141 | 97 % | 98 % | 14 % |
+| Gardermoen | 38 645 | 88 % | 95 % | 3 % |
+| Bodø | 23 486 | 81 % | 98 % | 10 % |
+
+Dekningen er nesten like god i spredtbygde strøk (92–96 %) som i tettbygde (96–99 %). Høyde mangler
+(under 1 % har `height`). Omrissene har i snitt 7–10 hjørner. I Kvadraturen er 33 % av byggene mindre enn
+én 10 m-celle og 16 % større enn fire.
+
+**Hvor omrissene kommer fra.** OSM-wikien (Norway Building Import) sier de er importert fra Kartverkets
+«INSPIRE Buildings Core2D» fra 2021, under CC BY 4.0, med `ref:bygningsnr` fra Matrikkelen. Den kilden
+kan ikke lenger hentes direkte: katalogoppføringen gir 404, WFS-tjenesten svarer «ukjent applikasjon»,
+og importverktøyet (NKAmapper/building2osm) skriver at tjenesten ikke leverer polygoner. Det eneste
+Kartverket har ute er et kartbilde (WMS) med ikke-kommersiell lisens. OSM er dermed eneste åpne kilde
+til omrissene som vektordata.
+
+**Lisensen (ODbL 1.0)**, lest fra OSM Foundations sider og lisensteksten:
+- Kreditering: «© OpenStreetMap contributors» med lenke til openstreetmap.org/copyright. For spill er
+  en kredittside eller om-skjerm nok.
+- En fil med omrissene (også omregnet til våre koordinater og med høyder lagt til) er etter en forsiktig
+  lesning en avledet database, og må da tilbys under ODbL. Retningslinjene avgjør ikke dette for en
+  vektorfil som leses av et spill. Koden kan fortsatt være MIT.
+- Kravet om å tilby den avledede databasen er oppfylt når selve fila ligger åpent ute med lisensmerknad.
+- Kartverkets data i samme fil (bygningstype, høyde) kan trolig holdes utenfor delingskravet når hver
+  egenskap kommer helt fra én kilde, men retningslinjene dekker ikke tilfellet vårt direkte.
+- Skjermbilder og video er «Produced Works»: de trenger kreditering, ikke lisens.
+- OSM Foundation sier selv at veiledningen ikke er juridisk rådgivning.
+
+**Hva det ville kreve teknisk:** nedlasting per utsnitt (Overpass, eller Geofabriks Norge-fil på 1,3 GB),
+omriss som ekstruderte flater i stedet for bokser, og kollisjon mot flatene. Ikke påbegynt.
+
 ### Lyd: ElevenLabs (generert)
 
 | | |
