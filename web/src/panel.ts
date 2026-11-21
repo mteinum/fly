@@ -53,7 +53,11 @@ function line(g: G2D, x0: number, y0: number, x1: number, y1: number, width: num
   g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
 }
 
-const ink = (body: number, f = 1): string => shade(235 * f, 235 * f, 235 * f, Math.max(body, 0.6));
+/** Hvor mørkt det er ute (0-1), satt av drawPanel. Om natta lyser teksten på panelet, som i flyet. */
+let night = 0;
+const ink = (body: number, f = 1): string => shade(235 * f, 235 * f, 235 * f, Math.max(body, 0.6 + 0.35 * night));
+/** Tekst på blendingsskjermen: hvit om dagen, oransje lys om natta. */
+const glareInk = (body: number): string => shade(235 + 20 * night, 235 - 60 * night, 235 - 170 * night, Math.max(body, 0.6 + 0.4 * night));
 const wrap180 = (deg: number): number => ((((deg + 180) % 360) + 360) % 360) - 180;
 
 /** Skrue i panelplata. */
@@ -70,20 +74,22 @@ function plate(g: G2D, x: number, y: number, w: number, h: number, body: number,
 }
 
 /** Dreieknapp sett forfra, med viser (vinkel i radianer, 0 = rett opp). */
-function knob(g: G2D, x: number, y: number, r: number, body: number, angle = 0): void {
+function knob(g: G2D, x: number, y: number, r: number, body: number, angle = 0, ring = false): void {
   const lum = Math.max(body, 0.5), k = g.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
   k.addColorStop(0, shade(150, 154, 160, lum)); k.addColorStop(1, shade(46, 48, 54, lum));
   g.fillStyle = "#0a0b0d"; g.beginPath(); g.arc(x, y, r + 0.35, 0, 7); g.fill();
   g.fillStyle = k; g.beginPath(); g.arc(x, y, r, 0, 7); g.fill();
   line(g, x, y, x + Math.sin(angle) * r, y - Math.cos(angle) * r, 0.35, ink(body));
+  // lysring rundt knappene på blendingsskjermen om natta
+  if (ring && night > 0.05) { g.strokeStyle = `rgba(255,172,64,${0.85 * night})`; g.lineWidth = 0.3; g.beginPath(); g.arc(x, y, r + 0.8, Math.PI * 0.75, Math.PI * 2.25); g.stroke(); }
 }
 
 /** Trykknapp med tekst. `lit` tenner lysstripa øverst. */
-function key(g: G2D, x: number, y: number, w: number, h: number, label: string, body: number, lit = false, size = 1.5): void {
+function key(g: G2D, x: number, y: number, w: number, h: number, label: string, body: number, lit = false, size = 1.5, color = ink(body, 0.9)): void {
   g.fillStyle = "#0b0c0f"; g.beginPath(); g.roundRect(x, y, w, h, 0.4); g.fill();
   g.strokeStyle = shade(70, 76, 84, Math.max(body, 0.5)); g.lineWidth = 0.2; g.stroke();
   if (lit) { g.fillStyle = GREEN; g.fillRect(x + 0.8, y + 0.5, w - 1.6, 0.4); }
-  text(g, label, x + w / 2, y + h / 2 + 0.3, size, ink(body, 0.9));
+  text(g, label, x + w / 2, y + h / 2 + 0.3, size, color);
 }
 
 /** Varsellampe med tekst på én eller to linjer: lyser i fargen når den er på, ellers svakt. */
@@ -608,11 +614,11 @@ function fcu(g: G2D, body: number, game: Game): void {
   text(g, "HDG  V/S", x + 53, y + 2.8, 1.5, LCD); text(g, "TRK  FPA", x + 53, y + 5.4, 1.5, "#5b4526");
   win(x + 64, 20, "ALT    LVL/CH", `${game.approach.platformFt}${ap ? "●" : ""}`);
   win(x + 87, 17, "V/S", "-----");
-  for (const kx of [12.5, 33.5, 74, 95.5]) knob(g, x + kx, y + 10.1, 2, body);
+  for (const kx of [12.5, 33.5, 74, 95.5]) knob(g, x + kx, y + 10.1, 2, body, 0, true);
   const ky = y + 8.3;
-  key(g, x + 38.4, ky, 4.4, 3.7, "LOC", body);
-  key(g, x + 45.6, ky, 4.6, 3.7, "AP1", body, !!ap); key(g, x + 50.7, ky, 4.6, 3.7, "AP2", body); key(g, x + 55.8, ky, 4.8, 3.7, "A/THR", body, !!ap, 1.3);
-  key(g, x + 79.5, ky, 5, 3.7, "EXPED", body, false, 1.3); key(g, x + 100.6, ky, 5, 3.7, "APPR", body, !!ap);
+  key(g, x + 38.4, ky, 4.4, 3.7, "LOC", body, false, 1.5, glareInk(body));
+  key(g, x + 45.6, ky, 4.6, 3.7, "AP1", body, !!ap, 1.5, glareInk(body)); key(g, x + 50.7, ky, 4.6, 3.7, "AP2", body, false, 1.5, glareInk(body)); key(g, x + 55.8, ky, 4.8, 3.7, "A/THR", body, !!ap, 1.3, glareInk(body));
+  key(g, x + 79.5, ky, 5, 3.7, "EXPED", body, false, 1.3, glareInk(body)); key(g, x + 100.6, ky, 5, 3.7, "APPR", body, !!ap, 1.5, glareInk(body));
 }
 
 /** EFIS-kontrollpanel ved siden av FCU: trykkinnstilling, FD og LS, og velgere for ND (modus og rekkevidde).
@@ -623,12 +629,12 @@ function efis(g: G2D, x0: number, dir: number, body: number): void {
   g.strokeStyle = shade(20, 23, 28, body); g.lineWidth = 0.4; g.stroke();
   g.fillStyle = "#06080a"; g.fillRect(at(1.2, 11), y + 1, 11, 5);
   text(g, "QNH", at(1.2, 11) + 0.6, y + 2, 1.4, "#ffb347", "left"); text(g, "1013", at(1.2, 11) + 10.4, y + 4.1, 3.2, "#ffb347", "right", MONO, 600);
-  knob(g, at(4), y + 9.7, 2, body);
-  key(g, at(7.6, 4.4), y + 7, 4.4, 2.6, "FD", body, false, 1.4); key(g, at(7.6, 4.4), y + 10, 4.4, 2.6, "LS", body, true, 1.4);
-  ["CSTR", "WPT", "VOR.D", "NDB", "ARPT"].forEach((s, i) => key(g, at(13.4 + i * 3.9, 3.6), y + 0.9, 3.6, 2.7, s, body, false, 1.05));
+  knob(g, at(4), y + 9.7, 2, body, 0, true);
+  key(g, at(7.6, 4.4), y + 7, 4.4, 2.6, "FD", body, false, 1.4, glareInk(body)); key(g, at(7.6, 4.4), y + 10, 4.4, 2.6, "LS", body, true, 1.4, glareInk(body));
+  ["CSTR", "WPT", "VOR.D", "NDB", "ARPT"].forEach((s, i) => key(g, at(13.4 + i * 3.9, 3.6), y + 0.9, 3.6, 2.7, s, body, false, 1.05, glareInk(body)));
   // ND-velgerne står på ARC og 10 NM, som er det skjermen viser
-  knob(g, at(18.6), y + 8.9, 2.3, body, 0.6 * dir); knob(g, at(27.6), y + 8.9, 2.3, body, -1.2 * dir);
-  text(g, "ARC", at(18.6), y + 12.2, 1.3, ink(body, 0.85)); text(g, "10", at(27.6), y + 12.2, 1.3, ink(body, 0.85));
+  knob(g, at(18.6), y + 8.9, 2.3, body, 0.6 * dir, true); knob(g, at(27.6), y + 8.9, 2.3, body, -1.2 * dir, true);
+  text(g, "ARC", at(18.6), y + 12.2, 1.3, glareInk(body)); text(g, "10", at(27.6), y + 12.2, 1.3, glareInk(body));
 }
 
 /** Varsellysene ytterst på blendingsskjermen. MASTER WARN blinker rødt mens et rødt varsel står på E/WD;
@@ -752,7 +758,9 @@ const anim = { at: 0, kt: 0, trend: 0, eng: -1 };
 const SPOOL_S = 1.6; // SYNTETISK: tidskonstant for motorenes turtall etter gasshåndtaket
 
 export function drawPanel(g: G2D, t: Terrain, game: Game): void {
-  const P = game.P, body = 1 - 0.8 * game.env.sky.night, arp = game.airport.arp;
+  night = game.env.sky.night;
+  // Om natta er panelet opplyst av flomlyset under blendingsskjermen, så det blir ikke helt mørkt
+  const P = game.P, body = 1 - 0.6 * night, arp = game.airport.arp;
   const end = game.airport.runways.flatMap((rw) => rw.ends).find((e) => e.ident === game.approach.ident);
   const kt = P.spd * KT, now = performance.now() / 1000, dt = clamp(now - anim.at, 0, 0.5);
   if (anim.eng < 0 || P.state !== "fly") { anim.trend = 0; anim.eng = P.thr; }
@@ -824,6 +832,13 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
   // Spakene fra midtkonsollen står på hver side av nedre ECAM-skjerm. I flyet sitter de lenger bak, utenfor bildet.
   plate(g, 110.4, ROW + DU + 4.4, 29.6, H - ROW - DU - 5, body, 58, 66, 76);
   plate(g, 180, ROW + DU + 4.4, 29.6, H - ROW - DU - 5, body, 58, 66, 76);
+
+  // flomlyset: sterkest rett under blendingsskjermen, svakere nedover
+  if (night > 0.05) {
+    const flood = g.createLinearGradient(0, PANEL_TOP + 16, 0, H);
+    flood.addColorStop(0, `rgba(255,236,200,${0.16 * night})`); flood.addColorStop(1, "rgba(255,236,200,0)");
+    g.fillStyle = flood; g.fillRect(-OX, PANEL_TOP + 16, W, H - PANEL_TOP - 16);
+  }
 
   fcu(g, body, game);
   efis(g, 70, 1, body); efis(g, 217, -1, body);
