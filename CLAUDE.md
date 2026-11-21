@@ -7,7 +7,7 @@ reproduserbar og dokumentert.
 ## Arkitektur
 
 ```
-pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<utsnitt>/
+pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<utsnitt>/ (se pipeline/README.md)
   src/flypipe/
     crs.py        ALL koordinattransformasjon (WGS84 <-> UTM 33), konvergens
     grid.py       GridSpec: UTM-meter <-> rutenettceller
