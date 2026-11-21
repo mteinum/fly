@@ -323,6 +323,32 @@ til omrissene som vektordata.
 (1,2 MB for Kjevik), fordi Overpass ofte svarer 502 og bygget ikke skal avhenge av den. Spillet tegner
 omrissene som vegger og flatt tak. Kollisjon bruker fortsatt 10 m-cellene under byggene.
 
+## Undersøkt, ikke i bruk: skipstrafikk fra AIS (2026-11-21)
+
+Spørsmålet var om ekte skip kan vises ved kystflyplassene (Kjevik, Sola, Flesland, Bodø).
+
+| Kilde | Hva | Tilgang | Kontrollert |
+|---|---|---|---|
+| Kystverkets åpne AIS-strøm | Rå AIS-meldinger i sanntid (IEC 62320-1) over TCP, `153.44.253.27` port `5631` | Ingen registrering | Koblet til i 12 s: 38 meldinger/s, 228 fartøy med posisjon, derav 3 ved Kristiansand, 5 ved Stavanger, 13 ved Bergen og 3 ved Bodø |
+| BarentsWatch Live AIS | Samme data som JSON over HTTPS, `live.ais.barentswatch.no` | Gratis, men krever registrert klient og hemmelig nøkkel (OAuth2, `id.barentswatch.no/connect/token`, scope `ais`) | Bare dokumentasjonen er lest. Endepunktene står i en Swagger-side som ikke lot seg lese |
+| BarentsWatch Historic AIS | Spor per fartøy, `historic.ais.barentswatch.no` | Som over | Dokumentasjonen oppgir «No data older than 14 days» |
+| Kystdatahuset (Kystverket) | Historiske AIS-data, «tilgjengelig for alle» | Ikke avklart | API-siden lot seg ikke lese |
+
+Felles for de åpne dataene (Kystverket og BarentsWatch):
+- **Lisens:** NLOD. Kystverket: «Ekstern bruk av Kystverkets AIS-data må krediteres Kystverket.» BarentsWatch
+  krever teksten «Data levert av BarentsWatch», godt synlig.
+- **Ikke med:** fiskefartøy under 15 m og fritidsfartøy under 45 m. Det meste av småbåttrafikken mangler altså.
+- **Dekning:** Kystverkets landstasjoner langs hele kysten, pluss stasjoner til havs og satellitt.
+
+Hvorfor det ikke kan brukes direkte fra spillet:
+- En nettleser kan ikke åpne en rå TCP-forbindelse, så Kystverkets strøm trenger en mellomstasjon på en server.
+- BarentsWatch krever en hemmelig nøkkel. Den kan ikke ligge i nettleseren.
+- Webhotellet har PHP (delingssiden), men spillet er ellers statisk.
+
+Veier som er mulige: (1) ta opp trafikken en periode og bake den inn ved bygging, som «en vanlig dag»;
+(2) et lite PHP-skript på webhotellet som henter fra BarentsWatch og gir spillet posisjoner uten nøkkel.
+Ikke påbegynt.
+
 ### Lyd: ElevenLabs (generert)
 
 | | |
