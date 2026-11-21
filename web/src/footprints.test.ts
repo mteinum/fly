@@ -47,6 +47,32 @@ describe("bygningsomriss", () => {
     expect(m.color[4 * 3]).toBe(156); // vegg: 200 x 0,78
   });
 
+  it("taket vender opp og veggene ut, uansett hvilken vei omrisset går", () => {
+    // Første utgave hadde alle flater vendt innover: takene ble borte, og man så innsiden av veggene bak.
+    const cw = new Float32Array([0, 0, 20, 0, 20, 8, 8, 8, 8, 20, 0, 20]), ccw = new Float32Array(cw.length);
+    for (let i = 0, n = cw.length / 2; i < n; i++) { ccw[i * 2] = cw[(n - 1 - i) * 2]; ccw[i * 2 + 1] = cw[(n - 1 - i) * 2 + 1]; }
+    for (const ring of [cw, ccw]) {
+      const m = buildingMesh([{ ring, base: 0, top: 10, color: [1, 2, 3] }]), p = m.position;
+      let roofs = 0, walls = 0;
+      for (let q = 0; q < m.index.length; q += 3) {
+        const [a, b, c] = [m.index[q], m.index[q + 1], m.index[q + 2]].map((i) => [p[i * 3], p[i * 3 + 1], p[i * 3 + 2]]);
+        const u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], w = [c[0] - a[0], c[1] - a[1], c[2] - a[2]];
+        // flatens forside er dit normalen peker (høyrehåndsregelen, som i WebGL)
+        const nx = u[1] * w[2] - u[2] * w[1], ny = u[2] * w[0] - u[0] * w[2], nz = u[0] * w[1] - u[1] * w[0];
+        if (Math.abs(ny) > 1e-6) { expect(ny).toBeGreaterThan(0); roofs++; continue; } // tak: normalen peker opp
+        // vegg: et lite steg langs normalen fra veggens midtpunkt skal havne UTENFOR omrisset
+        const len = Math.hypot(nx, nz), mx = (a[0] + b[0] + c[0]) / 3 + (nx / len) * 0.1, mz = (a[2] + b[2] + c[2]) / 3 + (nz / len) * 0.1;
+        let inside = false;
+        for (let i = 0, n = ring.length / 2, j = n - 1; i < n; j = i++) {
+          if (ring[i * 2 + 1] > mz !== ring[j * 2 + 1] > mz && mx < ((ring[j * 2] - ring[i * 2]) * (mz - ring[i * 2 + 1])) / (ring[j * 2 + 1] - ring[i * 2 + 1]) + ring[i * 2]) inside = !inside;
+        }
+        expect(inside).toBe(false);
+        walls++;
+      }
+      expect([roofs, walls]).toEqual([4, 12]);
+    }
+  });
+
   it("leser buildings.bin slik pipeline skriver den", () => {
     const file = fileURLToPath(new URL("../public/data/kjevik10/buildings.bin", import.meta.url));
     if (!existsSync(file)) return; // 10 m-flisene er ikke i git

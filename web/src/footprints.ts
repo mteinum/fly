@@ -88,6 +88,10 @@ export function buildingMesh(buildings: Footprint[]): BuildingMesh {
   let v = 0, k = 0;
   buildings.forEach((b, bi) => {
     const n = b.ring.length / 2, roof = v, low = v + n, high = v + 2 * n, [r, g, bl] = b.color;
+    // En flate tegnes bare fra forsiden: hjørnene må gå mot klokka sett fra den siden den skal ses fra.
+    // Sett ovenfra peker z nedover på skjermen, så «mot klokka på skjermen» er negativt areal i (x, z).
+    // Omløpsretningen i fila skal ikke ha noe å si: snu rekkefølgen her når den er motsatt.
+    const flip = signedArea2(b.ring) > 0;
     for (let pass = 0; pass < 3; pass++) {
       // 0: takets hjørner, 1: veggenes nedre, 2: veggenes øvre
       const y = pass === 1 ? b.base : b.top, s = pass === 0 ? 1 : WALL_SHADE;
@@ -96,12 +100,16 @@ export function buildingMesh(buildings: Footprint[]): BuildingMesh {
         color[v * 3] = r * s; color[v * 3 + 1] = g * s; color[v * 3 + 2] = bl * s;
       }
     }
-    for (let i = 0; i < n; i++) {
-      const j = (i + 1) % n;
-      index[k++] = low + i; index[k++] = high + i; index[k++] = low + j;
-      index[k++] = low + j; index[k++] = high + i; index[k++] = high + j;
+    for (let e = 0; e < n; e++) {
+      // veggen mellom to nabohjørner, sett utenfra: nede venstre, nede høyre, oppe høyre, oppe venstre
+      const i = flip ? (e + 1) % n : e, j = flip ? e : (e + 1) % n;
+      index[k++] = low + i; index[k++] = low + j; index[k++] = high + j;
+      index[k++] = low + i; index[k++] = high + j; index[k++] = high + i;
     }
-    for (const t of tris[bi]) index[k++] = roof + t;
+    const t = tris[bi];
+    for (let q = 0; q < t.length; q += 3) {
+      index[k++] = roof + t[q]; index[k++] = roof + t[flip ? q + 2 : q + 1]; index[k++] = roof + t[flip ? q + 1 : q + 2];
+    }
   });
   return { position, color, index };
 }

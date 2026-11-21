@@ -356,6 +356,21 @@ og hva som ble endret.
   terskelen. Testene dekker nå et rutenett av avstander og sideavvik, og
   krever at den enten lander på senterlinja eller gir fra seg flyet.
 
+**42. Hus uten tak, og jeg forklarte det bort**
+- Byggene med omriss ble tegnet med alle flater vendt innover. Takene ble
+  borte, og det som syntes var innsiden av veggene på motsatt side.
+- Jeg så det på mitt eget skjermbilde av Kvadraturen: kvartaler med grønt i
+  midten. Jeg bestemte meg for at det var bakgårder og gikk videre.
+- Da brukeren sendte et bilde av mørke bygg, forklarte jeg det med lav sol
+  og foreslo å endre lyset. Det var også feil.
+- Testen min sjekket at trekantene dekket riktig areal, ikke hvilken vei de
+  vendte. En flate som vender feil har samme areal.
+- Rettet: omløpsretningen sjekkes per bygg, og en test krever at taket
+  vender opp og at hver vegg vender ut, for omriss i begge retninger.
+- Lærdom: to ganger fant jeg en forklaring som passet med at koden var
+  riktig. Når noe ser rart ut, er «koden er feil» den første hypotesen
+  som skal avkreftes, ikke den siste.
+
 ### Feller som ble unngått (og hvordan det ble kontrollert)
 
 Disse gikk riktig første gang, men er nettopp den typen feil loggen skal
