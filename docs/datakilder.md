@@ -194,6 +194,38 @@ Begrensninger: oppløsningen er 10 m (som fargekartet vi har), så bakken blir
 ikke skarpere på nært hold. Bildet har sommerens solskygger bakt inn, og
 vann er nesten svart.
 
+## Undersøkt, ikke i bruk: flere og bedre bygninger (2026-11-21)
+
+Bakgrunn: N50 har 8 098 bygninger i Kjevik-utsnittet, de fleste som punkter, og ingen enkelthus i
+by og tettsted. Spørsmålet var hva som finnes av mer detaljerte, åpne kilder.
+
+| Kilde | Hva | Lisens | Funn |
+|---|---|---|---|
+| FKB-Bygning (Geovekst) | Kommunenes detaljerte kart: omriss av hvert bygg, 1:500 | Norge digitalt-lisens. Ikke åpne data: «Nedlasting av data begrenset til Norge digitalt avtaleparter» | Kan ikke brukes |
+| Matrikkelen - Bygningspunkt (Kartverket) | Ett punkt per bygning, med bygningstype og status | CC BY 4.0, åpne data | 57 883 bygninger i Kjevik-utsnittet, sju ganger N50. Bare punkt, ingen form eller høyde |
+| INSPIRE Buildings WMS (Kartverket) | Bygningsomriss som kartbilde | CC BY-NC 4.0 | Bare bilde (WMS), ikke vektordata, og ikke-kommersiell lisens. Ingen nedlasting funnet |
+| OpenStreetMap | Bygningsomriss | ODbL | 57 945 bygninger i en boks litt større enn utsnittet. 95 % av et utvalg på 4 000 har matrikkelens bygningsnummer (`ref:bygningsnr`), så de kan kobles til bygningstypen. 8 % har etasjetall, nesten ingen har høyde |
+| satellittdata.no (Norsk Romsenter) | Sentinel-data over Norge | Copernicus | Ingen bygningsdata og ingen bilder med høyere oppløsning enn Sentinel. Samme grunnlag som mosaikken over |
+
+Kontrollert slik:
+- Lisens og tilgang er lest fra Geonorges kartkatalog (`kartkatalog.geonorge.no/api/getdata/<uuid>`).
+- Matrikkelen er lastet ned for Agder (40 MB) og telt innenfor utsnittet. Fila ligger samme sted og i
+  samme form som N50: `nedlasting.geonorge.no/geonorge/Basisdata/MatrikkelenBygning/FGDB/Basisdata_<fylke>_25833_MatrikkelenBygning_FGDB.zip`.
+  Laget heter `bygning`, CRS er EPSG:25833. WFS finnes også (`wfs.geonorge.no/skwms1/wfs.matrikkelen-bygningspunkt`, typen `app:Bygning`).
+- OpenStreetMap er telt med Overpass API. Utvalget på 4 000 er de første Overpass ga, ikke et tilfeldig utvalg.
+
+Det matrikkelen viser om Kjevik-utsnittet:
+- 55 408 av bygningene står (status tatt i bruk, ferdigattest eller midlertidig brukstillatelse). Resten er
+  blant annet godkjent, men ikke bygget.
+- 65 % ligger i arealklassen Tettbebyggelse og 2 % i Bymessig bebyggelse, altså der N50 ikke har enkelthus.
+- 19 657 er garasjer, uthus og naust (type 181-183). 35 751 er andre bygg.
+
+Ikke avklart:
+- ODbL krever at en database avledet av OpenStreetMap deles på samme vilkår. `structures.json` bygget på
+  OSM-omriss ville trolig være en slik database. Det må vurderes før OSM tas i bruk.
+- Hvor godt OSM-omrissene dekker landsbygda og de andre flyplassene er ikke sjekket.
+- Matrikkelen har adresse- og eiendoms-ID per bygning. De trengs ikke og skal ikke med i flisene.
+
 ### Lyd: ElevenLabs (generert)
 
 | | |
