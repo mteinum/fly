@@ -143,47 +143,88 @@ def tunnel_lines(features: dict[str, gpd.GeoDataFrame], grid: GridSpec) -> list[
 
 # Navnetyper som ikke tas med. Tunnelnavn er med (tunnelene tegnes stiplet), merket så de ikke forveksles med stedet.
 SKIP_NAME_TYPES: set[str] = set()
-# Navn med minst denne skriftstørrelsen flyttes fra kartteksten til stedets eget punkt i SSR
-SSR_POINT_MIN_SIZE = 8.5
+# Navnene flyttes fra kartteksten til stedets eget punkt i SSR (se load_names)
 SSR_URL = "https://ws.geonorge.no/stedsnavn/v1/sted"
-# Fyr står på små skjær: kartteksten ved siden av ville lagt dem i sjøen. De flyttes alltid til stedets punkt.
 LIGHTHOUSE_TYPES = ("fyrstasjon", "fyrlykt")
 
 
 SSR_POINTS = Path(__file__).resolve().parents[3] / "data" / "ssr_points.json"
+SSR_NEAR_URL = "https://ws.geonorge.no/stedsnavn/v1/punkt"
+SSR_NEAR_RADIUS_M = 5000  # tjenestens største radius
+SSR_PAGE = 500  # tjenestens største sidestørrelse
 
 
-def ssr_point(stedsnummer: int, raw_dir: Path) -> tuple[float, float] | None:
-    """Stedets representasjonspunkt (øst, nord i EPSG:25833) fra Sentralt stedsnavnregister.
+def _ssr_get(url: str, params: dict) -> dict:
+    """Ett kall mot stedsnavn-API-et, med nye forsøk. Tjenesten svarer av og til 503."""
+    import time
+
+    status: object = None
+    for attempt in range(5):
+        try:
+            r = requests.get(url, params=params, headers={"User-Agent": USER_AGENT}, timeout=90)
+            if r.status_code == 200:
+                return r.json()
+            status = r.status_code
+        except requests.RequestException as e:  # tidsavbrudd og brutte forbindelser: prøv igjen
+            status = type(e).__name__
+        time.sleep(3 * (attempt + 1))
+    raise RuntimeError(
+        f"Stedsnavn-API-et svarte {status} for {params}. "
+        "Kjør bygget lokalt, så legges punktene i data/ssr_points.json, og sjekk fila inn."
+    )
+
+
+def _ssr_xy(hit: dict) -> list[float] | None:
+    p = hit.get("representasjonspunkt")
+    assert p is None or p.get("koordsys") == 25833, p
+    return [round(float(p["øst"]), 2), round(float(p["nord"]), 2)] if p else None
+
+
+def ssr_points(numbers: list[int], grid: GridSpec) -> dict[int, tuple[float, float] | None]:
+    """Stedenes representasjonspunkt (øst, nord i EPSG:25833) fra Sentralt stedsnavnregister, per stedsnummer.
 
     Punktene ligger i data/ssr_points.json, som er i git: bygget skal ikke stoppe fordi et API
     er nede (det skjedde: tjenesten svarte 503 til GitHub Actions mens den virket lokalt).
-    Et stedsnummer som mangler der slås opp og legges til i fila.
+    Stedsnumre som mangler der slås opp og legges til i fila. Mangler det mange, hentes alle steder
+    i utsnittet med /punkt (sirkler på 5 km som dekker rutenettet) i stedet for ett kall per sted.
     """
     import json
     import time
 
     store = json.loads(SSR_POINTS.read_text(encoding="utf-8")) if SSR_POINTS.exists() else {"points": {}}
-    key = str(stedsnummer)
-    if key not in store["points"]:
-        for attempt in range(4):
-            r = requests.get(SSR_URL, params={"stedsnummer": stedsnummer, "utkoordsys": 25833}, headers={"User-Agent": USER_AGENT}, timeout=60)
-            if r.status_code == 200:
-                break
-            time.sleep(2 * (attempt + 1))
-        else:
-            raise RuntimeError(
-                f"Stedsnavn-API-et svarte {r.status_code} for stedsnummer {stedsnummer}. "
-                "Kjør bygget lokalt, så legges punktet i data/ssr_points.json, og sjekk fila inn."
-            )
-        hits = r.json().get("navn", [])
-        p = hits[0].get("representasjonspunkt") if hits else None
-        assert p is None or p.get("koordsys") == 25833, p
-        store["points"][key] = [round(float(p["øst"]), 2), round(float(p["nord"]), 2)] if p else None
-        store["points"] = dict(sorted(store["points"].items(), key=lambda kv: int(kv[0])))
+    points = store["points"]
+
+    def save() -> None:
+        store["points"] = dict(sorted(points.items(), key=lambda kv: int(kv[0])))
         SSR_POINTS.write_text(json.dumps(store, ensure_ascii=False, indent=0), encoding="utf-8")
-    point = store["points"][key]
-    return (point[0], point[1]) if point else None
+
+    missing = {n for n in numbers if str(n) not in points}
+    if len(missing) > 20:
+        step = SSR_NEAR_RADIUS_M * 1.4  # sirklene overlapper så vidt i hjørnene av rutene (radius > step / sqrt(2))
+        nx, ny = int(-(-(grid.east - grid.west) // step)), int(-(-(grid.north - grid.south) // step))
+        for i in range(nx):
+            for j in range(ny):
+                page = 1
+                while True:
+                    data = _ssr_get(SSR_NEAR_URL, {
+                        "ost": grid.west + (i + 0.5) * step, "nord": grid.south + (j + 0.5) * step, "koordsys": 25833,
+                        "utkoordsys": 25833, "radius": SSR_NEAR_RADIUS_M, "treffPerSide": SSR_PAGE, "side": page,
+                    })
+                    for hit in data.get("navn", []):
+                        if hit.get("stedsnummer") in missing:
+                            points[str(hit["stedsnummer"])] = _ssr_xy(hit)
+                    if page * SSR_PAGE >= data["metadata"]["totaltAntallTreff"]:
+                        break
+                    page += 1
+                    time.sleep(0.1)
+                save()  # etter hver sirkel, så et avbrudd ikke kaster det som er hentet
+        missing = {n for n in missing if str(n) not in points}
+    for n in sorted(missing):
+        hits = _ssr_get(SSR_URL, {"stedsnummer": n, "utkoordsys": 25833}).get("navn", [])
+        points[str(n)] = _ssr_xy(hits[0]) if hits else None
+    if missing:
+        save()
+    return {n: (tuple(points[str(n)]) if points[str(n)] else None) for n in numbers}
 
 
 def load_names(county: str, grid: GridSpec, raw_dir: Path) -> list[dict]:
@@ -196,24 +237,25 @@ def load_names(county: str, grid: GridSpec, raw_dir: Path) -> list[dict]:
     Høydetall og fastmerker (rader uten stedsnummer) tas ikke med.
 
     Kartteksten står ved siden av stedet, ikke på det: «Kristiansand» er trykket
-    1,4 km fra sentrum, ute i havna. De største navnene (ses på lang avstand)
-    flyttes derfor til stedets eget punkt i SSR, slått opp på stedsnummer.
+    1,4 km fra sentrum, ute i havna, og «Ramsøya» 400 m ute i sjøen. Alle navn
+    flyttes derfor til stedets eget punkt i SSR, slått opp på stedsnummer. Bare
+    steder uten punkt i registeret, eller med punktet utenfor utsnittet, står ved kartteksten.
     """
     gdf = _read(gdb_path(county, raw_dir), "N50_Stedsnavn_tekstplassering", grid)
     gdf = gdf[gdf["stedsnummer"].notna() & gdf["fulltekst"].notna() & ~gdf["navneobjekttype"].isin(SKIP_NAME_TYPES)]
     names = []
+    points = ssr_points(sorted({int(n) for n in gdf["stedsnummer"]}), grid)
     for _, parts in gdf.groupby("stedsnummer"):
         first = parts.iloc[0]
         where = parts.geometry.union_all().centroid
         x, y = grid.utm_to_grid(where.x, where.y)
         if not (0 <= x < grid.width and 0 <= y < grid.height):
             continue
-        if float(parts["FontSize"].max()) >= SSR_POINT_MIN_SIZE or first["navneobjekttype"] in LIGHTHOUSE_TYPES:
-            point = ssr_point(int(first["stedsnummer"]), raw_dir)
-            if point:
-                sx, sy = grid.utm_to_grid(*point)
-                if 0 <= sx < grid.width and 0 <= sy < grid.height:
-                    x, y = sx, sy
+        point = points[int(first["stedsnummer"])]
+        if point:
+            sx, sy = grid.utm_to_grid(*point)
+            if 0 <= sx < grid.width and 0 <= sy < grid.height:
+                x, y = sx, sy
         name = str(first["fulltekst"]).strip()
         if first["navneobjekttype"] == "tunnel" and "tunnel" not in name.lower():
             name += " (tunnel)"  # kartet har tunnelsymbol ved navnet; her må ordet til

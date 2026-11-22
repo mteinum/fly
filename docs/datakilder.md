@@ -66,13 +66,14 @@ bruker derfor Matrikkelen for bygningspunktene (neste avsnitt); N50 gir fortsatt
 formen på store bygg, og alle bygninger i 50 m-flisene.
 
 Stedsnavnene vises i lufta når man flyr (`names.json`). Navn, type og hvor
-viktig navnet er (kartets skriftstørrelse) er fra N50. Plasseringen er
-kartteksten sin, som står *ved siden av* stedet. De 262 største navnene er
-derfor flyttet til stedets eget punkt, hentet fra
-`https://ws.geonorge.no/stedsnavn/v1/sted?stedsnummer=&utkoordsys=25833`
-(Sentralt stedsnavnregister, CC BY 4.0, verifisert 2026-11-21) og lagret i
-`data/ssr_points.json`, som ligger i git. Brunavn er flyttet til nærmeste punkt på brudekket. Mindre
-navn står fortsatt der kartet har trykket dem, opptil noen hundre meter unna.
+viktig navnet er (kartets skriftstørrelse) er fra N50. Kartteksten står *ved siden av* stedet
+(«Ramsøya» 400 m ute i sjøen), så plasseringen er stedets eget punkt i Sentralt stedsnavnregister
+(CC BY 4.0), slått opp på stedsnummer. Punktene hentes samlet per utsnitt fra
+`https://ws.geonorge.no/stedsnavn/v1/punkt?nord=&ost=&koordsys=25833&utkoordsys=25833&radius=5000&treffPerSide=500&side=`
+(sirkler på 5 km som dekker rutenettet; verifisert mot tjenestens OpenAPI 2026-11-22), og enkeltsteder som
+mangler fra `https://ws.geonorge.no/stedsnavn/v1/sted?stedsnummer=&utkoordsys=25833`. De 6336 punktene er
+lagret i `data/ssr_points.json`, som ligger i git. Brunavn er flyttet til nærmeste punkt på brudekket. Et navn
+står ved kartteksten bare når stedets punkt ligger utenfor utsnittet.
 Hvor langt unna et navn vises, og at navn bak en ås skjules, er valgt i
 spillet (`web/src/labels.ts`).
 

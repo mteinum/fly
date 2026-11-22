@@ -503,6 +503,15 @@ Jeg skrev det i oppsummeringen etter første N50-runde. Sprite stacking kan
 det helt fint: en celle kan være med i én skive uten å være med i dem under.
 Det er Voxel Space som trenger et unntak.
 
+**49. Lot de små stedsnavnene stå ved kartteksten**
+- Da de største navnene ble flyttet til stedets eget punkt (nr. 27), lot jeg resten stå ved kartteksten og
+  skrev at avviket var «noen hundre meter». Fra lufta er det nok til at streken under navnet ender i sjøen
+  ved siden av øya: «Ramsøya» sto 400 m unna, «Fugleholmane» 540 m.
+- Meldt av bruker med skjermbilde («vi bommer fortsatt på skilt»).
+- Rettet: alle navn står på stedets punkt i stedsnavnregisteret. Punktene hentes samlet per utsnitt med
+  /punkt (sirkler på 5 km) i stedet for ett kall per sted, og lagres i data/ssr_points.json etter hver sirkel.
+  Første fulle kjøring stoppet på et tidsavbrudd fra tjenesten; oppslaget prøver nå igjen også ved tidsavbrudd.
+
 ### Åpne spørsmål / ikke kontrollert
 
 - OurAirports er ikke sjekket mot gjeldende AIP Norge, bare mot DTM og
