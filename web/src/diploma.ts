@@ -36,10 +36,16 @@ export interface DiplomaData {
   date: Date;
   /** Hvordan taksingen etterpå gikk, når piloten takset selv. Står under diplomet; teller ikke i karakteren. */
   taxi?: string | null;
+  /** Takset helt fram: standen og tiden fra landing til parkering (s). Står på selve diplomet og i delingslenka. */
+  taxiDone?: { stand: string; seconds: number } | null;
 }
 
 const W = 1200, H = 630;
 const SERIF = 'Georgia, "Times New Roman", serif', SANS = '"Helvetica Neue", Helvetica, Arial, sans-serif';
+
+/** «and taxied to stand 17 in 3:02», eller tom tekst. Samme ordlyd som delingssiden (web/public/share/lib.php). */
+export const taxiLine = (d: DiplomaData): string =>
+  d.taxiDone ? `and taxied to stand ${d.taxiDone.stand} in ${Math.floor(d.taxiDone.seconds / 60)}:${String(Math.floor(d.taxiDone.seconds % 60)).padStart(2, "0")}` : "";
 
 export const shareText = (d: DiplomaData): string =>
   `I landed an Airbus A320 at ${d.airportName.split(",").pop()!.trim()}, runway ${d.touchdown.runway}: ${"★".repeat(d.grade.stars)}${"☆".repeat(5 - d.grade.stars)} ${d.grade.title}.`;
@@ -51,6 +57,8 @@ export function shareUrl(siteUrl: string, d: DiplomaData): string {
     n: d.name.trim(), a: d.icao, r: td.runway, s: String(d.grade.stars), k: String(Math.round(td.kt)), f: String(Math.round(td.fpm)),
     c: td.crossM.toFixed(1), t: String(Math.round(td.pastThresholdM)), d: iso,
   });
+  // takset til en stand: standen og sekundene, bare når det skjedde
+  if (d.taxiDone) { q.set("g", d.taxiDone.stand); q.set("m", String(Math.round(d.taxiDone.seconds))); }
   return `${siteUrl}share/?${q}`;
 }
 
@@ -84,6 +92,7 @@ export function drawDiploma(canvas: HTMLCanvasElement, d: DiplomaData, photo: Ca
   const starW = 62, x0 = W / 2 - starW * 2;
   for (let i = 0; i < 5; i++) { g.fillStyle = i < d.grade.stars ? "#ffd04a" : "rgba(255,255,255,.22)"; g.fillText("★", x0 + i * starW, 338); }
   text(d.grade.title, 396, `600 34px ${SERIF}`, "#f0d48a");
+  if (d.taxiDone) text(taxiLine(d), 432, `italic 22px ${SERIF}`, "#d6dbe6");
 
   // målinger
   const td = d.touchdown, where = td.pastThresholdM >= 0 ? `${Math.round(td.pastThresholdM)} m past threshold` : `${Math.round(-td.pastThresholdM)} m before threshold`;

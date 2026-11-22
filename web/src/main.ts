@@ -383,7 +383,7 @@ async function main(): Promise<void> {
         : `${game.P.stuck ? "Stuck in the grass. " : ""}Autopilot: ${stars} ${grade.title}. Press R and beat it.`;
       game.msg.t = 1;
     } else if (landed && game.P.parked && game.P.touchdown && !diploma.open && !clean && landingPhoto) {
-      diploma.show({ airportName: chosen.name, icao: chosen.icao, touchdown: game.P.touchdown, taxi: game.taxiResult }, landingPhoto, () => { diploma.hide(); game.restart(); });
+      diploma.show({ airportName: chosen.name, icao: chosen.icao, touchdown: game.P.touchdown, taxi: game.taxiResult, taxiDone: game.taxiDone }, landingPhoto, () => { diploma.hide(); game.restart(); });
       landingPhoto = null;
     }
     wasLanded = landed;

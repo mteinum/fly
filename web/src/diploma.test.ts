@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { gradeLanding, shareText, shareUrl } from "./diploma";
+import { gradeLanding, shareText, shareUrl, taxiLine } from "./diploma";
 import { update } from "./physics";
 import { newPlane, type Touchdown } from "./plane";
 import { loadTestTerrain } from "./testTerrain";
@@ -36,6 +36,16 @@ describe("lenke til delingssiden", () => {
     const url = new URL(shareUrl("https://fly.teinum.no/", { name: " Morten Ø ", airportName: "Bodø Airport", icao: "ENBO", touchdown: td, grade: gradeLanding(td), date: new Date(2026, 10, 20) }));
     expect(url.origin + url.pathname).toBe("https://fly.teinum.no/share/");
     expect(Object.fromEntries(url.searchParams)).toEqual({ n: "Morten Ø", a: "ENBO", r: "25", s: "5", k: "111", f: "183", c: "0.0", t: "153", d: "2026-11-20" });
+  });
+
+  it("tar med taksingen i lenka og på diplomet når flyet ble takset til en stand, ellers ikke", () => {
+    const td = { runway: "25", kt: 111.4, fpm: 183.2, crossM: 0.04, pastThresholdM: 153.3, flaps: 4 };
+    const base = { name: "Morten", airportName: "Bodø Airport", icao: "ENBO", touchdown: td, grade: gradeLanding(td), date: new Date(2026, 10, 20) };
+    const plain = new URL(shareUrl("https://fly.teinum.no/", base)), taxied = new URL(shareUrl("https://fly.teinum.no/", { ...base, taxiDone: { stand: "17", seconds: 182.6 } }));
+    expect([plain.searchParams.has("g"), plain.searchParams.has("m")]).toEqual([false, false]);
+    expect([taxied.searchParams.get("g"), taxied.searchParams.get("m")]).toEqual(["17", "183"]);
+    expect(taxiLine({ ...base, taxiDone: { stand: "17", seconds: 182 } })).toBe("and taxied to stand 17 in 3:02"); // samme ordlyd som delingssiden
+    expect(taxiLine(base)).toBe("");
   });
 });
 

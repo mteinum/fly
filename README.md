@@ -107,7 +107,8 @@ kommer diplomet seks sekunder etter at flyet har stanset, som før.
 Tårnet gir deg en stand og taksebanene dit («taxi to stand 16 via B, Y»). Ruta er merket med en grønn stripe på
 bakken og en grønn søyle på standen, og hjørnekartet bytter til et kart over flyplassen. Ruta regnes på nytt
 underveis, så tar du en annen vei, følger den med. Stans på standen, så settes parkeringsbremsen av seg selv, og
-under diplomet står det hvordan taksingen gikk. `?taxi` i adressen hopper over flygingen og starter på rullebanen.
+under diplomet står det hvordan taksingen gikk. Takset du helt fram til en nummerert stand, står det også på
+selve diplomet og i delingslenka («and taxied to stand 17 in 3:02»). `?taxi` i adressen hopper over flygingen og starter på rullebanen.
 
 ## Flight director
 

@@ -197,7 +197,7 @@ cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstje
   henter fra adsb.lol, som tillater 500 forespørsler i døgnet uten nøkkel: den spør høyst hvert 45. sekund per
   flyplass, bare mens noen spiller, og stopper på 440 per døgn (regnskapet ligger i traffic/cache/lock). Delingssiden (share/) lagrer ingenting og tar ikke imot
   opplastinger: diplomet tegnes fra tallene i adressen, og alt derfra avgrenses i lib.php. Titlene der må holdes
-  like TITLES i web/src/diploma.ts. Skipstjenesten (ais/) lagrer bare siste skipsposisjoner (ais/cache/, sperret
+  like TITLES i web/src/diploma.ts, og linja om taksing (taxi_line) lik taxiLine samme sted. Skipstjenesten (ais/) lagrer bare siste skipsposisjoner (ais/cache/, sperret
   for direkte henting) og ingenting om besøkende; eneste inndata er flyplasskoden, som må finnes i areas.json.
   Den lytter på Kystverkets strøm bare når noen spiller, etter at svaret er sendt, og én om gangen.
 - PHP kjøres ikke direkte på denne maskinen, men i en container:

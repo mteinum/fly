@@ -42,6 +42,9 @@ function diploma(array $q): ?array {
     $name = mb_substr(trim(preg_replace('/\s+/u', ' ', $name) ?? ''), 0, 40);
     $date = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) ($q['d'] ?? '')) && strtotime((string) $q['d']) ? (string) $q['d'] : gmdate('Y-m-d');
     $stars = (int) clamp((float) ($q['s'] ?? 3), 1, 5);
+    $g = $q['g'] ?? '';
+    $m = $q['m'] ?? '';
+    $taxi = is_string($g) && is_string($m) && preg_match('/^[0-9]{1,3}[A-Za-z]?$/', $g) && preg_match('/^[0-9]{1,4}$/', $m) && (int) $m >= 1 && (int) $m <= 3600;
     return [
         'name' => $name,
         'icao' => $icao,
@@ -54,7 +57,15 @@ function diploma(array $q): ?array {
         'cross' => round(clamp((float) ($q['c'] ?? 0), 0, 100), 1),
         'past' => (int) round(clamp((float) ($q['t'] ?? 0), -3000, 5000)),
         'date' => $date,
+        // Takset til en stand etter landingen: standens nummer og sekundene det tok. Begge må være med og gyldige.
+        'stand' => $taxi ? strtoupper((string) $q['g']) : null,
+        'taxi' => $taxi ? (int) $q['m'] : null,
     ];
+}
+
+/** «and taxied to stand 17 in 3:02», eller tom tekst. Samme ordlyd som taxiLine i web/src/diploma.ts. */
+function taxi_line(array $d): string {
+    return $d['stand'] === null ? '' : sprintf('and taxied to stand %s in %d:%02d', $d['stand'], intdiv($d['taxi'], 60), $d['taxi'] % 60);
 }
 
 /** Flyplassene til velgeren: [['icao', 'name', 'id'], ...] i indeksens rekkefølge. `id` er mappa flisene ligger i,
@@ -74,7 +85,8 @@ function airport_cards(): array {
 /** Adressefeltene for et avgrenset diplom, i fast rekkefølge. */
 function query(array $d): string {
     return http_build_query(['n' => $d['name'], 'a' => $d['icao'], 'r' => $d['runway'], 's' => $d['stars'], 'k' => $d['kt'],
-        'f' => $d['fpm'], 'c' => $d['cross'], 't' => $d['past'], 'd' => $d['date']]);
+        'f' => $d['fpm'], 'c' => $d['cross'], 't' => $d['past'], 'd' => $d['date']]
+        + ($d['stand'] === null ? [] : ['g' => $d['stand'], 'm' => $d['taxi']]));
 }
 
 /** «Kjevik» fra «Kristiansand Airport, Kjevik». */

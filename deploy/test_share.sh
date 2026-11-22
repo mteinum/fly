@@ -48,4 +48,17 @@ for bad in '{"a":"XXXX","r":"25"}' '{"a":"ENCN","r":"03"}' '{"a":"ENBO","r":"99X
   [[ "$(page image.php "$bad")" == 'Unknown airport or runway.' ]] || fail "laget bilde for $bad"
   [[ -z "$(page index.php "$bad")" ]] || fail "laget side for $bad"
 done
+# Takset til en stand: linja kommer med på siden og i bildelenka, og rare verdier tas ikke med
+with() { php -r '$q = json_decode($argv[1], true) + json_decode($argv[2], true); echo json_encode($q);' "$good" "$1"; }
+taxi=$(with '{"g":"17","m":"182"}')
+page index.php "$taxi" > "$out/taxi.html"
+grep -q 'and taxied to stand 17 in 3:02' "$out/taxi.html" || fail 'taksingen mangler i beskrivelsen'
+grep -q 'd=2026-11-20&amp;g=17&amp;m=182"' "$out/taxi.html" || fail 'taksingen mangler i bildelenka'
+page image.php "$taxi" > "$out/taxi.png"
+php -r '$s = getimagesize($argv[1]); exit($s && $s[0] === 1200 ? 0 : 1);' "$out/taxi.png" || fail 'bildet med taksing er ikke en PNG'
+! cmp -s "$out/taxi.png" "$out/diploma.png" || fail 'taksingen syntes ikke i bildet'
+for extra in '{"g":"17"}' '{"m":"182"}' '{"g":"<b>","m":"182"}' '{"g":"17","m":"99999"}' '{"g":"12345","m":"60"}' '{"g":"17","m":"-5"}' '{"g":["17"],"m":"60"}'; do
+  page index.php "$(with "$extra")" > "$out/notaxi.html"
+  ! grep -q 'taxied' "$out/notaxi.html" || fail "tok med taksing for $extra"
+done
 printf 'share test: ok (%s)\n' "$out/diploma.png"

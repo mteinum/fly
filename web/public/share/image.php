@@ -69,6 +69,9 @@ for ($i = 0; $i < 5; $i++) {
     $drawStar(W / 2 + ($i - 2) * 62, 334, 25, $i < $d['stars'] ? $star : $dim);
 }
 $text($d['title'], W / 2, 408, 26, $font('Serif-Bold'), $title);
+if ($d['stand'] !== null) {
+    $text(taxi_line($d), W / 2, 438, 16, $font('Serif-Italic'), $soft);
+}
 
 $stats = [
     ['SPEED', "{$d['kt']} kt"],

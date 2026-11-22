@@ -75,6 +75,8 @@ export interface Game {
    *  når flyplassen ikke har stands som kan nås. `taxiResult` er hvordan det gikk, når flyet står: til diplomet. */
   taxiPlan: TaxiPlan | null;
   taxiResult: string | null;
+  /** Takset helt fram til en nummerert stand: standen og tiden fra landing (s). Til diplomet og delingslenka. */
+  taxiDone: { stand: string; seconds: number } | null;
   /** Fartsvektoren («fuglen») på PFD: viser hvor flyet er på vei over bakken. P slår den av og på. */
   flightPathVector: boolean;
   /** Vinden: hvor den kommer fra (sann retning i grader) og middelvinden i knop, og det samme som fart i rutenettet.
@@ -202,6 +204,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
       game.taxiResult = P.stuck ? `Got stuck in the grass on the way to ${name}.`
         : toStandM < STAND_REACHED_M ? `Taxied to ${name} in ${time}.`
         : `Parked ${Math.round(toStandM / 10) * 10} m from ${name}.`;
+      if (!P.stuck && toStandM < STAND_REACHED_M && stand.ref) game.taxiDone = { stand: stand.ref, seconds: Math.floor(taxiS) };
       if (!P.stuck) say(toStandM < STAND_REACHED_M ? `Parked at ${name}. Welcome to ${airport.name.split(",").pop()!.trim()}!` : game.taxiResult, 6);
       game.taxiPlan = null;
     }
@@ -213,7 +216,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     if (aborted && aborted.samples.length > 20) game.flightLog = aborted;
     recorder.clear();
     game.replay = null;
-    game.taxiPlan = game.taxiResult = null;
+    game.taxiPlan = game.taxiResult = game.taxiDone = null;
     stand = null; taxiS = 0; replanIn = 0; toldRoute = false; sawParked = false;
     game.autopilot = approach.autopilot = false;
     startApproach(P, terrain, ends[endIdx]);
@@ -246,6 +249,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     flightPathVector: false,
     taxiPlan: null,
     taxiResult: null,
+    taxiDone: null,
     look: params.get("look") === "up" ? "up" : params.get("look") === "down" ? "down" : "forward",
     sys: { seatBelts: true, gpwsTerr: true, tcasStandby: false, sdPage: "auto" },
     wind,
