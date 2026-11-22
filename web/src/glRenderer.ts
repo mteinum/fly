@@ -12,6 +12,7 @@ import * as THREE from "three";
 import type { Camera, Environment } from "./game";
 import { addGroundDetail, type GroundDetail } from "./groundDetail";
 import { buildRunwayDecal } from "./runwayDecal";
+import { buildAirportGround } from "./taxiDecal";
 import type { Plane } from "./plane";
 import type { RGB } from "./sky";
 import { CHURCH_TOWER_HALF_WIDTH, LIGHTHOUSE_RADIUS } from "./physics";
@@ -149,6 +150,7 @@ export class GlRenderer {
     this.scene.add(this.skyDome, this.sunDisc, this.stars);
 
     for (const rw of t.meta.airports[0].runways) this.scene.add(buildRunwayDecal(t, rw, map.anisotropy));
+    for (const mesh of buildAirportGround(t)) this.scene.add(mesh);
     this.buildingCount = this.addBuildings();
     this.addFootprints();
     this.addChurchTowers();

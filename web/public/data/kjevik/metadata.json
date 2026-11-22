@@ -288,9 +288,19 @@
           70,
           78
         ]
+      },
+      {
+        "code": 18,
+        "name": "Taksebane og oppstillingsflate (OpenStreetMap)",
+        "color": [
+          78,
+          80,
+          86
+        ]
       }
     ]
   },
+  "aeroways": null,
   "names": {
     "file": "names.json",
     "count": 1024,

@@ -187,6 +187,13 @@ def build(area: Area) -> Path:
     # Tunneler ses ikke fra lufta. Spillet tegner dem som stiplet linje oppå bakken og sjøen, slik et kart gjør.
     tunnels = n50.tunnel_lines(vectors, grid) if area.n50_county else []
     on_runway = runway_mask(airport, grid)
+    # Taksebaner og oppstillingsflater fra OpenStreetMap (data/osm/, hentet med `flypipe aeroways`): bakes inn i
+    # fargekartet og overflateklassene, og følger med som vektorer i aeroways.json så spillet kan tegne dem skarpt.
+    aero = osm.load_aeroways(area.id) if area.osm_footprints else None
+    on_taxiway = np.zeros_like(on_runway)
+    if aero and (aero["taxiways"] or aero["aprons"]):
+        on_taxiway = rasterize(osm.aeroway_shapes(aero), out_shape=(grid.height, grid.width), transform=grid.transform).astype(bool) & ~on_runway
+        rgb[on_taxiway] = terrain.TAXIWAY
     rgb[on_runway] = terrain.RUNWAY
 
     out = TILES / area.id
@@ -220,6 +227,7 @@ def build(area: Area) -> Path:
     surface = lc.copy()
     if features is not None:
         surface[features == n50.ROAD] = landcover.SURFACE_ROAD
+    surface[on_taxiway] = landcover.SURFACE_TAXIWAY
     surface[on_runway] = landcover.SURFACE_RUNWAY
     surface.tofile(out / "surface.bin")
     (out / "structures.json").write_text(
@@ -227,6 +235,16 @@ def build(area: Area) -> Path:
         encoding="utf-8",
     )
     n_bridge = sum(1 for it in items if it[2] == structures.BRIDGE)
+    if aero:
+        to_grid = lambda p: [round((p[0] - grid.west) / area.cell, 3), round((grid.north - p[1]) / area.cell, 3)]  # noqa: E731
+        (out / "aeroways.json").write_text(json.dumps({
+            "about": "Rutenettkoordinater [x, y]. width er i meter; widthFromSource sier om bredden står i OpenStreetMap eller er antatt.",
+            "taxiways": [{"ref": t["ref"], "kind": t["kind"], "width": t["width"] or osm.AEROWAY_WIDTH_M[t["kind"]], "widthFromSource": t["width"] is not None,
+                          "line": [to_grid(q) for q in t["line"]]} for t in aero["taxiways"]],
+            "aprons": [[to_grid(q) for q in a["ring"]] for a in aero["aprons"]],
+            "stands": [{"ref": st["ref"], "at": to_grid(st["at"]), "line": [to_grid(q) for q in st["line"]] if st["line"] else None} for st in aero["stands"]],
+            "holds": [to_grid(h["at"]) for h in aero["holds"]],
+        }, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (out / "names.json").write_text(
         json.dumps({"columns": ["name", "x", "y", "z", "size", "type", "group"],
                     "items": [[n["name"], round(n["x"], 2), round(n["y"], 2), round(n["z"], 1), n["size"], n["type"], n["group"]] for n in names]},
@@ -264,8 +282,16 @@ def build(area: Area) -> Path:
             "file": "surface.bin",
             "dtype": "uint8",
             "about": "arealdekke med vei og rullebane lagt oppå; styrer detaljmønster på bakken",
-            "classes": landcover.surface_classes(terrain.ROAD, terrain.RUNWAY),
+            "classes": landcover.surface_classes(terrain.ROAD, terrain.RUNWAY, terrain.TAXIWAY),
         },
+        "aeroways": {
+            "file": "aeroways.json",
+            "source": f"OpenStreetMap (ODbL), hentet {aero['fetched']}",
+            "taxiways": len(aero["taxiways"]),
+            "aprons": len(aero["aprons"]),
+            "stands": len(aero["stands"]),
+            "cells": int(on_taxiway.sum()),
+        } if aero else None,
         "names": {
             "file": "names.json",
             "count": len(names),
@@ -347,7 +373,7 @@ def build(area: Area) -> Path:
         "attribution": [
             "Elevation data (DTM, DOM), N50 map data and building points (Matrikkelen): © Kartverket (CC BY 4.0)"
             if area.matrikkel_buildings else "Elevation data (DTM, DOM) and N50 map data: © Kartverket (CC BY 4.0)",
-            *(["Building outlines: © OpenStreetMap contributors (ODbL)"] if area.osm_footprints else []),
+            *(["Building outlines and airport layout: © OpenStreetMap contributors (ODbL)" if aero else "Building outlines: © OpenStreetMap contributors (ODbL)"] if area.osm_footprints else []),
             "Airport data: OurAirports (public domain)",
         ],
     }

@@ -144,3 +144,104 @@ def load(area_id: str) -> Footprints:
         raise FileNotFoundError(f"{path} mangler. Kjør `uv run flypipe osm {area_id}` og sjekk fila inn.")
     with np.load(path) as z:
         return Footprints(z["xy_dm"].astype(np.float64) / DM, z["start"].astype(int), z["ref"], z["levels"].astype(int), str(z["fetched"]))
+
+
+# ---------- taksebaner, oppstillingsplasser og stands ----------
+
+AEROWAY_WIDTH_M = {"taxiway": 23.0, "taxilane": 15.0}  # brukes når OSM ikke har bredden (vanlig)
+MAX_AEROWAY_WIDTH_M = 60.0
+
+
+def aeroway_path(area_id: str) -> Path:
+    return STORE / f"{area_id}.aeroway.json"
+
+
+def fetch_aeroways(area_id: str, grid: GridSpec, raw_dir: Path) -> Path:
+    """Hent flyplassens bakkeanlegg fra Overpass og skriv data/osm/<utsnitt>.aeroway.json (i git, ODbL).
+
+    Tas med: taksebaner og taksebaner mellom oppstillingsplasser (linjer med navn), oppstillingsflater
+    (polygoner), stands (punkt, eller innkjøringslinje der den er kartlagt) og ventepunkter.
+    Koordinatene transformeres til UTM 33 med crs.py og lagres i hele desimeter.
+    """
+    from .crs import utm33_to_wgs84, wgs84_to_utm33
+
+    raw = raw_dir / "osm"
+    raw.mkdir(parents=True, exist_ok=True)
+    path = raw / f"{area_id}_aeroway.json"
+    if not path.exists():
+        # UTM-ruta er skjev i lengde/bredde: spør om boksen som omslutter den
+        corners = [utm33_to_wgs84(x, y) for x in (grid.west, grid.east) for y in (grid.south, grid.north)]
+        box = f"{min(c[1] for c in corners):.6f},{min(c[0] for c in corners):.6f},{max(c[1] for c in corners):.6f},{max(c[0] for c in corners):.6f}"
+        q = (f'[out:json][timeout:120];(way["aeroway"~"^(taxiway|taxilane|apron|parking_position)$"]({box});'
+             f'node["aeroway"~"^(parking_position|holding_position)$"]({box}););out geom;')
+        print(f"  Overpass: {path.name}")
+        for attempt, wait in enumerate((0, 20, 45, 90, 180, 300)):
+            time.sleep(wait)
+            r = requests.post(OVERPASS_URL, data={"data": q}, headers={"User-Agent": USER_AGENT}, timeout=300)
+            if r.status_code == 200:
+                break
+            print(f"  Overpass svarte {r.status_code}, forsøk {attempt + 1}")
+        else:
+            raise RuntimeError("Overpass API svarer ikke. Prøv igjen senere; bygget bruker fila som alt ligger i data/osm/.")
+        path.write_text(json.dumps(r.json()["elements"]), encoding="utf-8")
+
+    def utm(points: list[dict]) -> list[list[float]]:
+        east, north = wgs84_to_utm33([p["lon"] for p in points], [p["lat"] for p in points])
+        return [[round(float(e), 1), round(float(n), 1)] for e, n in zip(east, north)]
+
+    inside = lambda e, n: grid.west <= e < grid.east and grid.south < n <= grid.north  # noqa: E731
+    out: dict = {"taxiways": [], "aprons": [], "stands": [], "holds": []}
+    for el in sorted(json.loads(path.read_text(encoding="utf-8")), key=lambda e: (e["type"], e["id"])):
+        tags, kind = el.get("tags", {}), el.get("tags", {}).get("aeroway")
+        ref = str(tags.get("ref", "")).strip()[:8]
+        if el["type"] == "node":
+            (e, n), = utm([el])
+            if not inside(e, n):
+                continue
+            if kind == "parking_position":
+                out["stands"].append({"id": el["id"], "ref": ref, "at": [e, n], "line": None})
+            elif kind == "holding_position":
+                out["holds"].append({"id": el["id"], "at": [e, n]})
+            continue
+        pts = utm(el.get("geometry", []))
+        if len(pts) < 2 or not all(inside(e, n) for e, n in pts):
+            continue
+        if kind in AEROWAY_WIDTH_M:
+            w = str(tags.get("width", "")).replace(",", ".").removesuffix("m").strip()
+            width = float(w) if w.replace(".", "", 1).isdigit() and 5 <= float(w) <= MAX_AEROWAY_WIDTH_M else None
+            out["taxiways"].append({"id": el["id"], "ref": ref, "kind": kind, "width": width, "line": pts})
+        elif kind == "apron" and len(pts) >= 4 and pts[0] == pts[-1]:
+            out["aprons"].append({"id": el["id"], "ring": pts[:-1]})
+        elif kind == "parking_position":
+            # innkjøringslinja: flyet står i enden som ligger lengst fra nærmeste taksebane (avgjøres i spillet)
+            out["stands"].append({"id": el["id"], "ref": ref, "at": pts[-1], "line": pts})
+    doc = {
+        "about": "Flyplassens bakkeanlegg fra OpenStreetMap: taksebaner, oppstillingsflater, stands og ventepunkter. "
+                 "Koordinater er (øst, nord) i EPSG:25833. © OpenStreetMap contributors, ODbL 1.0.",
+        "fetched": time.strftime("%Y-%m-%d"),
+        **out,
+    }
+    STORE.mkdir(parents=True, exist_ok=True)
+    target = aeroway_path(area_id)
+    target.write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    print(f"  {len(out['taxiways'])} taksebaner, {len(out['aprons'])} oppstillingsflater, {len(out['stands'])} stands, "
+          f"{len(out['holds'])} ventepunkter -> {target.name} ({target.stat().st_size / 1e3:.0f} kB)")
+    return target
+
+
+def load_aeroways(area_id: str) -> dict | None:
+    """Bakkeanlegget for utsnittet, eller None når det ikke er hentet (`flypipe aeroways <utsnitt>`)."""
+    path = aeroway_path(area_id)
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+
+
+def aeroway_shapes(aero: dict) -> list:
+    """Flatene bakkeanlegget dekker: taksebanene bufret til full bredde, og oppstillingsflatene."""
+    from shapely.geometry import LineString, Polygon
+
+    shapes = [LineString(t["line"]).buffer((t["width"] or AEROWAY_WIDTH_M[t["kind"]]) / 2, cap_style="round") for t in aero["taxiways"]]
+    for a in aero["aprons"]:
+        poly = Polygon(a["ring"])
+        if poly.is_valid and poly.area > 0:
+            shapes.append(poly)
+    return shapes

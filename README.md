@@ -69,6 +69,11 @@ I cockpit varsler flyet når det er på vei i terrenget: «terrain ahead» og gu
 45 sekunder til, «pull up» og rødt når det haster. Terrenget det gjelder er helfarget på ND. Varselet regnes fra
 høydekartet og flyets bane akkurat nå (`web/src/gpws.ts`); reglene er forenklet og gjelder ikke bygninger og bruer.
 
+## Flyplassen på bakken
+
+Taksebaner, oppstillingsflater og stands er fra OpenStreetMap og tegnes som asfalt med gule senterlinjer og
+standnumre. Dataene ligger i `data/osm/<utsnitt>.aeroway.json` og hentes for hånd med `uv run flypipe aeroways <utsnitt>`.
+
 ## Vind
 
 Det blåser i spillet som på flyplassen akkurat nå: vinden er fra flyplassens siste METAR (Meteorologisk institutt),

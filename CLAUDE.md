@@ -17,7 +17,8 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     dtm.py        Kartverket DTM og DOM via WCS, cache i data/raw/
     airports.py   OurAirports: flyplass + rullebaner; tårnposisjon fra N50-bygning type 411
     n50.py        N50 Kartdata: veier, bruer, bygninger -> feature-raster
-    osm.py        bygningsomriss fra OpenStreetMap: `flypipe osm <utsnitt>` henter til data/osm/ (i git, ODbL)
+    osm.py        fra OpenStreetMap, hentet for hånd til data/osm/ (i git, ODbL): bygningsomriss (`flypipe osm <utsnitt>`)
+                  og flyplassens bakkeanlegg med taksebaner, oppstillingsflater og stands (`flypipe aeroways <utsnitt>`)
     footprints.py bygg med form: omriss (OSM) + type (Matrikkelen) + høyde (DOM) -> buildings.bin
     matrikkel.py  Matrikkelen: alle bygninger som punkt med type (10 m-flisene); høyde og farge er valgt etter type
     landcover.py  N50 Arealdekke -> palettindeks per celle
@@ -48,6 +49,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     glRenderer.ts  WebGL: terrengnett med LOD, normalkart, bygninger, bruer, lys
     groundDetail.ts  prosedyrale bakkedetaljer per overflateklasse (shader, syntetisk)
     runwayDecal.ts   rullebanen som skarp flate med merking (merkingen er syntetisk)
+    taxiDecal.ts     taksebaner, oppstillingsflater, senterlinjer og standnumre som skarpe flater (fra aeroways.json)
     audio.ts       lydmotor: motor, vind, hendelser, utrop, flygeleder
     diploma.ts     diplom etter landing: karakter, bilde til deling, deleknapper
     labels.ts      stedsnavn i lufta: utvalg etter viktighet og avstand, fri sikt, plassering
@@ -75,11 +77,13 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 - `colormap.png`: RGB, bakken: arealdekke + veier + rullebane. 10 m-flisene har ren
   flatefarge (spillet lyssetter selv); 50 m-flisene har hillshade bakt inn
 - `lights.png`: RGB, nattlys (kun 10 m). Syntetisk plassert langs veier og i bebyggelse
-- `surface.bin`: uint8, arealdekke med vei (16) og rullebane (17) lagt oppå; velger detaljmønster på bakken
+- `surface.bin`: uint8, arealdekke med vei (16), rullebane (17) og taksebane/oppstillingsflate (18) lagt oppå; velger detaljmønster på bakken
 - `landcover.bin`: uint8 palettindeks (klasser i metadata.json; avgjør hva som er vann)
 - `structures.json`: `[kol, rad, type, bunn, topp, r, g, b]` for bruer og bygninger, `churchTowers`: `[x, y, bunn, topp]`, `lighthouses`: `[x, y, bunn, topp, tårn]` og `tunnels`: polylinjer `[x, y]`
 - `buildings.bin` (10 m-utsnittene): bygg med form, se footprints.py for formatet.
   I `structures.json` har cellene under disse byggene et niende felt = 1 (tegnes ikke som boks)
+- `aeroways.json` (10 m-utsnittene): flyplassens bakkeanlegg fra OpenStreetMap i rutenettkoordinater: `taxiways`
+  (navn, bredde i m, linje), `aprons` (polygoner), `stands` (nummer, sted, innkjøringslinje) og `holds`
 - `thumb.jpg` (10 m-utsnittene): oversiktskart 320 x 320 med rullebanene i hvitt, til flyplassvelgeren på delingssiden
 - `names.json`: `[navn, x, y, z, skriftstørrelse, type, gruppe]`, stedsnavn fra N50, viktigste først
 - `metadata.json`: bbox, CRS, cellestørrelse, min/maks høyde, konvergens,
@@ -105,7 +109,8 @@ cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstje
 1. `areas.py`: en linje med `_airport_10m(id, navn, ICAO, fylke)`. Fylkeskoden må finnes både for N50 og Matrikkelen
    (se fillistene på nedlasting.geonorge.no). Bruk `center_offset` hvis byen ellers faller utenfor.
 2. `audio.py` AIRPORTS: navnet tårnet bruker. `uv run flypipe audio` lager de tre klippene (bruker ElevenLabs-kvote).
-3. `uv run flypipe osm <id>` henter bygningsomriss til data/osm/ (tar noen minutter; Overpass svarer ofte 502).
+3. `uv run flypipe osm <id>` henter bygningsomriss til data/osm/ (tar noen minutter; Overpass svarer ofte 502),
+   og `uv run flypipe aeroways <id>` taksebaner, oppstillingsflater og stands.
 4. Fasit i tests/fixtures/reference_points.json: referansepunktet fra Kartverkets transformasjons-API, og tre
    høyder langs banen fra høyde-API-et (under `heights.areas.<id uten 10>`).
 5. Legg id-en i testlistene: pipeline/tests/conftest.py, test_matrikkel.py, test_traffic.py, og AREAS i

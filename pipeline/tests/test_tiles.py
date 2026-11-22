@@ -1,5 +1,6 @@
 """Kontroll av de ferdige flisene - det spillet faktisk laster."""
 
+import json
 import numpy as np
 import pytest
 from PIL import Image
@@ -94,21 +95,33 @@ def test_kjevik_runway_03_points_north_east(tiles):
 
 
 def test_surface_overlays_road_and_runway_on_landcover(any_tiles):
-    """surface.bin = arealdekke, med vei (16) og rullebane (17) lagt oppå. landcover.bin er urørt."""
+    """surface.bin = arealdekke, med vei (16), rullebane (17) og taksebane (18) lagt oppå. landcover.bin er urørt."""
     meta, hgt, _ = any_tiles
     d = TILES.parent / meta["id"]
     lc = np.fromfile(d / meta["landcover"]["file"], dtype=np.uint8).reshape(hgt.shape)
     surface = np.fromfile(d / meta["surface"]["file"], dtype=np.uint8).reshape(hgt.shape)
+    grid_h, grid_w = hgt.shape
     codes = {c["name"]: c["code"] for c in meta["surface"]["classes"]}
-    road, runway = codes["Vei"], codes["Rullebane (OurAirports)"]
+    road, runway, taxiway = codes["Vei"], codes["Rullebane (OurAirports)"], codes["Taksebane og oppstillingsflate (OpenStreetMap)"]
     assert lc.max() < road  # ingen overflatekoder har lekket inn i arealdekket
-    untouched = (surface != road) & (surface != runway)
+    untouched = (surface != road) & (surface != runway) & (surface != taxiway)
     assert np.array_equal(surface[untouched], lc[untouched])
     assert 0 < (surface == road).sum() <= meta["features"]["roadCells"]  # rullebanen dekker noen veiceller
     le, he = meta["airports"][0]["runways"][0]["ends"]
     for t in (0.02, 0.5, 0.98):
         x, y = le["x"] + t * (he["x"] - le["x"]), le["y"] + t * (he["y"] - le["y"])
         assert surface[int(y), int(x)] == runway
+    # Bakkeanlegget fra OpenStreetMap: celler der det finnes, og aldri oppå rullebanen (sjekket over)
+    if meta.get("aeroways"):
+        assert (surface == taxiway).sum() == meta["aeroways"]["cells"] > 0
+        aero = json.loads((d / meta["aeroways"]["file"]).read_text(encoding="utf-8"))
+        assert len(aero["taxiways"]) == meta["aeroways"]["taxiways"] > 0
+        for tw in aero["taxiways"]:
+            assert 5 <= tw["width"] <= 60 and all(0 <= x < grid_w and 0 <= y < grid_h for x, y in tw["line"])
+        for st in aero["stands"]:
+            assert 0 <= st["at"][0] < grid_w and 0 <= st["at"][1] < grid_h
+    else:
+        assert (surface == taxiway).sum() == 0
     for c in meta["surface"]["classes"]:
         assert len(c["color"]) == 3 and all(0 <= v <= 255 for v in c["color"])
 

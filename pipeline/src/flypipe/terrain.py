@@ -11,6 +11,7 @@ SEA_LEVEL_MAX = 0.1
 
 SEA = (45, 110, 150)
 RUNWAY = (68, 70, 78)
+TAXIWAY = (78, 80, 86)  # litt lysere enn rullebanen
 ROAD = (104, 104, 110)
 BRIDGE = (218, 212, 198)
 ROOFS = ((172, 86, 66), (184, 178, 164))  # teglrødt og lys grått, veksles med støy

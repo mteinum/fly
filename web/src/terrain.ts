@@ -58,6 +58,8 @@ export interface TerrainMeta {
   /** `buildingColors.legend`: [navn, farge] per bygningstype som finnes i utsnittet (fra pipeline, matrikkel.py). */
   structures: { file: string; buildingColors?: { legend: [string, string][] } | null; footprints?: { file: string; count: number } | null };
   names?: { file: string; count: number };
+  /** Flyplassens bakkeanlegg (taksebaner, oppstillingsflater, stands), når det er hentet for utsnittet. */
+  aeroways?: { file: string; source: string; taxiways: number; aprons: number; stands: number } | null;
   /** Satt for utsnittene spillet bruker: andre fly kan hentes fra /traffic/ (se traffic.ts). */
   traffic?: { source: string } | null;
   /** Satt når utsnittet har sjø: da finnes det skipstrafikk å hente fra /ais/ (se ships.ts). */
@@ -93,6 +95,15 @@ export interface StructureFile {
   lighthouses?: [number, number, number, number, number][];
 }
 
+/** aeroways.json: flyplassens bakkeanlegg fra OpenStreetMap, i rutenettkoordinater [x, y]. Bredden er i meter. */
+export interface Aeroways {
+  taxiways: { ref: string; kind: "taxiway" | "taxilane"; width: number; widthFromSource: boolean; line: [number, number][] }[];
+  aprons: [number, number][][];
+  /** Stands: nummeret, stedet, og innkjøringslinja der den er kartlagt. */
+  stands: { ref: string; at: [number, number]; line: [number, number][] | null }[];
+  holds: [number, number][];
+}
+
 export class Terrain {
   readonly width: number;
   readonly height: number;
@@ -112,6 +123,7 @@ export class Terrain {
   readonly lighthouses: NonNullable<StructureFile["lighthouses"]>;
   /** Stedsnavn fra N50, viktigste først. */
   names: PlaceName[] = [];
+  aeroways: Aeroways | null = null;
   private readonly waterCodes: Uint8Array;
 
   constructor(
@@ -200,7 +212,7 @@ export interface TerrainAssets {
 
 export async function loadTerrain(baseUrl: string): Promise<TerrainAssets> {
   const meta: TerrainMeta = await (await fetch(`${baseUrl}/metadata.json`)).json();
-  const [hgtBuf, colormap, lights, lcBuf, surfaceBuf, structures, names, footprints] = await Promise.all([
+  const [hgtBuf, colormap, lights, lcBuf, surfaceBuf, structures, names, footprints, aeroways] = await Promise.all([
     fetch(`${baseUrl}/${meta.heightmap.file}`).then((r) => r.arrayBuffer()),
     loadImage(`${baseUrl}/${meta.colormap.file}`),
     meta.lights ? loadImage(`${baseUrl}/${meta.lights.file}`) : null,
@@ -209,11 +221,13 @@ export async function loadTerrain(baseUrl: string): Promise<TerrainAssets> {
     fetch(`${baseUrl}/${meta.structures.file}`).then((r) => r.json() as Promise<StructureFile>),
     meta.names ? fetch(`${baseUrl}/${meta.names.file}`).then((r) => r.json() as Promise<NameFile>) : null,
     meta.structures.footprints ? fetch(`${baseUrl}/${meta.structures.footprints.file}`).then((r) => r.arrayBuffer()) : null,
+    meta.aeroways ? fetch(`${baseUrl}/${meta.aeroways.file}`).then((r) => r.json() as Promise<Aeroways>) : null,
   ]);
   // heightmap.f32 er little-endian, som alle plattformer nettlesere kjører på
   const terrain = new Terrain(meta, new Float32Array(hgtBuf), new Uint8Array(lcBuf), structures);
   if (names) terrain.names = parseNames(names);
   if (footprints) terrain.footprints = parseFootprints(footprints);
+  terrain.aeroways = aeroways;
   return { terrain, colormap, lights, surface: new Uint8Array(surfaceBuf) };
 }
 

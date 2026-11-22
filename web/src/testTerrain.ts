@@ -22,6 +22,7 @@ export function loadTestTerrain(area = "kjevik"): Terrain {
     const fp = readFileSync(DATA + meta.structures.footprints.file);
     terrain.footprints = parseFootprints(fp.buffer.slice(fp.byteOffset, fp.byteOffset + fp.byteLength) as ArrayBuffer);
   }
+  if (meta.aeroways && existsSync(DATA + meta.aeroways.file)) terrain.aeroways = JSON.parse(readFileSync(DATA + meta.aeroways.file, "utf-8"));
   if (meta.names && existsSync(DATA + meta.names.file)) terrain.names = parseNames(JSON.parse(readFileSync(DATA + meta.names.file, "utf-8")));
   return terrain;
 }

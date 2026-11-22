@@ -52,7 +52,7 @@ float gCells(vec2 q) {
 float gFade(float L, float px) { return 1.0 - smoothstep(0.18 * L, 0.45 * L, px); }
 int gClass(vec2 p) { return int(texture2D(surfaceMap, p / groundSize).r * 255.0 + 0.5); }
 // vei, rullebane og oppstillingsplass skal ha rette kanter
-bool gHard(int c) { return c == 15 || c == 16 || c == 17; }
+bool gHard(int c) { return c == 15 || c == 16 || c == 17 || c == 18; }
 
 float gDetail(int c, vec2 p, float px) {
   float big = gNoise(p / 45.0) - 0.5;
@@ -118,7 +118,7 @@ export function addGroundDetail(material: THREE.MeshStandardMaterial, t: Terrain
   map.needsUpdate = true;
 
   const hardData = new Uint8Array(surface.length);
-  for (let i = 0; i < surface.length; i++) if (surface[i] === 15 || surface[i] === 16 || surface[i] === 17) hardData[i] = 255;
+  for (let i = 0; i < surface.length; i++) if (surface[i] === 15 || surface[i] === 16 || surface[i] === 17 || surface[i] === 18) hardData[i] = 255;
   const hard = new THREE.DataTexture(hardData, t.width, t.height, THREE.RedFormat, THREE.UnsignedByteType);
   hard.magFilter = hard.minFilter = THREE.LinearFilter;
   hard.needsUpdate = true;
