@@ -579,6 +579,19 @@ Det er Voxel Space som trenger et unntak.
   rettelsen.
 - Rettet: høyden settes fra terrenget i hvert steg av utrullingen, som under taksing.
 
+**58. Nye bygg ble tegnet flate fordi overflatemodellen fikk siste ord**
+- Høyden på bygg med omriss ble alltid tatt fra overflatemodellen (DOM) når omrisset dekket minst tre celler.
+  Etasjetallet i OpenStreetMap ble bare brukt for små bygg.
+- DOM er et øyeblikksbilde. E-bygget ved Kristiansand stasjon (10 etasjer i OpenStreetMap) har 0,0 m i DOM,
+  fordi modellen er eldre enn bygget, og ble tegnet 3 m høyt.
+- Meldt av bruker: signalbyggene i Quadrum-kvartalet «er ikke korrekt tegnet».
+- Rettet: viser DOM under 3 m over hele omrisset, og OpenStreetMap har minst tre etasjer, gjelder etasjene.
+  Det traff 19 bygg ved Kristiansand og 45 ved Oslo.
+- Ikke løst: bygg uten etasjetall i OpenStreetMap (politihuset: 2,9 m i DOM) og bygg merket som under
+  oppføring («Quadrum Port»), som hoppes over. De mangler i datagrunnlaget, ikke i koden.
+- Underveis kjørte jeg et kontrollskript med feil cache-mappe, så 18 fliser ble lastet ned til data/raw/ og
+  måtte slettes. Ingen data i git ble berørt.
+
 ### Åpne spørsmål / ikke kontrollert
 
 - OurAirports er ikke sjekket mot gjeldende AIP Norge, bare mot DTM og

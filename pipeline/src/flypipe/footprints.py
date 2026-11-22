@@ -26,6 +26,8 @@ from .grid import GridSpec
 MAGIC = b"FBLD"
 VERSION = 1
 MIN_CELLS_FOR_DOM = 3  # færre celler gir ingen pålitelig median av 10 m-høyder
+NO_BUILDING_M = 3.0  # lavere enn dette i DOM over et helt omriss: modellen har ikke bygget
+NEW_BUILDING_LEVELS = 3  # ... og så mange etasjer i OpenStreetMap må til for å overstyre modellen
 HEIGHT_RANGE = (4.0, 80.0)
 STOREY_M = 3.0  # etasjehøyde når høyden regnes fra building:levels
 MATCH_DISTANCE_M = 20.0  # et Matrikkel-punkt så nær et omriss regnes som samme bygg
@@ -52,8 +54,11 @@ def build(
             c = poly.representative_point()
             x, y = grid.utm_to_grid(c.x, c.y)
             cells = np.array([int(y) * grid.width + int(x)])
-        if ndsm is not None and cells.size >= MIN_CELLS_FOR_DOM:
-            height, source = float(np.clip(np.median(ndsm.ravel()[cells]), *HEIGHT_RANGE)), "dom"
+        measured = float(np.median(ndsm.ravel()[cells])) if ndsm is not None and cells.size >= MIN_CELLS_FOR_DOM else None
+        # Overflatemodellen er et øyeblikksbilde. Viser den flat mark der OpenStreetMap har et bygg på minst tre etasjer,
+        # er bygget nyere enn modellen (E-bygget ved Kristiansand stasjon: 10 etasjer, 0,0 m i DOM). Da gjelder etasjene.
+        if measured is not None and not (measured < NO_BUILDING_M and fp.levels[i] >= NEW_BUILDING_LEVELS):
+            height, source = float(np.clip(measured, *HEIGHT_RANGE)), "dom"
         elif fp.levels[i] > 0:
             height, source = float(np.clip(fp.levels[i] * STOREY_M + 1.0, *HEIGHT_RANGE)), "levels"
         else:
