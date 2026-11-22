@@ -66,10 +66,23 @@ def _query(south: float, west: float, north: float, east: float) -> list[dict]:
 
 
 def _rings(el: dict) -> list[list[dict]]:
-    """Ytre omriss for et OSM-element: selve veien, eller de lukkede ytre veiene i en relasjon. Hull tas ikke med."""
+    """Ytre omriss for et OSM-element: selve veien, eller de ytre veiene i en relasjon. Hull tas ikke med.
+
+    I en relasjon er det ytre omrisset ofte delt på flere veier som ikke er lukket hver for seg (slik er Slottet og
+    Oslo konserthus kartlagt). De settes sammen ende mot ende til lukkede ringer.
+    """
     if el["type"] == "way":
         return [el["geometry"]] if "geometry" in el else []
-    return [m["geometry"] for m in el.get("members", []) if m.get("role") == "outer" and m.get("geometry") and m["geometry"][0] == m["geometry"][-1]]
+    outer = [m["geometry"] for m in el.get("members", []) if m.get("role") == "outer" and m.get("geometry")]
+    rings = [g for g in outer if g[0] == g[-1]]
+    pieces = [g for g in outer if g[0] != g[-1] and len(g) >= 2]
+    if pieces:
+        from shapely.geometry import LineString
+        from shapely.ops import polygonize
+
+        for poly in polygonize([LineString([(p["lon"], p["lat"]) for p in g]) for g in pieces]):
+            rings.append([{"lon": x, "lat": y} for x, y in poly.exterior.coords])
+    return rings
 
 
 def fetch(area_id: str, grid: GridSpec, raw_dir: Path) -> Path:
@@ -133,7 +146,8 @@ def fetch(area_id: str, grid: GridSpec, raw_dir: Path) -> Path:
         start=np.asarray(start, dtype=np.int32),
         ref=np.asarray(ref, dtype=np.int64),
         levels=np.asarray(levels, dtype=np.int8),
-        fetched=np.asarray(time.strftime("%Y-%m-%d")),
+        # datoen rådataene ble hentet, ikke datoen fila ble skrevet på nytt fra cachen
+        fetched=np.asarray(time.strftime("%Y-%m-%d", time.localtime(min((raw / f"{area_id}_{k}.json").stat().st_mtime for k in range(4))))),
     )
     print(f"  {len(ref)} bygg, {start[-1]} hjørner -> {out.name} ({out.stat().st_size / 1e6:.1f} MB). Utelatt: {skipped}")
     return out

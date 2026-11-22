@@ -558,6 +558,16 @@ Det er Voxel Space som trenger et unntak.
 - Rettet: prøver som avviker mer enn 1,5 m fra medianen av naboene erstattes med en rett linje mellom de gode
   prøvene (`structures.smooth_deck`). Det legges aldri inn høyder utenfor det prøvene spenner over.
 
+**56. Slottet og 250 andre store bygg manglet omriss**
+- Bygg som i OpenStreetMap er en relasjon der det ytre omrisset er delt på flere veier, ble kastet uten varsel:
+  koden tok bare med ytre veier som var lukket hver for seg. Slik er Slottet, Oslo konserthus og
+  Fysikkbygningen på Blindern kartlagt. De ble tegnet som bokser fra Matrikkelen i stedet.
+- Tapet ble ikke talt noe sted («Utelatt» i utskriften hadde ingen linje for det), så tallene så riktige ut.
+- Oppdaget da bruker spurte om en mer detaljert tegning av Slottet, og jeg lette etter omrisset i dataene.
+- Rettet: delene settes sammen ende mot ende til lukkede ringer (`osm._rings`, med test). Fra rådataene som alt
+  lå i cachen ga det 256 flere bygg: 123 i Oslo, 68 ved Flesland, 23 ved Kjevik, 15 i Tromsø.
+- Gårdsrom (indre ringer) tas fortsatt ikke med.
+
 ### Åpne spørsmål / ikke kontrollert
 
 - OurAirports er ikke sjekket mot gjeldende AIP Norge, bare mot DTM og
