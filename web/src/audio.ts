@@ -13,7 +13,7 @@ import { towerView } from "./tower";
 
 const FT = 3.28084;
 const LOOPS = ["engine", "wind", "tower_room"] as const;
-const ONE_SHOTS = ["gear", "flaps", "speedbrake", "touchdown", "crash", "splash", "warning", "radio", "retard", "too_low_gear", "stall", "go_around", "terrain_ahead", "pull_up"];
+const ONE_SHOTS = ["gear", "flaps", "speedbrake", "touchdown", "crash", "splash", "warning", "radio", "retard", "too_low_gear", "stall", "go_around", "terrain_ahead", "pull_up", "traffic"];
 /** Radiohøyder (fot) flyet roper ut på vei ned. */
 export const CALLOUTS = [1000, 500, 400, 300, 200, 100, 50, 40, 30, 20, 10];
 
@@ -40,6 +40,8 @@ export class GameAudio {
   private prev = { ra: Infinity, state: "", gearDown: true, flapCfg: -1, speedBrake: false, approach: -1 };
   private pending: { at: number; run: () => void }[] = [];
   private warnedGear = -1;
+  /** Flyene det er gitt trafikkvarsel for nå: «traffic, traffic» sies én gang per fly, når varselet kommer. */
+  private advised = new Set<string>();
   private played: string[] = [];
 
   /** `airport` avgjør hvilke tårnmeldinger som lastes: én klarering per baneende og en velkomst. */
@@ -207,6 +209,10 @@ export class GameAudio {
         else if (w.gearNotDown && ra < 500 && now > this.repeatAt.gear) { this.say("callout", "too_low_gear", 1); this.repeatAt.gear = now + 3; }
         if (w.overspeed && now > this.repeatAt.warning) { this.play("warning", 0.3); this.repeatAt.warning = now + 2.4; }
       }
+      // trafikkvarsel: ett utrop når et nytt fly blir gult på ND. Under 500 fot tier det, som i flyet.
+      const advisories = new Set(game.traffic.filter((a) => a.tcas === "advisory").map((a) => a.id));
+      if (inside && ra > 500 && [...advisories].some((id) => !this.advised.has(id))) this.say("callout", "traffic", 0.95);
+      this.advised = advisories;
       // tårnet ser at understellet ikke er ute: én påminnelse per innflyging
       if (w.gearNotDown && this.warnedGear !== game.approach.count) {
         this.warnedGear = game.approach.count;

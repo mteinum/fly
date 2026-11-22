@@ -46,7 +46,7 @@ beforeAll(() => {
 describe("lydmotoren", () => {
   it("leser alle lydene og starter de tre sløyfene", async () => {
     const { audio } = await setup();
-    expect(audio.status).toMatchObject({ state: "running", loaded: 31, loops: 3 });
+    expect(audio.status).toMatchObject({ state: "running", loaded: 32, loops: 3 });
   });
 
   it("gir landingsklarering 2,5 s etter at innflygingen starter, over radio i cockpit", async () => {

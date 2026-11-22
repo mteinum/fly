@@ -59,6 +59,7 @@ SPEECH: dict[str, tuple[tuple[str, str], str]] = {
     "stall": (VOICE_CALLOUT, "Stall! Stall!"),
     "terrain_ahead": (VOICE_CALLOUT, "Terrain ahead."),
     "pull_up": (VOICE_CALLOUT, "Terrain ahead. Pull up!"),
+    "traffic": (VOICE_CALLOUT, "Traffic. Traffic."),
     "go_around": (VOICE_TOWER, "Teinum three two zero, check gear down."),
 }
 

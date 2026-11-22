@@ -163,6 +163,12 @@
       "voice": "Daniel",
       "text": "Terrain ahead. Pull up!"
     },
+    "traffic": {
+      "file": "traffic.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Traffic. Traffic."
+    },
     "go_around": {
       "file": "go_around.mp3",
       "kind": "speech",

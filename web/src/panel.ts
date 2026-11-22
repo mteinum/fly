@@ -10,7 +10,7 @@
  * konsollen ellers ikke ville vært i bildet. All grafikk er tegnet her, ingenting er hentet fra bilder.
  *
  * Ekte verdier: fart, høyde, stigning, kurs, stilling, radiohøyde, avstand og peiling til flyplassen,
- * terrenget på ND (fra høydekartet), andre fly på ND (ADS-B, se traffic.ts), klokke, fartstrend,
+ * terrenget på ND (fra høydekartet), andre fly på ND (ADS-B, se traffic.ts; varsel etter tcas.ts), klokke, fartstrend,
  * klaffer, understell og luftbremser med varsler og landingsmemo, bakken på høydebåndet, og terrenget
  * som terrengvarselet (gpws.ts) reagerer på.
  * Syntetisk: motorverdiene (regnet fra gasshåndtaket, med et etterslep som er valgt, ikke målt), skyvegrensen,
@@ -420,15 +420,23 @@ function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body:
     text(g, game.airport.icao, px + 4, py - 3.4, 4, MAGENTA, "left");
   }
 
-  // Andre fly, slik TCAS viser dem: rombe med høydeforskjell i hundre fot. Fylt når flyet er nær
-  // (innen 6 NM og 1200 fot). Posisjonene er ekte (ADS-B); spillet gir ingen trafikkvarsler.
+  // Andre fly, slik TCAS viser dem (se tcas.ts): åpen rombe for fjern trafikk, fylt rombe for nær trafikk
+  // (innen 6 NM og 1200 fot), gul sirkel ved trafikkvarsel. Tallet er høydeforskjellen i hundre fot, og pila
+  // viser at flyet stiger eller synker mer enn 500 fot i minuttet. Fly på bakken vises ikke.
   for (const a of game.traffic) {
     const [tx, ty] = toScreen(a.x, a.y), rel = (a.alt - altM) * FT;
-    if (Math.hypot(tx - AX, ty - AY) > R || ty < 16 || Math.abs(rel) > 9900) continue;
-    g.beginPath(); g.moveTo(tx, ty - 2.2); g.lineTo(tx + 1.7, ty); g.lineTo(tx, ty + 2.2); g.lineTo(tx - 1.7, ty); g.closePath();
-    g.strokeStyle = WHITE; g.lineWidth = 0.5; g.stroke();
-    if (Math.hypot(a.x - P.x, a.y - P.y) * t.cell < 6 * NM && Math.abs(rel) < 1200) { g.fillStyle = WHITE; g.fill(); }
-    text(g, `${rel < 0 ? "-" : "+"}${pad(Math.abs(rel) / 100, 2)}`, tx, ty + (rel < 0 ? 4.6 : -4.4), 3.2, WHITE);
+    if (a.tcas === "ground" || Math.hypot(tx - AX, ty - AY) > R || ty < 16 || Math.abs(rel) > 9900) continue;
+    const c = a.tcas === "advisory" ? AMBER : WHITE;
+    g.beginPath();
+    if (a.tcas === "advisory") g.arc(tx, ty, 2, 0, 7);
+    else { g.moveTo(tx, ty - 2.2); g.lineTo(tx + 1.7, ty); g.lineTo(tx, ty + 2.2); g.lineTo(tx - 1.7, ty); g.closePath(); }
+    g.strokeStyle = c; g.lineWidth = 0.5; g.stroke();
+    if (a.tcas !== "other") { g.fillStyle = c; g.fill(); }
+    text(g, `${rel < 0 ? "-" : "+"}${pad(Math.abs(rel) / 100, 2)}`, tx, ty + (rel < 0 ? 4.6 : -4.4), 3.2, c);
+    if (Math.abs(a.climb) * FT * 60 > 500) {
+      const s = Math.sign(a.climb);
+      line(g, tx + 3.4, ty + s * 2, tx + 3.4, ty - s * 2, 0.5, c); line(g, tx + 3.4, ty - s * 2, tx + 2.5, ty - s * 0.8, 0.5, c); line(g, tx + 3.4, ty - s * 2, tx + 4.3, ty - s * 0.8, 0.5, c);
+    }
   }
 
   // flysymbol

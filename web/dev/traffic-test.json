@@ -1,0 +1,9 @@
+{
+  "about": "Oppdiktet trafikk til å prøve trafikkvarselet i utviklingsmodus (ikke ekte fly, publiseres ikke): npm run dev, og åpne /?apt=ENCN&cam=cockpit&traffic=/dev/traffic-test.json",
+  "aircraft": [
+    { "id": "test01", "e": 91420, "n": 6469262, "altM": 350, "alt": "geom", "ground": false, "gs": 160, "track": 215, "vr": 0, "age": 0, "flight": "TEST1", "type": "A320", "cat": "A3" },
+    { "id": "test02", "e": 95800, "n": 6467500, "altM": 700, "alt": "geom", "ground": false, "gs": 160, "track": 35, "vr": 0, "age": 0, "flight": "TEST2", "type": "B738", "cat": "A3" },
+    { "id": "test03", "e": 90500, "n": 6475500, "altM": 2400, "alt": "geom", "ground": false, "gs": 220, "track": 120, "vr": -1500, "age": 0, "flight": "TEST3", "type": "DH8D", "cat": "A2" },
+    { "id": "test04", "e": 93900, "n": 6472100, "altM": 13, "alt": "geom", "ground": true, "gs": 0, "track": 35, "vr": 0, "age": 0, "flight": "TEST4", "type": "AT76", "cat": "A2" }
+  ]
+}

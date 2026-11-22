@@ -8,6 +8,7 @@ import { Recorder, REPLAY_HOLD } from "./replay";
 import { newPlane, type Plane } from "./plane";
 import { type SkyState, skyState } from "./sky";
 import { sunPosition } from "./sun";
+import type { TcasLevel } from "./tcas";
 import type { Airport, Terrain } from "./terrain";
 
 /** Utvendig kamera følger flyet bakfra; cockpit ser ut gjennom frontruta; tårn ser flyet fra kontrolltårnet.
@@ -69,8 +70,9 @@ export interface Game {
   replay: Replay | null;
   /** Skipene akkurat nå, til kartet: posisjon i rutenettet, rutenettkurs (rad) og fart (m/s). Settes av main.ts. */
   ships: { x: number; y: number; heading: number; speed: number; name: string; lengthM: number; detail: string }[];
-  /** Andre fly akkurat nå, til kart og skilt: posisjon i rutenettet, høyde (m), rutenettkurs, kallesignal og linje to. */
-  traffic: { x: number; y: number; alt: number; heading: number; name: string; detail: string }[];
+  /** Andre fly akkurat nå, til kart, skilt og ND: posisjon i rutenettet, høyde (m), rutenettkurs, stigning (m/s),
+   *  kallesignal og linje to, og hvordan TCAS ser flyet (se tcas.ts). */
+  traffic: { id: string; x: number; y: number; alt: number; heading: number; climb: number; name: string; detail: string; tcas: TcasLevel }[];
   /** Loggen fra forrige innflyging som ble avsluttet (landing, krasj eller avbrutt), eller null. */
   flightLog: FlightLog | null;
 }
