@@ -7,7 +7,7 @@ import type { Terrain } from "./terrain";
 import { hasTiles, loadTestTerrain } from "./testTerrain";
 
 const quiet = () => {};
-const AREAS = ["kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10", "mehamn10", "tromso10", "alesund10"];
+const AREAS = ["kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10", "mehamn10", "tromso10", "alesund10", "kjeller10"];
 
 /** Land med autopiloten på første baneende og rull til flyet står. */
 function landed(t: Terrain): Plane {

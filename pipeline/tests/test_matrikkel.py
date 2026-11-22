@@ -33,7 +33,7 @@ def test_hoyderaster_y_oker_mot_sor_og_hoyeste_bygg_vinner():
     assert np.isnan(r).sum() == r.size - 2
 
 
-@pytest.mark.parametrize("area", ["kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10", "mehamn10", "tromso10", "alesund10"])
+@pytest.mark.parametrize("area", ["kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10", "mehamn10", "tromso10", "alesund10", "kjeller10"])
 def test_flisene_har_alle_bygg_ogsaa_i_tettbebyggelse(area):
     if not (TILES / area / "metadata.json").exists():
         pytest.skip(f"{area} er ikke bygget")

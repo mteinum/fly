@@ -11,9 +11,10 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
   src/flypipe/
     crs.py        ALL koordinattransformasjon (WGS84 <-> UTM 33), konvergens
     grid.py       GridSpec: UTM-meter <-> rutenettceller
-    areas.py      definisjon av utsnitt: 10 m rundt ENCN, ENZV, ENBR, ENAL, ENGM, ENBO, ENTC og ENMH, og 50 m for Kjevik.
+    areas.py      definisjon av utsnitt: 10 m rundt ENCN, ENZV, ENBR, ENAL, ENGM, ENBO, ENTC, ENMH og ENKJ, og 50 m for Kjevik.
                   Kjevik-utsnittet er flyttet 3,5 km sørover (center_offset) for å få med hele Flekkerøya,
-                  og Ålesund-utsnittet 4,5 km sørover for å få med byen
+                  og Ålesund-utsnittet 4,5 km sørover for å få med byen. Kjeller-utsnittet er større (3072 celler),
+                  flyttet 6 km vest og 3 km sør så Oslo sentrum er med, ligger i to fylker og har en sightseeingtur (tours)
     dtm.py        Kartverket DTM og DOM via WCS, cache i data/raw/
     airports.py   OurAirports: flyplass + rullebaner; tårnposisjon fra N50-bygning type 411
     n50.py        N50 Kartdata: veier, bruer, bygninger -> feature-raster
@@ -141,7 +142,7 @@ cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstje
    klokka): `x += sin(hdg)`, `y -= cos(hdg)`.
 5. Rutenett-nord er ikke sann nord. `sann = rutenett + gridConvergenceDeg`.
    Konvergensen er -5,88° i Kjevik-utsnittet (regnet i utsnittets sentrum, som ligger 3,5 km sør for flyplassen), -8,03° på Sola, -8,52° på Flesland, -3,39° på
-   Gardermoen, -0,59° i Bodø, -7,89° i Ålesund, +3,68° i Tromsø og +12,15° på Mehamn (Tromsø og Mehamn ligger øst
+   Gardermoen, -0,59° i Bodø, -7,89° i Ålesund, -3,52° i Kjeller-utsnittet, +3,68° i Tromsø og +12,15° på Mehamn (Tromsø og Mehamn ligger øst
    for sentralmeridianen og har positivt fortegn). Den står i hvert utsnitts metadata.json; bruk aldri én verdi for flere utsnitt.
    Retninger fra kilder (rullebane, vind, sol) er sanne og må korrigeres;
    rullebaneretning regnes ALLTID fra baneendene, både rutenettkurs (headingGridDeg) og sann kurs

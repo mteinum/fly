@@ -112,11 +112,9 @@ def nominal_height(building_type: np.ndarray) -> np.ndarray:
 
 def _standing(county: str, grid: GridSpec, raw_dir: Path) -> gpd.GeoDataFrame:
     """Alle bygg som står, også garasjer og uthus, med bygningsnummer (nøkkelen OSM-omrissene bruker)."""
-    gdf = gpd.read_file(
-        gdb_path(county, raw_dir), layer=LAYER, bbox=(grid.west, grid.south, grid.east, grid.north),
-        columns=["bygningstype", "bygningsstatus", "bygningsnummer"], engine="pyogrio",
-    )
-    assert gdf.crs is not None and gdf.crs.to_epsg() == 25833, gdf.crs
+    from .n50 import counties, read_layers
+
+    gdf = read_layers([gdb_path(c, raw_dir) for c in counties(county)], LAYER, grid, columns=["bygningstype", "bygningsstatus", "bygningsnummer"])
     assert len(gdf) and set(gdf.geom_type) == {"Point"}, set(gdf.geom_type)
     return gdf[gdf["bygningsstatus"].isin(STANDING) & gdf["bygningstype"].notna()]
 

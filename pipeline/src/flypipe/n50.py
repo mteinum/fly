@@ -15,6 +15,7 @@ import zipfile
 from pathlib import Path
 
 import geopandas as gpd
+import pandas as pd
 import numpy as np
 import requests
 from rasterio.features import rasterize
@@ -55,25 +56,41 @@ def gdb_path(county: str, raw_dir: Path) -> Path:
     return gdb
 
 
-def _read(gdb: Path, layer: str, grid: GridSpec) -> gpd.GeoDataFrame:
-    gdf = gpd.read_file(gdb, layer=layer, bbox=(grid.west, grid.south, grid.east, grid.north), engine="pyogrio")
-    assert gdf.crs is not None and gdf.crs.to_epsg() == 25833, gdf.crs
-    return gdf
+def counties(county: str) -> list[str]:
+    """Fylkene et utsnitt ligger i. Ett utsnitt over en fylkesgrense skrives «32_Akershus+03_Oslo»."""
+    return county.split("+")
+
+
+def gdb_paths(county: str, raw_dir: Path) -> list[Path]:
+    return [gdb_path(c, raw_dir) for c in counties(county)]
+
+
+def read_layers(gdbs: list[Path], layer: str, grid: GridSpec, **kwargs) -> gpd.GeoDataFrame:
+    """Ett lag innenfor rutenettet, satt sammen fra alle fylkesfilene. Fylkesfilene er klippet i fylkesgrensa og overlapper ikke."""
+    parts = []
+    for gdb in gdbs:
+        gdf = gpd.read_file(gdb, layer=layer, bbox=(grid.west, grid.south, grid.east, grid.north), engine="pyogrio", **kwargs)
+        assert gdf.crs is not None and gdf.crs.to_epsg() == 25833, gdf.crs
+        parts.append(gdf)
+    return parts[0] if len(parts) == 1 else gpd.GeoDataFrame(pd.concat(parts, ignore_index=True), crs=parts[0].crs)
+
+
+def _read(county: str, raw_dir: Path, layer: str, grid: GridSpec) -> gpd.GeoDataFrame:
+    return read_layers(gdb_paths(county, raw_dir), layer, grid)
 
 
 def load_features(
     county: str, grid: GridSpec, raw_dir: Path, road_categories: tuple[str, ...] = ROAD_CATEGORIES
 ) -> dict[str, gpd.GeoDataFrame]:
     """Veier, bruer og bygninger innenfor rutenettet, i UTM 33."""
-    gdb = gdb_path(county, raw_dir)
-    lines = _read(gdb, "N50_Samferdsel_senterlinje", grid)
+    lines = _read(county, raw_dir, "N50_Samferdsel_senterlinje", grid)
     cars = lines[(lines["objtype"] == "Veglenke") & (lines["typeveg"] == "enkelBilveg")]
     # medium: T = på terrenget, L = i lufta (bru), U = under terrenget (tunnel, tegnes ikke)
     roads = cars[(cars["medium"] == "T") & cars["vegkategori"].isin(road_categories)]
     bridges = cars[(cars["medium"] == "L") & cars["vegkategori"].isin(BRIDGE_CATEGORIES)]
     tunnels = cars[(cars["medium"] == "U") & cars["vegkategori"].isin(road_categories)]
-    points = _read(gdb, "N50_BygningerOgAnlegg_posisjon", grid)
-    areas = _read(gdb, "N50_BygningerOgAnlegg_omrade", grid)
+    points = _read(county, raw_dir, "N50_BygningerOgAnlegg_posisjon", grid)
+    areas = _read(county, raw_dir, "N50_BygningerOgAnlegg_omrade", grid)
     return {
         "roads": roads,
         "bridges": bridges,
@@ -241,7 +258,7 @@ def load_names(county: str, grid: GridSpec, raw_dir: Path) -> list[dict]:
     flyttes derfor til stedets eget punkt i SSR, slått opp på stedsnummer. Bare
     steder uten punkt i registeret, eller med punktet utenfor utsnittet, står ved kartteksten.
     """
-    gdf = _read(gdb_path(county, raw_dir), "N50_Stedsnavn_tekstplassering", grid)
+    gdf = _read(county, raw_dir, "N50_Stedsnavn_tekstplassering", grid)
     gdf = gdf[gdf["stedsnummer"].notna() & gdf["fulltekst"].notna() & ~gdf["navneobjekttype"].isin(SKIP_NAME_TYPES)]
     names = []
     points = ssr_points(sorted({int(n) for n in gdf["stedsnummer"]}), grid)

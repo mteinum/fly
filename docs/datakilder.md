@@ -138,6 +138,22 @@ Flyplassene i spillet (2026-11-20), alle sentrert på referansepunktet fra OurAi
 | ENMH Mehamn | `mehamn10` | Finnmark | 17/35 | +12,15° | 3 punkter, som over. Referansepunktet transformert likt med Kartverket innen 3 mm |
 | ENTC Tromsø | `tromso10` | Troms | 18/36 | +3,68° | 3 punkter, som over |
 | ENAL Ålesund | `alesund10` | Møre og Romsdal | 06/24 | -7,89° | 3 punkter, som over. Utsnittet er flyttet 4,5 km sørover så byen er med |
+| ENKJ Kjeller | `kjeller10` | Akershus og Oslo | 12/30 | -3,52° | 3 punkter, som over, på baneendene fra OpenStreetMap (se under) |
+
+**Kjeller (lagt til 2026-11-22) skiller seg fra de andre på fem punkter:**
+
+- Utsnittet er 30,7 x 30,7 km (3072 celler) og flyttet 6 km vest og 3 km sør, så det rekker fra Holmenkollen og
+  Bygdøy til 2,5 km bak starten på innflygingen til bane 30. Det ligger i to fylker: N50 og Matrikkelen leses fra
+  både `32_Akershus` og `03_Oslo` og settes sammen.
+- **Baneendene i OurAirports ligger 185 m for langt vest**, ute på jordene ved Nitelva. Asfalten i N50 og banen i
+  OpenStreetMap (way 1148140505, 69721328 og 835588363) ligger på samme sted, og Kartverkets punkt-API svarer
+  terreng = Rullebane der. Posisjonen til baneendene er derfor hentet fra OpenStreetMap (ODbL), se
+  `airports.RUNWAY_END_OVERRIDES`. Lengde, bredde, høyde og forskjøvet terskel er fortsatt fra OurAirports.
+- OpenStreetMap har ingen stands på Kjeller. Spillet har seks SYNTETISKE, én midt på hver oppstillingsflate
+  over 1500 m², merket `synthetic` i aeroways.json. Tårnets plass er også syntetisk (ingen bygning av type 411).
+- Sightseeingturen («Oslo city») er et startsted valgt for hånd over fjorden, ikke en publisert rute.
+- Det finnes ingen METAR for ENKJ, så vinden er stille der hvis den ikke settes med `?wind=`.
+  Flyplassen er vedtatt nedlagt (Lillestrøm kommune); om den er åpen for trafikk i dag er ikke kontrollert.
 
 Mehamn ligger 12,8° øst for sentralmeridianen i UTM 33, langt utenfor sonens vanlige bredde. Kartverket
 leverer likevel alt i UTM 33, og projeksjonen virker fint så langt ut: målestokkfaktoren er 1,0022 og

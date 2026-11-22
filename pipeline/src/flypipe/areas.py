@@ -5,6 +5,18 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 
+@dataclass(frozen=True)
+class Tour:
+    """Et startsted for en tur over noe verdt å se, med banen turen ender på."""
+
+    name: str  # vises i spillet (engelsk)
+    runway: str  # baneenden flyet skal lande på etterpå
+    east: float  # UTM 33 (m)
+    north: float
+    altitude_m: float  # NN2000
+    heading_true_deg: float
+
+
 # Navnene vises i spillet, som er på engelsk.
 @dataclass(frozen=True)
 class Area:
@@ -14,7 +26,7 @@ class Area:
     cell: float = 50.0  # m, spillrutenett
     size: int = 512  # celler per side (512 * 50 m = 25,6 km)
     source_res: float = 10.0  # m, oppløsning hentet fra WCS
-    n50_county: str = ""  # fylkesfil for N50, f.eks. "42_Agder"
+    n50_county: str = ""  # fylkesfil for N50, f.eks. "42_Agder". Over en fylkesgrense: "32_Akershus+03_Oslo"
     cache: str = ""  # mappe i data/raw/ (standard: id). Utsnitt med samme bbox kan dele rådata
     road_categories: tuple[str, ...] = ("E", "R", "F")  # vegkategorier som tegnes
     steep_slope: float = 0.6  # stigningstall der skog/åpent område farges som berg
@@ -29,16 +41,19 @@ class Area:
     osm_footprints: bool = False
     # Flytt utsnittets sentrum (øst, nord i m) fra flyplassens referansepunkt, for å få med noe som ellers kuttes
     center_offset: tuple[float, float] = (0.0, 0.0)
+    # Sightseeing: ekstra startsteder i tillegg til innflygingene. Valgt for hånd, ikke en publisert rute.
+    tours: tuple[Tour, ...] = ()
 
     @property
     def raw_id(self) -> str:
         return self.cache or self.id
 
 
-def _airport_10m(id: str, name: str, icao: str, county: str, cache: str = "", center_offset: tuple[float, float] = (0.0, 0.0)) -> Area:
+def _airport_10m(id: str, name: str, icao: str, county: str, cache: str = "", center_offset: tuple[float, float] = (0.0, 0.0), size: int = 2560,
+                 tours: tuple[Tour, ...] = ()) -> Area:
     """10 m-utsnitt rundt en flyplass, slik spillet bruker det."""
     return Area(
-        id=id, name=name, icao=icao, n50_county=county, cell=10.0, size=2560, cache=cache, center_offset=center_offset,
+        id=id, name=name, icao=icao, n50_county=county, cell=10.0, size=size, cache=cache, center_offset=center_offset, tours=tours,
         # 10 m-celler tåler hele bilveinettet; på 50 m ville kommunale og private veier fylt byen
         road_categories=("E", "R", "F", "K", "P"),
         steep_slope=1.0,  # helning målt over 20 m er brattere enn over 100 m
@@ -69,4 +84,11 @@ AREAS = {
     # Ålesund ligger 10 km sør for flyplassen på Vigra: utsnittet er flyttet 4,5 km sørover så hele byen er med.
     # Innflygingene (8 km fra hver baneende, nordøst og sørvest for banen) har fortsatt over 3 km til kartkanten.
     "alesund10": _airport_10m("alesund10", "Ålesund Airport, Vigra", "ENAL", "15_More_og_Romsdal", center_offset=(0.0, -4500.0)),
+    # Kjeller ligger 16,5 km øst og 5,9 km nord for Operaen i Bjørvika. Utsnittet er større enn de andre (30,7 km)
+    # og flyttet 6 km vestover og 3 km sørover, så det rekker fra Holmenkollen og Bygdøy i vest til 2,5 km bak starten
+    # på innflygingen til bane 30 i øst. Det ligger i to fylker.
+    "kjeller10": _airport_10m("kjeller10", "Kjeller Airport", "ENKJ", "32_Akershus+03_Oslo", center_offset=(-6000.0, -3000.0), size=3072,
+                              # Fra fjorden vest for Hovedøya, kurs 040° rett over Operaen (4 km fram) og videre opp Groruddalen
+                              # til starten på innflygingen til bane 12 (14,5 km etter Operaen, 83° høyresving inn)
+                              tours=(Tour("Oslo city", "12", 259960.0, 6645620.0, 450.0, 40.0),)),
 }

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { airportSigns, holdingPoints, holdMarkings } from "./airportSigns";
 import { hasTiles, loadTestTerrain } from "./testTerrain";
 
-const AREAS = ["kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10", "mehamn10", "tromso10", "alesund10"];
+const AREAS = ["kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10", "mehamn10", "tromso10", "alesund10", "kjeller10"];
 
 describe.skipIf(!hasTiles("kjevik10"))("skilt på Kjevik", () => {
   if (!hasTiles("kjevik10")) return;

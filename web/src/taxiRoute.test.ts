@@ -5,7 +5,7 @@ import { autobrakeFor } from "./autopilot";
 import { buildTaxiGraph, chooseStand, lastExitM, planTaxi } from "./taxiRoute";
 import { hasTiles, loadTestTerrain } from "./testTerrain";
 
-const AREAS = ["kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10", "mehamn10", "tromso10", "alesund10"];
+const AREAS = ["kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10", "mehamn10", "tromso10", "alesund10", "kjeller10"];
 
 for (const area of AREAS) {
   describe.skipIf(!hasTiles(area))(`rute til stand, ${area}`, () => {

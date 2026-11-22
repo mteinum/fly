@@ -13,7 +13,7 @@ import { type AisShip, Fleet, position, shipColor, shipKind } from "./ships";
 import { tcasLevel } from "./tcas";
 import { loadTerrain } from "./terrain";
 import { towerView } from "./tower";
-import { drawTower } from "./towerPanel";
+import { drawTower, towerHit } from "./towerPanel";
 import { type AdsbAircraft, aircraftSize, locate, Traffic } from "./traffic";
 
 const DEFAULT_ICAO = "ENCN";
@@ -84,9 +84,10 @@ async function main(): Promise<void> {
   // Gasshåndtakene kan dras; resten er ett trykk.
   const logicalY = (e: PointerEvent): number => { const r = overlay.getBoundingClientRect(); return TOP + ((e.clientY - r.top) / r.width) * W; };
   const controlAt = (e: PointerEvent) => {
-    if (game.cam !== "cockpit" || game.replay) return null;
+    if ((game.cam !== "cockpit" && game.cam !== "tower") || game.replay) return null;
     const r = overlay.getBoundingClientRect();
     const lx = ((e.clientX - r.left) / r.width) * W - OX, ly = logicalY(e);
+    if (game.cam === "tower") return towerHit(lx, ly);
     return game.look === "up" ? overheadHit(lx, ly) : game.look === "down" ? pedestalHit(lx, ly) : panelHit(lx, ly);
   };
   let draggingThrust = false;
@@ -102,6 +103,15 @@ async function main(): Promise<void> {
     else overlay.style.cursor = controlAt(e) ? "pointer" : "";
   });
   for (const ev of ["pointerup", "pointercancel"]) overlay.addEventListener(ev, () => { draggingThrust = false; });
+  // Musehjulet i tårnet: kikkerten inn og ut, ett trinn per rykk
+  let wheelAt = 0;
+  overlay.addEventListener("wheel", (e) => {
+    if (game.cam !== "tower" || e.deltaY === 0) return;
+    e.preventDefault();
+    if (performance.now() - wheelAt < 180) return;
+    wheelAt = performance.now();
+    game.control({ kind: "towerZoom", step: e.deltaY < 0 ? 1 : -1 });
+  }, { passive: false });
   document.getElementById("fullscreen")!.onclick = () => {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void document.documentElement.requestFullscreen();
@@ -190,6 +200,12 @@ async function main(): Promise<void> {
 
   // ?selftest (kun i utviklingsmodus): start lyden uten tastetrykk og skriv tilstanden til <body data-audio>.
   // Brukes til å kontrollere lydmotoren i hodeløs nettleser, der ingen kan trykke eller høre.
+  // ?capture (kun i utviklingsmodus): gi opptaksskriptet tilgang til spilltilstanden (flyets posisjon, ruta under taksing)
+  if (import.meta.env.DEV && new URLSearchParams(location.search).has("capture")) {
+    (window as unknown as { __game: typeof game }).__game = game;
+    // ?record: opptaksskriptet tar over og sender bildene til utviklingsserveren (se web/dev/record.js)
+    if (new URLSearchParams(location.search).has("record")) void import(/* @vite-ignore */ `${location.origin}/dev/record.js`);
+  }
   if (import.meta.env.DEV && new URLSearchParams(location.search).has("selftest")) {
     void audio.startNow();
     setInterval(() => { document.body.dataset.audio = JSON.stringify(audio.status); }, 500);
@@ -362,7 +378,7 @@ async function main(): Promise<void> {
     showInfo();
     audio.update(game, terrain);
     if (game.replay) renderer.render(game.replay.plane, "replay", game.env, game.replay.spectator);
-    else renderer.render(game.P, game.cam, game.env);
+    else { renderer.towerZoom = game.towerZoom; renderer.render(game.P, game.cam, game.env); }
     if (game.flightLog !== savedLog) {
       savedLog = game.flightLog;
       if (import.meta.env.DEV && savedLog) void fetch("/__flightlog", { method: "POST", body: JSON.stringify(savedLog) }).catch(() => {});
@@ -412,7 +428,7 @@ async function main(): Promise<void> {
       g.fillStyle = "#5dff8a"; g.fillText("AP", W / 2, TOP + 15);
     }
     if (game.cam === "tower") {
-      drawTower(g, terrain, map, game, towerView(terrain, game.P));
+      drawTower(g, terrain, map, game, towerView(terrain, game.P, game.towerZoom));
       drawMessage(g, game, TOP + 20);
     } else if (game.cam === "cockpit" && game.look !== "forward") {
       // blikket er løftet eller senket: panelet fyller vinduet, og piloten ser ikke ut

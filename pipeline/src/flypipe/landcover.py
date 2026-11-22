@@ -98,7 +98,9 @@ def rasterize_landcover(polygons: gpd.GeoDataFrame, grid: GridSpec) -> np.ndarra
     return majority(codes, factor)
 
 
-def load_landcover(gdb: Path, grid: GridSpec) -> np.ndarray:
-    polygons = gpd.read_file(gdb, layer="N50_Arealdekke_omrade", bbox=(grid.west, grid.south, grid.east, grid.north), engine="pyogrio")
-    assert polygons.crs is not None and polygons.crs.to_epsg() == 25833, polygons.crs
+def load_landcover(gdbs: list[Path], grid: GridSpec) -> np.ndarray:
+    """`gdbs` er fylkesfilene utsnittet ligger i (se n50.gdb_paths)."""
+    from .n50 import read_layers
+
+    polygons = read_layers(gdbs, "N50_Arealdekke_omrade", grid)
     return rasterize_landcover(polygons, grid)

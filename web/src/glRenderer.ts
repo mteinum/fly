@@ -19,7 +19,7 @@ import type { RGB } from "./sky";
 import { CHURCH_TOWER_HALF_WIDTH, LIGHTHOUSE_RADIUS } from "./physics";
 import { buildingMesh } from "./footprints";
 import { BUILDING, type Terrain, type TerrainAssets } from "./terrain";
-import { SCOPE, TOWER_FOV, towerView } from "./tower";
+import { SCOPE, towerFov, towerView } from "./tower";
 import { H as SCREEN_H, horizonShift, OX, PANEL_TOP, TOP, TOWER_SILL } from "./screen";
 
 const CHUNK = 128; // celler per side i en terrengrute
@@ -397,6 +397,8 @@ export class GlRenderer {
     this.scene.add(this.trafficBodies, this.trafficWings, this.trafficFins, this.trafficLights);
   }
 
+  /** Kikkertens forstørrelse i tårnkameraet (1 = uten). Settes av main.ts før hvert bilde. */
+  towerZoom = 1;
   private taxiRoute: THREE.Object3D[] = [];
   /** Tegn ruta til standen (eller fjern den med null). Kalles når ruta er ny, ikke hvert bilde. */
   setTaxiRoute(plan: { route: [number, number][]; stand: { at: [number, number] } } | null): void {
@@ -851,8 +853,8 @@ export class GlRenderer {
     this.landingLight.position.set(x, P.alt, z);
     this.landingLight.target.position.set(x + fx * 300, P.alt - 45 + Math.sin(P.pitch) * 300, z + fz * 300);
 
-    const view = cam === "tower" ? towerView(this.t, P) : null;
-    this.camera.fov = view ? TOWER_FOV : cam === "replay" ? 42 : 60;
+    const view = cam === "tower" ? towerView(this.t, P, this.towerZoom) : null;
+    this.camera.fov = view ? towerFov(this.towerZoom) : cam === "replay" ? 42 : 60;
     this.camera.updateProjectionMatrix();
     if (cam === "replay" && spectator) {
       // reprise: kameraet står stille og følger flyet med blikket

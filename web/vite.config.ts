@@ -36,6 +36,31 @@ const flightLogs = (): Plugin => ({
   },
 });
 
+/** Kun utviklingsserveren, og bare når FLY_FRAMES_DIR er satt: tar imot bilder fra opptaksskriptet (web/dev/record.js)
+ *  og lagrer dem som <mappe>/<scene>/<nummer>.jpg, til å sette sammen film av. Finnes ikke på den publiserte siden. */
+const videoFrames = (): Plugin => ({
+  name: "video-frames",
+  apply: "serve",
+  configureServer(server) {
+    const root = process.env.FLY_FRAMES_DIR;
+    if (!root) return;
+    server.middlewares.use("/__frame", (req, res) => {
+      if (req.method !== "POST") { res.statusCode = 405; res.end(); return; }
+      const q = new URL(req.url ?? "", "http://x").searchParams, chunks: Buffer[] = [];
+      // stien settes av tegn vi selv velger: scenenavn av bokstaver, tall og bindestrek, og et bildenummer
+      const scene = (q.get("scene") ?? "").replace(/[^A-Za-z0-9-]/g, "").slice(0, 40), i = Math.max(0, Math.min(99999, Number(q.get("i")) || 0));
+      let size = 0;
+      req.on("data", (c: Buffer) => { size += c.length; if (size <= 8e6) chunks.push(c); });
+      req.on("end", () => {
+        if (!scene || size > 8e6) { res.statusCode = 400; res.end(); return; }
+        mkdirSync(`${root}/${scene}`, { recursive: true });
+        writeFileSync(`${root}/${scene}/${q.has("done") ? "done.json" : `${String(i).padStart(4, "0")}.jpg`}`, Buffer.concat(chunks));
+        res.statusCode = 204; res.end();
+      });
+    });
+  },
+});
+
 /** Hvilken utgave som kjører, til Om-skjermen: dato og git-commit på byggetidspunktet. */
 const build = () => {
   let commit = process.env.GITHUB_SHA?.slice(0, 7) ?? "";
@@ -43,4 +68,4 @@ const build = () => {
   return { date: new Date().toISOString().slice(0, 10), commit };
 };
 
-export default defineConfig({ plugins: [flightLogs()], define: { __BUILD__: JSON.stringify(build()) } });
+export default defineConfig({ plugins: [flightLogs(), videoFrames()], define: { __BUILD__: JSON.stringify(build()) } });

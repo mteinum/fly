@@ -16,6 +16,7 @@ To steg, som for lyden:
 from __future__ import annotations
 
 import json
+import math
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -234,6 +235,37 @@ def load_aeroways(area_id: str) -> dict | None:
     """Bakkeanlegget for utsnittet, eller None når det ikke er hentet (`flypipe aeroways <utsnitt>`)."""
     path = aeroway_path(area_id)
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+
+
+AIRPORT_RADIUS_M = 3000.0  # bakkeanlegg lenger fra rullebanene enn dette hører til en annen flyplass eller helikopterplass
+SYNTHETIC_STAND_MIN_M2 = 1500.0
+
+
+def for_airport(aero: dict, runway_ends: list[tuple[float, float]]) -> dict:
+    """Bakkeanlegget som hører til flyplassen, med stands.
+
+    Utsnittet kan ha flere anlegg med aeroway-tagger (Kjeller-utsnittet rekker over en helikopterplass 21 km unna):
+    bare det som ligger innen AIRPORT_RADIUS_M fra en baneende tas med.
+    Der OpenStreetMap ikke har stands (Kjeller), legges det én SYNTETISK stand midt på hver oppstillingsflate
+    over SYNTHETIC_STAND_MIN_M2, merket `synthetic`, så det finnes et sted å takse til.
+    """
+    from shapely.geometry import Polygon
+
+    near = lambda p: any(math.hypot(p[0] - e, p[1] - n) <= AIRPORT_RADIUS_M for e, n in runway_ends)  # noqa: E731
+    out = {
+        **aero,
+        "taxiways": [t for t in aero["taxiways"] if near(t["line"][0])],
+        "aprons": [a for a in aero["aprons"] if near(a["ring"][0])],
+        "stands": [s for s in aero["stands"] if near(s["at"])],
+        "holds": [h for h in aero["holds"] if near(h["at"])],
+    }
+    if not out["stands"]:
+        for a in out["aprons"]:
+            poly = Polygon(a["ring"])
+            if poly.is_valid and poly.area >= SYNTHETIC_STAND_MIN_M2:
+                at = poly.representative_point()
+                out["stands"].append({"ref": "", "at": [round(at.x, 1), round(at.y, 1)], "line": None, "synthetic": True})
+    return out
 
 
 def aeroway_shapes(aero: dict) -> list:

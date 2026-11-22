@@ -134,7 +134,8 @@ def test_tower_stands_on_the_terminal_building_beside_the_runway(any_tiles):
     """Tårnet plasseres på N50-bygningen av type 411 (terminal/kontrolltårn) ved flyplassen."""
     meta, hgt, grid = any_tiles
     tower = meta["airports"][0]["tower"]
-    assert "411" in tower["source"]
+    # Kjeller har ingen bygning av type 411: der står tårnet på et syntetisk sted ved siden av banen
+    assert "411" in tower["source"] or (meta["id"] == "kjeller10" and tower["source"].startswith("syntetisk"))
     assert grid.utm_to_grid(tower["east"], tower["north"]) == pytest.approx((tower["x"], tower["y"]), abs=1e-3)
     # avstand til nærmeste senterlinje: tårnet står ved siden av en bane, ikke på den.
     # (På Gardermoen ligger terminalen midt mellom to baner som er 2,2 km fra hverandre.)

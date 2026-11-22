@@ -71,7 +71,7 @@ def build(area: Area) -> Path:
     profile_cells: dict[str, int] = {}
     if area.n50_county:
         print(f"[{area.id}] N50 {area.n50_county}: arealdekke, veier, bruer, bygninger")
-        lc = landcover.load_landcover(n50.gdb_path(area.n50_county, RAW), grid)
+        lc = landcover.load_landcover(n50.gdb_paths(area.n50_county, RAW), grid)
         vectors = n50.load_features(area.n50_county, grid, RAW, area.road_categories)
         point_heights = None
         if area.matrikkel_buildings:
@@ -124,6 +124,17 @@ def build(area: Area) -> Path:
             church = all_buildings[all_buildings["bygningstype"] == matrikkel.CHURCH]
             print(f"[{area.id}] DOM 1 m rundt {len(church)} kirker (tårn)")
             towers = structures.church_towers(church, hgt, grid, raw)
+    if area.tours:
+        airport["tours"] = []
+        for tour in area.tours:
+            tx, ty = grid.utm_to_grid(tour.east, tour.north)
+            assert 0 <= tx < grid.width and 0 <= ty < grid.height, tour
+            assert any(e["ident"] == tour.runway for rw in airport["runways"] for e in rw["ends"]), tour
+            airport["tours"].append({
+                "name": tour.name, "runway": tour.runway, "east": tour.east, "north": tour.north, "x": round(tx, 3), "y": round(ty, 3),
+                "altitudeM": tour.altitude_m, "headingTrueDeg": tour.heading_true_deg,
+                "source": "valgt for hånd (ikke en publisert rute)",
+            })
     airport["tower"] = airports.tower_position(airport, vectors.get("towerAreas", vectors["buildingAreas"]) if area.n50_county else None, hgt, grid)
 
     # Analyser: hva tårnet ser, klaringen under hver innflyging, og bygningsklynger (se analysis.py)
@@ -189,6 +200,8 @@ def build(area: Area) -> Path:
     # Taksebaner og oppstillingsflater fra OpenStreetMap (data/osm/, hentet med `flypipe aeroways`): bakes inn i
     # fargekartet og overflateklassene, og følger med som vektorer i aeroways.json så spillet kan tegne dem skarpt.
     aero = osm.load_aeroways(area.id) if area.osm_footprints else None
+    if aero:
+        aero = osm.for_airport(aero, [(e["east"], e["north"]) for rw in airport["runways"] for e in rw["ends"]])
     on_taxiway = np.zeros_like(on_runway)
     ground = lc  # arealdekket fargekartet og overflateklassene bygges fra
     fringe = np.zeros_like(on_runway)
@@ -256,11 +269,13 @@ def build(area: Area) -> Path:
     if aero:
         to_grid = lambda p: [round((p[0] - grid.west) / area.cell, 3), round((grid.north - p[1]) / area.cell, 3)]  # noqa: E731
         (out / "aeroways.json").write_text(json.dumps({
-            "about": "Rutenettkoordinater [x, y]. width er i meter; widthFromSource sier om bredden står i OpenStreetMap eller er antatt.",
+            "about": "Rutenettkoordinater [x, y]. width er i meter; widthFromSource sier om bredden står i OpenStreetMap eller er antatt. "
+                     "En stand merket synthetic er lagt midt på en oppstillingsflate fordi OpenStreetMap ikke har stands der.",
             "taxiways": [{"ref": t["ref"], "kind": t["kind"], "width": t["width"] or osm.AEROWAY_WIDTH_M[t["kind"]], "widthFromSource": t["width"] is not None,
                           "line": [to_grid(q) for q in t["line"]]} for t in aero["taxiways"]],
             "aprons": [[to_grid(q) for q in a["ring"]] for a in aero["aprons"]],
-            "stands": [{"ref": st["ref"], "at": to_grid(st["at"]), "line": [to_grid(q) for q in st["line"]] if st["line"] else None} for st in aero["stands"]],
+            "stands": [{"ref": st["ref"], "at": to_grid(st["at"]), "line": [to_grid(q) for q in st["line"]] if st["line"] else None,
+                        **({"synthetic": True} if st.get("synthetic") else {})} for st in aero["stands"]],
             "holds": [to_grid(h["at"]) for h in aero["holds"]],
         }, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (out / "names.json").write_text(
@@ -308,6 +323,7 @@ def build(area: Area) -> Path:
             "taxiways": len(aero["taxiways"]),
             "aprons": len(aero["aprons"]),
             "stands": len(aero["stands"]),
+            "syntheticStands": sum(1 for st in aero["stands"] if st.get("synthetic")),
             "cells": int(on_taxiway.sum()),
             "fringeCells": int(fringe.sum()),
             "fringe": "celler i kanten av de skarpe flatene som er gjort til flyplassgress i surface.bin og fargekartet",

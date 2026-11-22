@@ -1,5 +1,5 @@
 {
-  "about": "Fasitpunkter hentet fra Kartverkets API-er (Kjevik 2026-11-17, Sola/Flesland/Gardermoen 2026-11-20). Brukes av både pipeline/tests og web/src/*.test.ts. Verdiene er uavhengige av pyproj og av vår egen pipeline.",
+  "about": "Fasitpunkter hentet fra Kartverkets API-er (Kjevik 2026-11-17, Sola/Flesland/Gardermoen 2026-11-20, Kjeller 2026-11-22). Brukes av både pipeline/tests og web/src/*.test.ts. Verdiene er uavhengige av pyproj og av vår egen pipeline.",
   "transform": {
     "source": "https://ws.geonorge.no/transformering/v1/transformer?fra=4258&til=25833 (lon/lat inn, øst/nord ut)",
     "toleranceM": 0.01,
@@ -87,6 +87,14 @@
         "lat": 62.560443,
         "east": 44044.140031285526,
         "north": 6968097.119717366
+      },
+      {
+        "name": "ENKJ referansepunkt",
+        "origin": "OurAirports airports.csv (longitude_deg, latitude_deg)",
+        "lon": 11.040482,
+        "lat": 59.969089,
+        "east": 279029.115424342,
+        "north": 6654582.951551553
       }
     ]
   },
@@ -312,6 +320,26 @@
           "east": 44783.84,
           "north": 6968337.58,
           "z": 15.87
+        }
+      ],
+      "kjeller": [
+        {
+          "name": "ENKJ bane 12/30, 15 % fra ende 12 (baneender fra OpenStreetMap)",
+          "east": 278512.74,
+          "north": 6654962.0,
+          "z": 105.33
+        },
+        {
+          "name": "ENKJ bane 12/30, 50 % fra ende 12 (baneender fra OpenStreetMap)",
+          "east": 278976.38,
+          "north": 6654623.07,
+          "z": 105.84
+        },
+        {
+          "name": "ENKJ bane 12/30, 85 % fra ende 12 (baneender fra OpenStreetMap)",
+          "east": 279440.01,
+          "north": 6654284.14,
+          "z": 107.33
         }
       ]
     },

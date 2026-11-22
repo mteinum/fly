@@ -36,6 +36,8 @@ export interface Airport {
   runways: Runway[];
   /** Kontrolltårnet: posisjon fra N50 (terminalbygningen), øyehøyde antatt. Høyder i m (NN2000). */
   tower: { east: number; north: number; x: number; y: number; groundM: number; eyeM: number; source: string };
+  /** Sightseeing: startsteder valgt for hånd, med baneenden turen ender på. */
+  tours?: { name: string; runway: string; x: number; y: number; altitudeM: number; headingTrueDeg: number }[];
 }
 
 export interface TerrainMeta {
@@ -100,7 +102,7 @@ export interface Aeroways {
   taxiways: { ref: string; kind: "taxiway" | "taxilane"; width: number; widthFromSource: boolean; line: [number, number][] }[];
   aprons: [number, number][][];
   /** Stands: nummeret, stedet, og innkjøringslinja der den er kartlagt. */
-  stands: { ref: string; at: [number, number]; line: [number, number][] | null }[];
+  stands: { ref: string; at: [number, number]; line: [number, number][] | null; synthetic?: boolean }[];
   holds: [number, number][];
 }
 

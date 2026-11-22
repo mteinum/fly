@@ -3,7 +3,7 @@ import { newPlane } from "./plane";
 import { W } from "./screen";
 import { runwayOffset } from "./physics";
 import { loadTestTerrain } from "./testTerrain";
-import { azimuthToScreenX, towerView } from "./tower";
+import { azimuthToScreenX, towerFov, towerView } from "./tower";
 
 const t = loadTestTerrain();
 const airport = t.meta.airports[0], tw = airport.tower;
@@ -52,5 +52,16 @@ describe("tårnet", () => {
     expect(azimuthToScreenX(0.8, 1)!).toBeLessThan(W / 2);
     expect(azimuthToScreenX(0.1, 2 * Math.PI - 0.1)!).toBeGreaterThan(W / 2); // over nord
     expect(azimuthToScreenX(Math.PI, 0)).toBeNull(); // bak ryggen
+  });
+
+  it("ser smalere med kikkerten, og følger da flyet helt ned til bakken", () => {
+    expect(towerFov(1)).toBeCloseTo(50, 6);
+    expect(towerFov(2)).toBeCloseTo(26.25, 1);
+    expect(towerFov(8)).toBeCloseTo(6.67, 1);
+    // et fly lavt og nær tårnet ligger under blikket uten kikkert (hodet holdes over benken), men ikke med
+    const low = at(200 / t.cell, 0, t.meta.airports[0].tower.groundM);
+    expect(towerView(t, low).headPitch).toBeCloseTo(-0.1, 6);
+    expect(towerView(t, low, 4).headPitch).toBe(towerView(t, low, 4).pitch);
+    expect(towerView(t, low, 4).pitch).toBeLessThan(-0.1);
   });
 });

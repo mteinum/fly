@@ -40,6 +40,11 @@
    "lon": 6.12274,
    "lat": 62.52056,
    "separationM": 44.68
+  },
+  "kjeller10": {
+   "lon": 10.9366,
+   "lat": 59.93893,
+   "separationM": 38.78
   }
  }
 }

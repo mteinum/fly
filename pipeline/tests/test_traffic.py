@@ -25,7 +25,7 @@ def test_utsnittene_er_de_samme_som_pipeline_skriver():
 def test_geoidehoyden_er_lagret_og_rimelig():
     """GPS-høyde minus geoidehøyde skal gi høyde over havet. I Norge er geoidehøyden 30-46 m, størst i vest."""
     store = json.loads(crs.GEOID_FILE.read_text(encoding="utf-8"))["points"]
-    assert set(store) == {"kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10", "mehamn10", "tromso10", "alesund10"}
+    assert set(store) == {"kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10", "mehamn10", "tromso10", "alesund10", "kjeller10"}
     n = {k: v["separationM"] for k, v in store.items()}
     assert all(18 < v < 46 for v in n.values())  # lavest lengst nord og øst
     assert n["flesland10"] > n["gardermoen10"] > n["bodo10"]

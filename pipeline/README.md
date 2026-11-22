@@ -35,6 +35,7 @@ Hvert utsnitt er 25,6 x 25,6 km, sentrert på flyplassens referansepunkt. De er 
 | `mehamn10` | Mehamn (ENMH) | 10 m | spillet |
 | `tromso10` | Tromsø, Langnes (ENTC) | 10 m | spillet |
 | `alesund10` | Ålesund, Vigra (ENAL), flyttet 4,5 km sørover | 10 m | spillet |
+| `kjeller10` | Kjeller (ENKJ) med Oslo sentrum: 30,7 km, flyttet 6 km vest og 3 km sør, to fylker | 10 m | spillet |
 
 10 m-flisene er 42 MB per utsnitt og ligger ikke i git. De bygges lokalt og i GitHub Actions.
 

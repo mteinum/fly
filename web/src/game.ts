@@ -10,6 +10,7 @@ import { type SkyState, skyState } from "./sky";
 import { sunPosition } from "./sun";
 import { buildTaxiGraph, chooseStand, lastExitM, planTaxi, type TaxiGraph, type TaxiPlan } from "./taxiRoute";
 import type { TcasLevel } from "./tcas";
+import { TOWER_ZOOMS } from "./tower";
 import type { Airport, Terrain } from "./terrain";
 
 /** Utvendig kamera følger flyet bakfra; cockpit ser ut gjennom frontruta; tårn ser flyet fra kontrolltårnet.
@@ -30,6 +31,8 @@ export type PanelControl =
   | { kind: "ndRange" } | { kind: "ndTerrain" } | { kind: "flightPathVector" }
   /** På overheadpanelet og midtkonsollen: setebeltebryteren, TERR på GPWS-panelet, TCAS-velgeren, armering av
    *  bakkespoilerne, og siden SD skal vise (samme tast en gang til gir automatisk valg igjen). */
+  /** Kikkerten i tårnet: ett trinn inn (1) eller ut (-1), eller neste trinn rundt (0). */
+  | { kind: "towerZoom"; step: number }
   | { kind: "parkBrake" } | { kind: "seatBelts" } | { kind: "gpwsTerr" } | { kind: "tcasMode" } | { kind: "spoilersArm" } | { kind: "sdPage"; page: "eng" | "wheel" }
   /** Autobremsen: 1 = LO, 2 = MED, 3 = MAX. */
   | { kind: "autobrake"; level: number }
@@ -83,6 +86,8 @@ export interface Game {
   taxiCall: { count: number; turnAround: boolean };
   /** Takset helt fram til en nummerert stand: standen og tiden fra landing (s). Til diplomet og delingslenka. */
   taxiDone: { stand: string; seconds: number } | null;
+  /** Kikkerten i tårnkameraet: forstørrelsen (1, 2, 4 eller 8). Pluss og minus, musehjulet eller et trykk på kikkerten. */
+  towerZoom: number;
   /** Fartsvektoren («fuglen») på PFD: viser hvor flyet er på vei over bakken. P slår den av og på. */
   flightPathVector: boolean;
   /** Vinden: hvor den kommer fra (sann retning i grader) og middelvinden i knop, og det samme som fart i rutenettet.
@@ -139,6 +144,10 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
   const headwind = (e: (typeof ends)[number]) => Math.cos(((windDeg - e.headingTrueDeg) * Math.PI) / 180);
   const intoWind = windKt >= 3 ? ends.indexOf([...ends].sort((p, q) => headwind(q) - headwind(p))[0]) : 0;
   let endIdx = params.has("rwy") ? Math.max(0, ends.findIndex((e) => e.ident === params.get("rwy"))) : intoWind;
+  // Sightseeing (?tour, eller T forbi siste bane): start over byen i stedet for på innflygingen, og land på turens bane
+  const tours = airport.tours ?? [];
+  let tourIdx = params.has("tour") && tours.length ? 0 : -1;
+  if (tourIdx >= 0) endIdx = Math.max(0, ends.findIndex((e) => e.ident === tours[tourIdx].runway));
   const P = newPlane();
   const K: Keys = {};
   const held: Record<string, number> = {}; // hvor lenge piltastene har vært holdt, som utslag 0-1
@@ -155,6 +164,13 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
   };
   const toggleFlightDirector = () => { game.flightDirector = !game.flightDirector; say(`Flight director ${game.flightDirector ? "on" : "off"}`, 2); };
   const toggleBird = () => { game.flightPathVector = !game.flightPathVector; say(`Flight path vector ${game.flightPathVector ? "on" : "off"}`, 2); };
+  const zoomTower = (step: number) => {
+    if (game.cam !== "tower") return;
+    const i = TOWER_ZOOMS.indexOf(game.towerZoom), next = step === 0 ? (i + 1) % TOWER_ZOOMS.length : Math.min(TOWER_ZOOMS.length - 1, Math.max(0, i + step));
+    if (TOWER_ZOOMS[next] === game.towerZoom) return;
+    game.towerZoom = TOWER_ZOOMS[next];
+    say(game.towerZoom === 1 ? "Binoculars down" : `Binoculars ${game.towerZoom}x`, 1.5);
+  };
   const nextRange = () => { game.nd.rangeNm = ND_RANGES[(ND_RANGES.indexOf(game.nd.rangeNm) + 1) % ND_RANGES.length]; say(`ND range ${game.nd.rangeNm} NM`, 1.5); };
   const toggleTerrain = () => { game.nd.terrain = !game.nd.terrain; say(`Terrain on ND ${game.nd.terrain ? "on" : "off"}`, 1.5); };
   /** Kontrollene dette steget: pilotens taster, eller autopilotens utslag når den flyr. */
@@ -232,6 +248,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     stand = null; taxiS = 0; replanIn = 0; toldRoute = false; sawParked = false;
     game.autopilot = approach.autopilot = false;
     startApproach(P, terrain, ends[endIdx]);
+    const tour = tourIdx >= 0 ? tours[tourIdx] : null;
+    if (tour) Object.assign(P, { x: tour.x, y: tour.y, alt: tour.altitudeM, hdg: ((tour.headingTrueDeg - terrain.meta.gridConvergenceDeg) * Math.PI) / 180, pitch: 0 });
     // MED, eller MAX på korte baner og der MED ville rullet forbi siste avkjøring. Piloten kan endre den (1, 2, 3)
     plannedAutobrake = P.autobrake = autobrakeFor(runwayOf(ends[endIdx]), ends[endIdx], taxiGraph && lastExitM(taxiGraph, runwayOf(ends[endIdx]), ends[endIdx]));
     logger.start(P, runwayOf(ends[endIdx]), ends[endIdx], new Date());
@@ -239,7 +257,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     approach.elapsedS = 0;
     approach.ident = ends[endIdx].ident;
     approach.platformFt = Math.round((P.alt * 3.28084) / 100) * 100; // høyden innflygingen starter i, til FCU
-    say(`Approach ${airport.icao} runway ${ends[endIdx].ident}`, 3);
+    say(tour ? `${tour.name} tour, then land on runway ${ends[endIdx].ident}` : `Approach ${airport.icao} runway ${ends[endIdx].ident}`, tour ? 5 : 3);
   };
   const environment = (time: number): Environment => {
     // Sola regnes for flyplassen; over 25 km er forskjellen ubetydelig
@@ -259,6 +277,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     fd: null,
     nd: { rangeNm: ND_RANGES[0], terrain: true },
     flightPathVector: false,
+    towerZoom: TOWER_ZOOMS.includes(Number(params.get("zoom"))) ? Number(params.get("zoom")) : 1, // ?zoom=4: start med kikkerten
     taxiPlan: null,
     taxiResult: null,
     parkedS: 0,
@@ -284,6 +303,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
       else if (c.kind === "ndTerrain") toggleTerrain();
       else if (c.kind === "flightPathVector") toggleBird();
       else if (c.kind === "parkBrake") park(P, say);
+      else if (c.kind === "towerZoom") zoomTower(c.step);
       else if (c.kind === "seatBelts") { game.sys.seatBelts = !game.sys.seatBelts; say(`Seat belt signs ${game.sys.seatBelts ? "on" : "off"}`, 1.5); }
       else if (c.kind === "gpwsTerr") { game.sys.gpwsTerr = !game.sys.gpwsTerr; say(`Terrain warning ${game.sys.gpwsTerr ? "on" : "off"}`, 1.5); }
       else if (c.kind === "tcasMode") { game.sys.tcasStandby = !game.sys.tcasStandby; say(`TCAS ${game.sys.tcasStandby ? "standby" : "TA"}`, 1.5); }
@@ -336,11 +356,21 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     if (e.repeat) return;
     if (e.code === "KeyC") toggleCam();
     if (e.code === "KeyR") reset();
-    if (e.code === "KeyT") { endIdx = (endIdx + 1) % ends.length; reset(); }
+    if (e.code === "KeyT") {
+      // neste bane; etter den siste kommer turene, og så første bane igjen
+      if (tourIdx >= 0) { tourIdx = tourIdx + 1 < tours.length ? tourIdx + 1 : -1; endIdx = tourIdx >= 0 ? endIdx : 0; }
+      else if (endIdx + 1 < ends.length) endIdx++;
+      else if (tours.length) tourIdx = 0;
+      else endIdx = 0;
+      if (tourIdx >= 0) endIdx = Math.max(0, ends.findIndex((x) => x.ident === tours[tourIdx].runway));
+      reset();
+    }
     if (e.code === "KeyA") setAutopilot(!game.autopilot);
     if (e.code === "KeyD") toggleFlightDirector();
     if (e.code === "Digit1" || e.code === "Digit2" || e.code === "Digit3") setAutobrake(P, Number(e.code.slice(5)), say);
     if (e.code === "Enter") park(P, say);
+    if (e.code === "Equal" || e.code === "NumpadAdd" || e.code === "BracketRight") zoomTower(1);
+    if (e.code === "Minus" || e.code === "NumpadSubtract" || e.code === "Slash") zoomTower(-1);
     if (e.code === "KeyU") lookTo("up");
     if (e.code === "KeyJ") lookTo("down");
     if (e.code === "KeyP") toggleBird();
@@ -401,6 +431,12 @@ export const isTyping = (e: Event): boolean => e.target instanceof HTMLInputElem
 
 /** Kjør `frame(dt)` hver animasjonsramme, med dt begrenset til 50 ms. */
 export function runLoop(frame: (dt: number) => void): void {
+  // ?capture (kun i utviklingsmodus): spillet går ikke av seg selv. Den som tar opptak kaller window.__capture.step(dt)
+  // for hvert bilde, så filmen får jevn bildefrekvens uansett hvor fort maskinen tegner (se web/dev/record.js).
+  if (import.meta.env.DEV && new URLSearchParams(location.search).has("capture")) {
+    (window as unknown as { __capture: object }).__capture = { step: frame };
+    return;
+  }
   let last = performance.now();
   const tick = (now: number) => {
     // Aldri bakover: tidsstempelet til første bilde kan ligge før performance.now() over, og negativ tid ville kjørt

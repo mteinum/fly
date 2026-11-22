@@ -44,7 +44,7 @@ EFFECTS: dict[str, tuple[str, float, bool]] = {
 
 # Flyplassene spillet har, med navnet flygelederen bruker på tårnet og på stedet.
 # Banene hentes fra OurAirports når lyden genereres, så de følger dataene.
-AIRPORTS = {"ENCN": ("Kjevik", "Kjevik"), "ENZV": ("Sola", "Sola"), "ENBR": ("Flesland", "Bergen"), "ENGM": ("Gardermoen", "Oslo"), "ENMH": ("Mehamn", "Mehamn"), "ENTC": ("Tromsø", "Tromsø"), "ENAL": ("Vigra", "Ålesund"), "ENBO": ("Bodø", "Bodø")}
+AIRPORTS = {"ENCN": ("Kjevik", "Kjevik"), "ENZV": ("Sola", "Sola"), "ENBR": ("Flesland", "Bergen"), "ENGM": ("Gardermoen", "Oslo"), "ENMH": ("Mehamn", "Mehamn"), "ENTC": ("Tromsø", "Tromsø"), "ENAL": ("Vigra", "Ålesund"), "ENKJ": ("Kjeller", "Kjeller"), "ENBO": ("Bodø", "Bodø")}
 NATO = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliett", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa",
         "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-ray", "Yankee", "Zulu"]
 DIGITS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]

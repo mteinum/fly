@@ -11,7 +11,7 @@
   gtag('js', new Date());
 </script>
 <title>Fly an Airbus A320 in Norway – teinum-fly</title>
-<meta name="description" content="A flight simulator in your browser: land an Airbus A320 at eight Norwegian airports, from Kjevik in the south to Mehamn in the north, over real Norwegian terrain from Kartverket.">
+<meta name="description" content="A flight simulator in your browser: land an Airbus A320 at nine Norwegian airports, from Kjevik in the south to Mehamn in the north, or fly over central Oslo, over real Norwegian terrain from Kartverket.">
 <link rel="canonical" href="https://fly.teinum.no/">
 <!-- Forhåndsvisning ved deling (Facebook, Messenger, iMessage/SMS, Slack). Bildet må ha full adresse. -->
 <meta property="og:type" content="website">
@@ -19,7 +19,7 @@
 <meta property="og:locale" content="en_GB">
 <meta property="og:url" content="https://fly.teinum.no/">
 <meta property="og:title" content="Fly an Airbus A320 in Norway">
-<meta property="og:description" content="A flight simulator in your browser over real Norwegian terrain. Lower the gear and flaps and land at one of eight airports, day or night.">
+<meta property="og:description" content="A flight simulator in your browser over real Norwegian terrain. Lower the gear and flaps and land at one of nine airports, day or night.">
 <meta property="og:image" content="https://fly.teinum.no/og.jpg">
 <meta property="og:image:type" content="image/jpeg">
 <meta property="og:image:width" content="1200">
@@ -47,8 +47,9 @@
     <h1>teinum-fly · Airbus A320 · <span id="where"></span></h1>
     <nav id="airports" aria-label="Choose airport"></nav>
     <div><kbd>←</kbd><kbd>→</kbd> bank · <kbd>↑</kbd> nose down · <kbd>↓</kbd> nose up · <kbd>W</kbd>/<kbd>S</kbd> thrust · <kbd>G</kbd> gear · <kbd>F</kbd>/<kbd>V</kbd> flaps out/in · <kbd>B</kbd> speed brakes · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> autobrake LO/MED/MAX · <kbd>A</kbd> autopilot · <kbd>D</kbd> flight director · <kbd>P</kbd> flight path vector · <kbd>Z</kbd> map range · <kbd>X</kbd> terrain on map</div>
-    <div><kbd>C</kbd> camera (outside, cockpit, tower) · <kbd>U</kbd>/<kbd>J</kbd> look up at the overhead panel / down at the pedestal · <kbd>R</kbd> new approach · <kbd>T</kbd> next runway · <kbd>Q</kbd>/<kbd>E</kbd> clock ∓ 30 min · <kbd>M</kbd> sound on/off · <kbd>N</kbd> place names on/off · <kbd>L</kbd> download flight log</div>
+    <div><kbd>C</kbd> camera (outside, cockpit, tower) · <kbd>U</kbd>/<kbd>J</kbd> look up at the overhead panel / down at the pedestal · <kbd>R</kbd> new approach · <kbd>T</kbd> next runway (at Kjeller also the Oslo city tour) · <kbd>Q</kbd>/<kbd>E</kbd> clock ∓ 30 min · <kbd>M</kbd> sound on/off · <kbd>N</kbd> place names on/off · <kbd>L</kbd> download flight log</div>
     <div class="muted">After landing you can taxi to the terminal: <kbd>W</kbd> to start rolling, <kbd>←</kbd><kbd>→</kbd> steer, <kbd>S</kbd> less thrust, <kbd>Space</kbd> brakes (also during the landing roll, to make an earlier exit), <kbd>Enter</kbd> sets the parking brake, and releases it again. The tower gives you a stand: follow the green line and stay on the asphalt.</div>
+    <div class="muted">In the tower: <kbd>+</kbd> / <kbd>−</kbd>, the mouse wheel or a tap on the binoculars zooms in on the plane (2x, 4x, 8x).</div>
     <div class="muted">In the cockpit you can also click or tap the gear lever, the speed brake, thrust and flap levers, and the AP1 and FD buttons.</div>
     <div class="muted">You start on approach, 8 km out, with flaps 2 and the gear up: lower the gear, select full flaps, slow to about 140 kt, and land with the wings level and a gentle sink rate.</div>
     <div class="muted" id="legend" hidden>Buildings by type: </div>
@@ -72,7 +73,7 @@
 <div id="about" role="dialog" aria-modal="true" aria-labelledby="aboutTitle" hidden>
   <div class="sheet">
     <h1 id="aboutTitle">teinum-fly</h1>
-    <p>A flight simulator in your browser. You land an Airbus A320 at Kjevik, Sola, Flesland, Ålesund, Gardermoen, Bodø, Tromsø or Mehamn, over terrain built from open Norwegian map data.</p>
+    <p>A flight simulator in your browser. You land an Airbus A320 at Kjevik, Sola, Flesland, Ålesund, Gardermoen, Kjeller, Bodø, Tromsø or Mehamn, over terrain built from open Norwegian map data.</p>
 
     <h2>Who made it</h2>
     <p>Developed by <a href="https://morten.teinum.no/" target="_blank" rel="noopener">Morten Teinum</a> as a side project for the course IS-930, Geographic IT and AI in practice, at the University of Agder, autumn 2026.</p>
@@ -92,7 +93,8 @@
 
     <h2>What is made up</h2>
     <ul>
-      <li>The flight model. It is simple, with speeds in the range of an A320. The game lets you land it at Mehamn, whose 880 m runway no A320 could use.</li>
+      <li>The flight model. It is simple, with speeds in the range of an A320. The game lets you land it at Mehamn, whose 880 m runway no A320 could use, and at Kjeller, a small airfield for light aircraft.</li>
+      <li>At Kjeller: the parking stands and the tower position, and the Oslo city tour, which is a starting point chosen for the view and not a real route. There is no weather report for Kjeller, so the wind is calm there.</li>
       <li>The wind is the same everywhere on the map and at every height, without gusts or turbulence.</li>
       <li>The glide path and localiser. They are geometry from the runway ends, not the airport's ILS.</li>
       <li>The width of most taxiways, and the yellow lines and numbers painted on them.</li>

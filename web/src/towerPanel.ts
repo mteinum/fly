@@ -10,6 +10,7 @@ import type { Game } from "./game";
 import { FLAP_NAMES } from "./physics";
 import { H, OX, TOP, TOWER_SILL as SILL, W } from "./screen";
 import type { Terrain } from "./terrain";
+import type { PanelControl } from "./game";
 import { azimuthToScreenX, SCOPE, type TowerView } from "./tower";
 
 const SANS = '"Helvetica Neue", Helvetica, Arial, sans-serif';
@@ -108,21 +109,42 @@ function strip(g: G2D, x: number, y: number, game: Game): void {
   text(g, `FLAPS ${FLAP_NAMES[P.flapCfg]}`, x + 32, y + 8.6, 2.2, "#333", "left", MONO);
 }
 
+/** Kikkerten på benken (logiske enheter i det faste oppsettet). */
+const BINOCULARS = { x: 294, y: 150, w: 18, h: 15 };
+
+/** Hva som kan betjenes i tårnet i punktet (lx, ly), eller null. Koordinater som for panelHit: lx er uten OX. */
+export function towerHit(lx: number, ly: number): PanelControl | null {
+  const b = BINOCULARS;
+  return lx >= b.x - 3 && lx <= b.x + b.w + 3 && ly >= b.y - 5 && ly <= b.y + b.h + 3 ? { kind: "towerZoom", step: 0 } : null;
+}
+
 export function drawTower(g: G2D, t: Terrain, map: CanvasImageSource, game: Game, view: TowerView): void {
   const night = game.env.sky.night, body = 1 - 0.78 * night, frame = shade(44, 48, 56, body);
   g.save();
 
   // Vinduer: sprosser står fast i tårnet og glir forbi når blikket følger flyet
   g.fillStyle = frame;
-  for (let k = 0; k < 16; k++) {
+  // Med kikkerten for øynene ses ikke sprossene: bildet er rundt, med mørke kanter
+  const zoom = game.towerZoom;
+  if (zoom > 1) {
+    const cx = W / 2, cy = (TOP + SILL) / 2, r = Math.max(W, SILL - TOP) * 0.62;
+    const mask = g.createRadialGradient(cx, cy, r * 0.62, cx, cy, r);
+    mask.addColorStop(0, "rgba(0,0,0,0)"); mask.addColorStop(0.5, "rgba(0,0,0,.55)"); mask.addColorStop(1, "rgba(0,0,0,.96)");
+    g.fillStyle = mask; g.fillRect(0, TOP, W, SILL - TOP);
+    text(g, `BINOCULARS ${zoom}x`, 10, TOP + 12, 4, "#e8ffe8", "left", MONO, 600);
+    g.fillStyle = frame;
+  }
+  for (let k = 0; k < 16 && zoom === 1; k++) {
     const x = azimuthToScreenX((k * Math.PI) / 8 + 0.2, view.yaw);
     if (x === null) continue;
     g.beginPath(); g.moveTo(x - 2.2, TOP); g.lineTo(x + 2.2, TOP); g.lineTo(x + 3.2, SILL); g.lineTo(x - 3.2, SILL); g.closePath(); g.fill();
   }
-  g.fillRect(0, TOP, W, 7); // overkarm
-  const blind = g.createLinearGradient(0, TOP + 7, 0, TOP + 16);
-  blind.addColorStop(0, "rgba(0,0,0,.35)"); blind.addColorStop(1, "rgba(0,0,0,0)");
-  g.fillStyle = blind; g.fillRect(0, TOP + 7, W, 9); // solskjerm
+  if (zoom === 1) {
+    g.fillRect(0, TOP, W, 7); // overkarm
+    const blind = g.createLinearGradient(0, TOP + 7, 0, TOP + 16);
+    blind.addColorStop(0, "rgba(0,0,0,.35)"); blind.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = blind; g.fillRect(0, TOP + 7, W, 9); // solskjerm
+  }
 
   // benk langs vinduet
   g.fillStyle = frame; g.fillRect(0, SILL - 3, W, 4);
@@ -167,7 +189,8 @@ export function drawTower(g: G2D, t: Terrain, map: CanvasImageSource, game: Game
   });
   display(g, 246, 174, 40, 10, "RUNWAY IN USE", game.approach.ident, body, "#7dffa0");
 
-  // kikkert og kaffekopp
+  // kikkert og kaffekopp. Kikkerten kan trykkes på (se towerHit): den blar gjennom forstørrelsene.
+  text(g, game.towerZoom === 1 ? "ZOOM" : `${game.towerZoom}x`, BINOCULARS.x + BINOCULARS.w / 2, BINOCULARS.y - 2.4, 2.2, shade(200, 206, 214, Math.max(body, 0.55)), "center");
   g.fillStyle = "#101214"; g.beginPath(); g.roundRect(294, 150, 8, 15, 2); g.roundRect(304, 150, 8, 15, 2); g.fill(); g.fillRect(300, 154, 6, 3);
   g.fillStyle = shade(230, 230, 224, Math.max(body, 0.5)); g.beginPath(); g.ellipse(303, 184, 5.5, 3, 0, 0, 7); g.fill();
   g.fillStyle = "#3a2414"; g.beginPath(); g.ellipse(303, 184, 4.2, 2.1, 0, 0, 7); g.fill();

@@ -733,6 +733,42 @@
       "voice": "Eric",
       "text": "Teinum three two zero, welcome to Ålesund. Vacate when able."
     },
+    "cleared_ENKJ_12": {
+      "file": "cleared_ENKJ_12.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Kjeller tower. Runway one two, cleared to land. Wind calm."
+    },
+    "cleared_ENKJ_30": {
+      "file": "cleared_ENKJ_30.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Kjeller tower. Runway three zero, cleared to land. Wind calm."
+    },
+    "tower_ENKJ": {
+      "file": "tower_ENKJ.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Kjeller tower."
+    },
+    "cleared_rwy_12": {
+      "file": "cleared_rwy_12.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway one two, cleared to land."
+    },
+    "cleared_rwy_30": {
+      "file": "cleared_rwy_30.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway three zero, cleared to land."
+    },
+    "welcome_ENKJ": {
+      "file": "welcome_ENKJ.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, welcome to Kjeller. Vacate when able."
+    },
     "cleared_ENBO_07": {
       "file": "cleared_ENBO_07.mp3",
       "kind": "speech",

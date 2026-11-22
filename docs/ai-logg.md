@@ -521,6 +521,19 @@ Det er Voxel Space som trenger et unntak.
   stort; i en vanlig nettleser høyst noen millisekunder på første bilde.
 - Rettet: tidssteget er aldri negativt.
 
+**51. Regnet feil på om Oslo sentrum fikk plass sammen med Kjeller**
+- Jeg svarte brukeren at et vanlig utsnitt (25,6 km) flyttet «rundt åtte kilometer mot sørvest» ville romme både
+  Kjeller og Bjørvika. Det stemmer ikke: fra Aker Brygge til starten på innflygingen til bane 30 er det 24,5 km
+  øst-vest, så det ville blitt 500 m til kartkanten på hver side.
+- Oppdaget da jeg regnet på det før bygging. Rettet: Kjeller-utsnittet er 30,7 km (3072 celler).
+
+**52. Kjeller: stolte på baneendene i OurAirports uten å se på kartet**
+- Første bygg la rullebanen 185 m for langt vest, på jordene ved Nitelva. Testene som sammenligner høyder gikk
+  ikke (fasitpunkter manglet), og ingen annen test fanger en bane som ligger ved siden av asfalten.
+- Oppdaget da ingen stands kunne nås: taksebanene fra OpenStreetMap møtte ikke banen. Tegnet anlegget oppå fargekartet.
+- Rettet: baneendene for ENKJ hentes fra OpenStreetMap, og Kartverkets API bekrefter «Rullebane» i tre punkter.
+  De andre flyplassene har hatt den kontrollen fra før; den må gjøres før en ny flyplass regnes som ferdig.
+
 ### Åpne spørsmål / ikke kontrollert
 
 - OurAirports er ikke sjekket mot gjeldende AIP Norge, bare mot DTM og

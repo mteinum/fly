@@ -1,8 +1,8 @@
 # teinum-fly
 
 Flysimulator over ekte norsk terreng: innflyging med Airbus A320 til Kjevik (ENCN),
-Sola (ENZV), Flesland (ENBR), Ålesund (ENAL), Gardermoen (ENGM), Bodø (ENBO), Tromsø (ENTC) eller Mehamn (ENMH). Hver flyplass har et kartutsnitt
-på 25,6 x 25,6 km i 10 m-celler. WebGL, sann målestokk, bygninger
+Sola (ENZV), Flesland (ENBR), Ålesund (ENAL), Gardermoen (ENGM), Bodø (ENBO), Tromsø (ENTC), Mehamn (ENMH) eller Kjeller (ENKJ), med en tur over Oslo sentrum (`?apt=ENKJ&tour`, eller `T` forbi siste bane). Hver flyplass har et kartutsnitt
+på 25,6 x 25,6 km i 10 m-celler (Kjeller: 30,7 km, så Oslo sentrum er med). WebGL, sann målestokk, bygninger
 og bruer som geometri, sol og mørke etter klokka, og cockpit med instrumentpanel.
 
 ## Kjøre
@@ -44,6 +44,8 @@ halvtime bakover/framover, `M` slår lyden av og på, `N` stedsnavnene, `D` flig
 `U` ser opp på overheadpanelet og `J` ned på midtkonsollen (samme tast en gang til ser fram igjen). Der virker
 setebeltebryteren og TERR på GPWS-panelet (oppe), og gasshåndtakene, luftbremsen med armering av bakkespoilerne,
 klaffspaken, ECAM-tastene ENG og WHEEL og TCAS-velgeren (nede). Resten er tegnet for at panelene skal ligne.
+
+I tårnet zoomer `+` og `-`, musehjulet eller et trykk på kikkerten på benken inn på flyet (2x, 4x, 8x).
 
 I cockpit kan understellsspaken, luftbremsen, gasshåndtakene (dra), klaffspaken og knappene AP1 og FD også
 betjenes med mus eller finger.

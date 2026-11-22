@@ -45,6 +45,15 @@ def _point(lon: float, lat: float, grid: GridSpec | None) -> dict:
     return p
 
 
+# Baneender der OurAirports ligger feil, rettet til (lengde, bredde) fra OpenStreetMap (ODbL).
+# ENKJ: begge endene i OurAirports ligger 185 m for langt vest, på jordene ved Nitelva. Asfalten i N50 og banen i
+# OpenStreetMap (way 1148140505, 69721328 og 835588363, lest 2026-11-22) ligger på samme sted, og lengden (1641 m)
+# stemmer med OurAirports (1622 m). Bare posisjonen rettes; høyde, forskjøvet terskel og bredde er fra OurAirports.
+RUNWAY_END_OVERRIDES: dict[str, dict[str, tuple[float, float]]] = {
+    "ENKJ": {"12": (11.0271413, 59.9734011), "30": (11.0518491, 59.9654378)},
+}
+
+
 def load_airport(icao: str, raw_dir: Path, grid: GridSpec | None = None) -> dict:
     """Flyplass med rullebaner. Punkter får UTM 33 og (hvis grid er gitt) rutenettkoordinater."""
     (ap,) = _rows(_download("airports.csv", raw_dir), "ident", icao)
@@ -54,7 +63,10 @@ def load_airport(icao: str, raw_dir: Path, grid: GridSpec | None = None) -> dict
             continue
         ends = []
         for side in ("le", "he"):
-            end = _point(float(rw[f"{side}_longitude_deg"]), float(rw[f"{side}_latitude_deg"]), grid)
+            fixed = RUNWAY_END_OVERRIDES.get(icao, {}).get(rw[f"{side}_ident"])
+            end = _point(*(fixed or (float(rw[f"{side}_longitude_deg"]), float(rw[f"{side}_latitude_deg"]))), grid)
+            if fixed:
+                end["positionSource"] = "OpenStreetMap (ODbL): OurAirports ligger feil, se airports.RUNWAY_END_OVERRIDES"
             end["ident"] = rw[f"{side}_ident"]
             end["elevationM"] = round(float(rw[f"{side}_elevation_ft"]) * FT, 1)
             end["headingPublishedDeg"] = float(rw[f"{side}_heading_degT"])

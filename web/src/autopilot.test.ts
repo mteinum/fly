@@ -24,7 +24,7 @@ function fly(t: Terrain, rw: Runway, end: RunwayEnd, P: Plane, dt: number, wind:
   return P;
 }
 
-const AREAS = ["kjevik", "kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10", "mehamn10", "tromso10", "alesund10"];
+const AREAS = ["kjevik", "kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10", "mehamn10", "tromso10", "alesund10", "kjeller10"];
 for (const area of AREAS) {
   describe.skipIf(!hasTiles(area))(`autopilot ${area}`, () => {
     if (!hasTiles(area)) return;
