@@ -21,6 +21,14 @@ export interface Replay {
   spectator: [number, number, number];
 }
 
+/** Noe på instrumentpanelet som kan betjenes med mus eller finger (se panelHit i panel.ts). */
+export type PanelControl =
+  | { kind: "gear" } | { kind: "speedBrake" } | { kind: "autopilot" } | { kind: "flightDirector" }
+  /** Klaffspaken settes i stilling 0-4. */
+  | { kind: "flaps"; cfg: number }
+  /** Gasshåndtakene settes i stilling 0-1. */
+  | { kind: "thrust"; thr: number };
+
 export interface Message {
   text: string;
   t: number;
@@ -55,6 +63,8 @@ export interface Game {
   step(dt: number): void;
   /** Start en ny innflyging til samme bane. */
   restart(): void;
+  /** Betjen en spake eller knapp på instrumentpanelet. Gjør det samme som tasten for den. */
+  control(c: PanelControl): void;
   /** Satt mens reprisen etter en krasj spilles av. Fysikken står stille imens. */
   replay: Replay | null;
   /** Skipene akkurat nå, til kartet: posisjon i rutenettet, rutenettkurs (rad) og fart (m/s). Settes av main.ts. */
@@ -88,6 +98,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     if (on) approach.autopilot = true;
     say(on ? "Autopilot on" : `Autopilot off${why}`, 2.5);
   };
+  const toggleFlightDirector = () => { game.flightDirector = !game.flightDirector; say(`Flight director ${game.flightDirector ? "on" : "off"}`, 2); };
   /** Kontrollene dette steget: pilotens taster, eller autopilotens utslag når den flyr. */
   const controls = (dt: number): Keys => {
     const manual = softStick(held, K, dt);
@@ -145,6 +156,18 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     cam: CAMERAS.find((c) => c === params.get("cam")) ?? "external",
     env: environment(time),
     restart: () => reset(),
+    control(c) {
+      if (c.kind === "gear") toggleGear(P, say);
+      else if (c.kind === "speedBrake") toggleSpeedBrake(P, say);
+      else if (c.kind === "autopilot") setAutopilot(!game.autopilot);
+      else if (c.kind === "flightDirector") toggleFlightDirector();
+      else if (c.kind === "flaps") for (let i = Math.abs(c.cfg - P.flapCfg), step = Math.sign(c.cfg - P.flapCfg); i > 0; i--) moveFlaps(P, step, say);
+      else if (P.state === "fly") {
+        // tar piloten i gasshåndtakene, slipper autopiloten, som når W eller S trykkes
+        if (game.autopilot) setAutopilot(false);
+        P.thr = Math.min(1, Math.max(0, c.thr));
+      }
+    },
     replay: null,
     step(dt) {
       game.time += dt * 1000;
@@ -182,7 +205,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     if (e.code === "KeyR") reset();
     if (e.code === "KeyT") { endIdx = (endIdx + 1) % ends.length; reset(); }
     if (e.code === "KeyA") setAutopilot(!game.autopilot);
-    if (e.code === "KeyD") { game.flightDirector = !game.flightDirector; say(`Flight director ${game.flightDirector ? "on" : "off"}`, 2); }
+    if (e.code === "KeyD") toggleFlightDirector();
     if (e.code === "KeyG") toggleGear(P, say);
     if (e.code === "KeyB") toggleSpeedBrake(P, say);
     if (e.code === "KeyF") moveFlaps(P, 1, say);

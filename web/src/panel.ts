@@ -16,10 +16,11 @@
  * Syntetisk: motorverdiene (regnet fra gasshåndtaket, med et etterslep som er valgt, ikke målt), skyvegrensen,
  * memolinjene SIGNS/CABIN/SPLRS, drivstoffmengde, QNH, bremsetrykk, bremsetemperatur, vekt og lufttemperatur på SD, ALT-vinduet på FCU (høyden innflygingen
  * startet i, ikke en klarert høyde), og fartsmerkene VLS og alfa-vern (faste forhold til steilefarten).
- * Brytere og knapper uten funksjon i spillet er tegnet for at panelet skal ligne, og kan ikke betjenes.
+ * Kan betjenes med mus eller finger (se panelHit): understellsspaken, luftbremsen, gasshåndtakene, klaffspaken,
+ * AP1 på FCU og FD på EFIS-panelene. Andre brytere og knapper er tegnet for at panelet skal ligne.
  */
 import { osloTime } from "./clock";
-import type { Game } from "./game";
+import type { Game, PanelControl } from "./game";
 import { FLAP_NAMES, speedLimit, stallSpeed, verticalSpeed, warnings } from "./physics";
 import type { Plane } from "./plane";
 import { CAUTION_S, onApproachPath, requiredClearance, terrainAlert, type TerrainAlert, WARNING_S } from "./gpws";
@@ -34,6 +35,9 @@ const DU = 46; // skjermstørrelse i logiske enheter
 const ECAM = 35.5; // de to ECAM-skjermene i midten er mindre, så begge får plass over hverandre
 const ROW = 124;
 const ND_RANGE_NM = 10;
+// Hvor det som kan betjenes står (logiske enheter i det faste oppsettet). Brukes både av tegningen og av panelHit.
+const FCU_X = 106, GLARE_Y = 108.4, EFIS_L = 70, EFIS_R = 217, EFIS_W = 33;
+const GEAR_X = 184, LEVER_TOP = ROW + 46 + 7, LEVER_BOTTOM = 200 - 2.5, SPD_X = 115.6, THR_X = 129.6, FLAP_X = 190;
 
 // Airbus-fargene på skjermene
 const GREEN = "#2fe04a", CYAN = "#35d6f0", AMBER = "#ffa218", MAGENTA = "#ff5cf4", YELLOW = "#ffe93b", RED = "#ff3030", WHITE = "#f2f2f2";
@@ -621,7 +625,7 @@ function clock(g: G2D, x: number, y: number, game: Game, body: number): void {
  *  startet i (SYNTETISK: spillet har ingen klarert høyde). V/S er streker fordi nedstigningen følger glidebanen.
  *  AP1, A/THR og APPR lyser når autopiloten flyr. Knapper og dreieknapper kan ikke betjenes. */
 function fcu(g: G2D, body: number, game: Game): void {
-  const x = 106, y = 108.4, w = 108, h = 13.2, LCD = "#ffb347";
+  const x = FCU_X, y = GLARE_Y, w = 108, h = 13.2, LCD = "#ffb347";
   g.fillStyle = shade(52, 60, 70, body); g.beginPath(); g.roundRect(x, y, w, h, 1.2); g.fill();
   g.strokeStyle = shade(20, 23, 28, body); g.lineWidth = 0.4; g.stroke();
   const win = (wx: number, ww: number, label: string, value: string) => {
@@ -647,7 +651,7 @@ function fcu(g: G2D, body: number, game: Game): void {
  *  `dir` = 1 for venstre sete, -1 for høyre (speilvendt). FD-knappen lyser når flight director er på (D).
  *  SYNTETISK: QNH står alltid på 1013. */
 function efis(g: G2D, x0: number, dir: number, body: number, fd: boolean): void {
-  const y = 108.4, w = 33, at = (o: number, ww = 0): number => (dir > 0 ? x0 + o : x0 + w - o - ww);
+  const y = GLARE_Y, w = EFIS_W, at = (o: number, ww = 0): number => (dir > 0 ? x0 + o : x0 + w - o - ww);
   g.fillStyle = shade(52, 60, 70, body); g.beginPath(); g.roundRect(x0, y, w, 13.2, 1.2); g.fill();
   g.strokeStyle = shade(20, 23, 28, body); g.lineWidth = 0.4; g.stroke();
   g.fillStyle = "#06080a"; g.fillRect(at(1.2, 11), y + 1, 11, 5);
@@ -722,7 +726,7 @@ function gearPanel(g: G2D, x: number, y: number, P: Plane, body: number): void {
 
 /** Spor med merker og et håndtak som står i `pos` (0 = øverst, 1 = nederst). */
 function leverSlot(g: G2D, cx: number, top: number, title: string, stops: [number, string][], pos: number, body: number): void {
-  const bottom = H - 2.5, label = ink(body), yAt = (f: number) => top + 4.4 + f * (bottom - top - 6.4);
+  const bottom = LEVER_BOTTOM, label = ink(body), yAt = (f: number) => top + 4.4 + f * (bottom - top - 6.4);
   g.fillStyle = "#06070a"; g.fillRect(cx - 1, top + 2.6, 2, bottom - top - 2.6);
   for (const [f, n] of stops) { line(g, cx + 2, yAt(f), cx + 4, yAt(f), 0.3, label); text(g, n, cx + 5, yAt(f), 1.9, label, "left"); }
   text(g, title, cx + 3, top + 0.7, 1.6, label);
@@ -733,7 +737,7 @@ function leverSlot(g: G2D, cx: number, top: number, title: string, stops: [numbe
 
 /** Gasshåndtak med Airbus-sperrene. Stillingen følger gassen trinnløst. */
 function thrustLevers(g: G2D, cx: number, top: number, thr: number, body: number): void {
-  const bottom = H - 2.5, yAt = (f: number) => bottom - 2.6 - f * (bottom - top - 6.4), y = yAt(thr);
+  const bottom = LEVER_BOTTOM, yAt = (f: number) => bottom - 2.6 - f * (bottom - top - 6.4), y = yAt(thr);
   for (const [f, label] of [[1, "TOGA"], [0.84, "MCT"], [0.66, "CL"], [0, "0"]] as const) {
     line(g, cx - 4.4, yAt(f), cx + 5.2, yAt(f), 0.3, shade(180, 184, 190, Math.max(body, 0.5)));
     text(g, label, cx + 5.8, yAt(f), 1.7, ink(body), "left");
@@ -775,6 +779,25 @@ function sidePanel(g: G2D, x: number, dir: number, body: number, pullUp: boolean
   g.fillStyle = shade(24, 27, 32, Math.max(body, 0.4)); g.beginPath(); g.arc(cx, cy, 8.4, 0, 7); g.fill();
   g.fillStyle = shade(70, 82, 94, body);
   for (let hy = -7; hy <= 7; hy += 1.4) for (let hx = -7; hx <= 7; hx += 1.4) if (hx * hx + hy * hy < 56) g.fillRect(cx + hx - 0.25, cy + hy - 0.25, 0.5, 0.5);
+}
+
+/** Gasstillingen (0-1) for en høyde på skjermen langs gasshåndtakenes spor. */
+export const thrustAt = (ly: number): number => clamp((LEVER_BOTTOM - 2.6 - ly) / (LEVER_BOTTOM - LEVER_TOP - 6.4), 0, 1);
+
+/** Hva som kan betjenes i punktet (lx, ly), eller null. Koordinatene er logiske enheter i det faste oppsettet:
+ *  lx er regnet fra venstre kant av oppsettet (skjermens x minus OX), ly er skjermens logiske y.
+ *  Spakene: understell, luftbrems, gass og klaff. Knappene: AP1 på FCU og FD på begge EFIS-panelene. */
+export function panelHit(lx: number, ly: number): PanelControl | null {
+  const inside = (x: number, y: number, w: number, h: number, pad = 0.8): boolean => lx >= x - pad && lx <= x + w + pad && ly >= y - pad && ly <= y + h + pad;
+  if (inside(FCU_X + 45.6, GLARE_Y + 8.3, 4.6, 3.7)) return { kind: "autopilot" };
+  if (inside(EFIS_L + 7.6, GLARE_Y + 7, 4.4, 2.6) || inside(EFIS_R + EFIS_W - 12, GLARE_Y + 7, 4.4, 2.6)) return { kind: "flightDirector" };
+  if (inside(GEAR_X + 12, ROW + 25, 9.6, 20, 0)) return { kind: "gear" };
+  if (ly < LEVER_TOP || ly > H) return null;
+  if (Math.abs(lx - SPD_X - 2.5) <= 7) return { kind: "speedBrake" };
+  if (Math.abs(lx - THR_X) <= 5.5) return { kind: "thrust", thr: thrustAt(ly) };
+  // klaffspaken: nærmeste hakk
+  if (Math.abs(lx - FLAP_X - 3) <= 9) return { kind: "flaps", cfg: Math.round(clamp((ly - LEVER_TOP - 4.4) / (LEVER_BOTTOM - LEVER_TOP - 6.4), 0, 1) * 4) };
+  return null;
 }
 
 /** Minne mellom to bilder: fartstrend og motorenes etterslep. Tegningen er ellers uten tilstand. */
@@ -868,7 +891,7 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
   }
 
   fcu(g, body, game);
-  efis(g, 70, 1, body, game.flightDirector); efis(g, 217, -1, body, game.flightDirector);
+  efis(g, EFIS_L, 1, body, game.flightDirector); efis(g, EFIS_R, -1, body, game.flightDirector);
   glareLights(g, 37, 1, d); glareLights(g, 253, -1, d);
 
   pfd(g, 10, ROW, d, body);
@@ -877,13 +900,12 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
   clock(g, 114, ROW + 24, game, body);
   ewd(g, 160 - ECAM / 2, ROW, ECAM, d, body);
   sd(g, 160 - ECAM / 2, H - 1.7 - ECAM, ECAM, d, game, body);
-  gearPanel(g, 184, ROW, P, body);
+  gearPanel(g, GEAR_X, ROW, P, body);
   nd(g, 214, ROW, d, t, game, body);
   pfd(g, 264, ROW, d, body);
-  const LT = ROW + DU + 7;
-  leverSlot(g, 115.6, LT, "SPD BRK", [[0, "RET"], [1, "FULL"]], P.brake, body);
-  thrustLevers(g, 129.6, LT, P.thr, body);
-  leverSlot(g, 190, LT, "FLAPS", FLAP_NAMES.map((n, c) => [c / 4, n]), P.flapCfg / 4, body);
+  leverSlot(g, SPD_X, LEVER_TOP, "SPD BRK", [[0, "RET"], [1, "FULL"]], P.brake, body);
+  thrustLevers(g, THR_X, LEVER_TOP, P.thr, body);
+  leverSlot(g, FLAP_X, LEVER_TOP, "FLAPS", FLAP_NAMES.map((n, c) => [c / 4, n]), P.flapCfg / 4, body);
 
   g.restore();
 }

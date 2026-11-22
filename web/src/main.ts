@@ -5,8 +5,8 @@ import { createGame, isTyping, runLoop } from "./game";
 import { GlRenderer } from "./glRenderer";
 import { drawCornerMap, drawHud, drawMessage } from "./hud";
 import { candidates, declutter, inSight, labelStyle, type PlaceName } from "./labels";
-import { drawPanel } from "./panel";
-import { H, setScreen, TOP, W } from "./screen";
+import { drawPanel, panelHit, thrustAt } from "./panel";
+import { H, OX, setScreen, TOP, W } from "./screen";
 import { type AisShip, Fleet, position, shipColor, shipKind } from "./ships";
 import { loadTerrain } from "./terrain";
 import { towerView } from "./tower";
@@ -67,6 +67,27 @@ async function main(): Promise<void> {
 
   const renderer = new GlRenderer(document.getElementById("gl") as HTMLCanvasElement, terrain, assets);
   const game = createGame(terrain, overlay);
+  // Mus og berøring på instrumentpanelet i cockpit: spakene og knappene som kan betjenes (se panelHit i panel.ts).
+  // Gasshåndtakene kan dras; resten er ett trykk.
+  const logicalY = (e: PointerEvent): number => { const r = overlay.getBoundingClientRect(); return TOP + ((e.clientY - r.top) / r.width) * W; };
+  const controlAt = (e: PointerEvent) => {
+    if (game.cam !== "cockpit" || game.replay) return null;
+    const r = overlay.getBoundingClientRect();
+    return panelHit(((e.clientX - r.left) / r.width) * W - OX, logicalY(e));
+  };
+  let draggingThrust = false;
+  overlay.addEventListener("pointerdown", (e) => {
+    const c = controlAt(e);
+    if (!c) return;
+    game.control(c);
+    draggingThrust = c.kind === "thrust";
+    if (draggingThrust) overlay.setPointerCapture(e.pointerId);
+  });
+  overlay.addEventListener("pointermove", (e) => {
+    if (draggingThrust) game.control({ kind: "thrust", thr: thrustAt(logicalY(e)) });
+    else overlay.style.cursor = controlAt(e) ? "pointer" : "";
+  });
+  for (const ev of ["pointerup", "pointercancel"]) overlay.addEventListener(ev, () => { draggingThrust = false; });
   document.getElementById("fullscreen")!.onclick = () => {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void document.documentElement.requestFullscreen();
