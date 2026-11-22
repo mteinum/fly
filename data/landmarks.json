@@ -10,5 +10,86 @@
       "image": "uia-logo.png",
       "imageSource": "UiA-merket med «UiA» fra universitetets LaTeX-mal for oppgaver"
     }
+  ],
+  "signsAbout": "Signalbygg som får navneskilt i spillet (uten logo), der N50 ikke har navnet. Slottet er ikke med: det har en krone over seg (figures.ts).",
+  "signs": [
+    {
+      "name": "Operaen",
+      "east": 262540,
+      "north": 6648730,
+      "source": "Sentralt stedsnavnregister, søk på navnet i Oslo kommune (0301), slått opp 2026-11-22"
+    },
+    {
+      "name": "Stortinget",
+      "east": 261869,
+      "north": 6649382,
+      "source": "Sentralt stedsnavnregister, søk på navnet i Oslo kommune (0301), slått opp 2026-11-22"
+    },
+    {
+      "name": "Munchmuseet",
+      "east": 262671,
+      "north": 6648529,
+      "source": "Sentralt stedsnavnregister, søk på navnet i Oslo kommune (0301), slått opp 2026-11-22"
+    },
+    {
+      "name": "Holmenkollbakken",
+      "east": 258127,
+      "north": 6655375,
+      "source": "Sentralt stedsnavnregister, søk på navnet i Oslo kommune (0301), slått opp 2026-11-22"
+    },
+    {
+      "name": "Tryvannstårnet",
+      "east": 258410,
+      "north": 6658067,
+      "source": "Sentralt stedsnavnregister, søk på navnet i Oslo kommune (0301), slått opp 2026-11-22"
+    },
+    {
+      "name": "Nasjonalmuseet",
+      "east": 261242,
+      "north": 6649291,
+      "source": "Sentralt stedsnavnregister, søk på navnet i Oslo kommune (0301), slått opp 2026-11-22"
+    },
+    {
+      "name": "Nationaltheatret",
+      "east": 261562,
+      "north": 6649563,
+      "source": "Sentralt stedsnavnregister, søk på navnet i Oslo kommune (0301), slått opp 2026-11-22"
+    },
+    {
+      "name": "Deichman Bjørvika",
+      "east": 262532,
+      "north": 6648868,
+      "source": "Sentralt stedsnavnregister, søk på navnet i Oslo kommune (0301), slått opp 2026-11-22"
+    },
+    {
+      "name": "Ullevaal Stadion",
+      "east": 261808,
+      "north": 6653408,
+      "source": "Sentralt stedsnavnregister, søk på navnet i Oslo kommune (0301), slått opp 2026-11-22"
+    },
+    {
+      "name": "Bislett stadion",
+      "east": 261563,
+      "north": 6650755,
+      "source": "Sentralt stedsnavnregister, søk på navnet i Oslo kommune (0301), slått opp 2026-11-22"
+    },
+    {
+      "name": "Oslo Spektrum",
+      "east": 262695,
+      "north": 6649318,
+      "source": "Sentralt stedsnavnregister, søk på navnet i Oslo kommune (0301), slått opp 2026-11-22"
+    },
+    {
+      "name": "Barcode",
+      "east": 262930,
+      "north": 6648771,
+      "source": "OpenStreetMap, midtpunktet av node 8071120191 (place=neighbourhood) (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Oslo Plaza",
+      "east": 262784,
+      "north": 6649269,
+      "source": "OpenStreetMap, midtpunktet av way 1509499373, «Radisson Blu Plaza Hotel, Oslo» (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    }
   ]
 }

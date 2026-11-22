@@ -16,6 +16,7 @@ export interface PlaceName {
 /** Hvor langt unna (m) navnet vises. */
 export function visibleRange(n: PlaceName): number {
   if (n.type === "flyplass") return 18000;
+  if (n.type === "landemerke") return 5000; // signalbygg (data/landmarks.json): når flyet er over byen
   if (n.type === "banestasjon") return 2500; // T-bane- og bybanestasjoner: bare på nært hold
   const bySize = n.size >= 10 ? 20000 : n.size >= 8.5 ? 11000 : n.size >= 7.2 ? 6500 : n.size >= 6.3 ? 3500 : 2000;
   // bruer er små på kartet, men gode kjennemerker fra lufta
@@ -35,7 +36,7 @@ export function candidates(t: Terrain, x: number, y: number, alt: number, limit 
     if (d <= visibleRange(place) && d > 60) out.push({ place, distanceM: d });
   }
   // viktigst først: stor skrift, og ved lik størrelse det som er nærmest. Bruer regnes som viktige.
-  const rank = (c: Candidate) => (c.place.type === "bru" || c.place.type === "flyplass" ? Math.max(c.place.size, 9) : c.place.size);
+  const rank = (c: Candidate) => (c.place.type === "bru" || c.place.type === "flyplass" || c.place.type === "landemerke" ? Math.max(c.place.size, 9) : c.place.size);
   return out.sort((a, b) => rank(b) - rank(a) || a.distanceM - b.distanceM).slice(0, limit);
 }
 
@@ -70,7 +71,7 @@ export function labelStyle(n: PlaceName): { color: string; italic: boolean } {
   if (n.type === "banestasjon") return { color: "#ffcf8a", italic: false }; // T-bane og bybane (OpenStreetMap)
   if (n.type === "kollektiv") return { color: "#ffd9cf", italic: false }; // busser og tog fra Entur: linjenummeret
   if (n.type === "skip") return { color: "#fff3a6", italic: false }; // skip fra AIS: samme gule som på kartet, dempet
-  if (n.type === "bru" || n.type === "flyplass") return { color: "#ffd27a", italic: false };
+  if (n.type === "bru" || n.type === "flyplass" || n.type === "landemerke") return { color: "#ffd27a", italic: false };
   if (n.group === "sjø" || n.group === "ferskvann") return { color: "#bfe6ff", italic: true };
   if (n.group === "terreng") return { color: "#d9f0c4", italic: true };
   return { color: "#ffffff", italic: false };

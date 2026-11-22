@@ -220,6 +220,8 @@ cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstje
   må den andre følge; airports.test.ts sammenligner dem.
 - Geometri i UTM-planet bruker `headingGridDeg` (fra baneendene), aldri publisert sann kurs minus konvergens:
   den sanne kursen er avrundet til hele grader.
+- Signalbygg som N50 ikke har navn på (Operaen, Stortinget, Barcode ...) står under `signs` i data/landmarks.json og
+  blir vanlige stedsnavn med type «landemerke». Steder som har en morofigur (Slottet har krone) får ikke skilt.
 - Kjennemerker med logo står i data/landmarks.json (posisjon fra stedsnavnregisteret, bilde i web/public/).
   Logoer tilhører institusjonene: legg bare inn en når eieren av prosjektet har bedt om det.
 - Fargekartet brukes bare på avstand: nær bakken tegner shaderen naturlige flater fra `surface.bin`.

@@ -187,6 +187,15 @@ def build(area: Area) -> Path:
             roofs = [it[4] for it in items if it[2] == structures.BUILDING and abs(it[0] - lx) < 3 and abs(it[1] - ly) < 3]
             z = max([max(0.0, float(hgt[int(ly), int(lx)])), *roofs])  # over takene rundt, så skiltet ikke står inne i et bygg
             landmarks.append({"id": lm["id"], "name": lm["name"], "x": round(lx, 2), "y": round(ly, 2), "z": round(z, 1), "image": lm["image"]})
+    # Signalbygg uten navn i N50 (data/landmarks.json, «signs»): et navneskilt som de andre stedsnavnene, over taket
+    have = {n["name"] for n in names}
+    for sign in json.loads(LANDMARKS.read_text(encoding="utf-8")).get("signs", []) if area.n50_county else []:
+        sx, sy = grid.utm_to_grid(sign["east"], sign["north"])
+        if 0 <= sx < grid.width and 0 <= sy < grid.height and sign["name"] not in have:
+            roofs = [it[4] for it in items if it[2] == structures.BUILDING and abs(it[0] - sx) < 3 and abs(it[1] - sy) < 3]
+            names.append({"name": sign["name"], "x": round(sx, 2), "y": round(sy, 2), "z": round(max([max(0.0, float(hgt[int(sy), int(sx)])), *roofs]), 1),
+                          "size": 8.0, "type": "landemerke", "group": "bebyggelse"})
+    names.sort(key=lambda n: -n["size"])  # fortsatt viktigste først (stabil: rekkefølgen ellers er som før)
     # Fyr: stedet fra stedsnavnregisteret (navnene over er alt flyttet dit), tårn fra DOM der det finnes
     lights_at = [(*grid.grid_to_utm(n["x"], n["y"]), n["type"]) for n in names if n["type"] in n50.LIGHTHOUSE_TYPES]
     beacons = structures.lighthouses(lights_at, hgt, grid, raw) if lights_at else []
