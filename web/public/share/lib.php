@@ -60,7 +60,32 @@ function diploma(array $q): ?array {
         // Takset til en stand etter landingen: standens nummer og sekundene det tok. Begge må være med og gyldige.
         'stand' => $taxi ? strtoupper((string) $q['g']) : null,
         'taxi' => $taxi ? (int) $q['m'] : null,
+        // Sightseeing: funnet (v) av i alt (w), og sekundene (x) når alle ble funnet. Ugyldige tall gir ingen linje.
+        'sights' => sights($q),
     ];
+}
+
+/** Sightseeing fra adressen: ['found', 'total', 'seconds'] eller null. Tiden gjelder bare når alle er funnet. */
+function sights(array $q): ?array {
+    $v = $q['v'] ?? ''; $w = $q['w'] ?? ''; $x = $q['x'] ?? null;
+    if (!is_string($v) || !is_string($w) || !preg_match('/^[0-9]{1,2}$/', $v) || !preg_match('/^[0-9]{1,2}$/', $w)) return null;
+    $found = (int) $v; $total = (int) $w;
+    if ($total < 3 || $total > 40 || $found < 1 || $found > $total) return null;
+    $timed = $found === $total && is_string($x) && preg_match('/^[0-9]{1,4}$/', $x) && (int) $x >= 1 && (int) $x <= 7200;
+    return ['found' => $found, 'total' => $total, 'seconds' => $timed ? (int) $x : null];
+}
+
+/** «and found all 9 sights in 6:40», «and found 4 of 9 sights», eller tom tekst. Samme ordlyd som sightsLine i web/src/sights.ts. */
+function sights_line(array $d): string {
+    $s = $d['sights'];
+    if ($s === null) return '';
+    return $s['seconds'] !== null ? sprintf('and found all %d sights in %d:%02d', $s['total'], intdiv($s['seconds'], 60), $s['seconds'] % 60)
+        : sprintf('and found %d of %d sights', $s['found'], $s['total']);
+}
+
+/** Linja under karakteren: taksing og sightseeing, de som finnes. */
+function extra_line(array $d): string {
+    return implode(' · ', array_filter([taxi_line($d), sights_line($d)]));
 }
 
 /** «and taxied to stand 17 in 3:02», eller tom tekst. Samme ordlyd som taxiLine i web/src/diploma.ts. */
@@ -86,7 +111,8 @@ function airport_cards(): array {
 function query(array $d): string {
     return http_build_query(['n' => $d['name'], 'a' => $d['icao'], 'r' => $d['runway'], 's' => $d['stars'], 'k' => $d['kt'],
         'f' => $d['fpm'], 'c' => $d['cross'], 't' => $d['past'], 'd' => $d['date']]
-        + ($d['stand'] === null ? [] : ['g' => $d['stand'], 'm' => $d['taxi']]));
+        + ($d['stand'] === null ? [] : ['g' => $d['stand'], 'm' => $d['taxi']])
+        + ($d['sights'] === null ? [] : ['v' => $d['sights']['found'], 'w' => $d['sights']['total']] + ($d['sights']['seconds'] === null ? [] : ['x' => $d['sights']['seconds']])));
 }
 
 /** «Kjevik» fra «Kristiansand Airport, Kjevik». */

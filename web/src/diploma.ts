@@ -62,6 +62,11 @@ export function shareUrl(siteUrl: string, d: DiplomaData): string {
   });
   // takset til en stand: standen og sekundene, bare når det skjedde
   if (d.taxiDone) { q.set("g", d.taxiDone.stand); q.set("m", String(Math.round(d.taxiDone.seconds))); }
+  // sightseeing: funnet av i alt, og sekundene når alle ble funnet
+  if (d.sights && d.sights.found > 0) {
+    q.set("v", String(d.sights.found)); q.set("w", String(d.sights.total));
+    if (d.sights.found === d.sights.total && d.sights.seconds !== null) q.set("x", String(Math.floor(d.sights.seconds)));
+  }
   return `${siteUrl}share/?${q}`;
 }
 

@@ -453,7 +453,20 @@
         "groundM": 12.5,
         "eyeM": 44.5,
         "source": "N50 bygning type 411 nærmest referansepunktet; plassering på bygningen og høyde er antatt"
-      }
+      },
+      "tours": [
+        {
+          "name": "Kristiansand sights",
+          "runway": "03",
+          "east": 90810.4,
+          "north": 6468748.9,
+          "x": 191.207,
+          "y": 257.023,
+          "altitudeM": 450.0,
+          "headingTrueDeg": 219.1,
+          "source": "regnet ut (analysis.sightseeing_start): 3,5 km fra midten av signalbyggene, fra den kanten der terrenget er lavest"
+        }
+      ]
     }
   ],
   "attribution": [

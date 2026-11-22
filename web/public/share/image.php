@@ -69,8 +69,8 @@ for ($i = 0; $i < 5; $i++) {
     $drawStar(W / 2 + ($i - 2) * 62, 334, 25, $i < $d['stars'] ? $star : $dim);
 }
 $text($d['title'], W / 2, 408, 26, $font('Serif-Bold'), $title);
-if ($d['stand'] !== null) {
-    $text(taxi_line($d), W / 2, 438, 16, $font('Serif-Italic'), $soft);
+if (extra_line($d) !== '') {
+    $text(extra_line($d), W / 2, 438, strlen(extra_line($d)) > 60 ? 13 : 16, $font('Serif-Italic'), $soft);
 }
 
 $stats = [

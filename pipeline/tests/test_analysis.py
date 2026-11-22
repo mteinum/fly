@@ -106,3 +106,19 @@ def test_synlighet_mot_uavhengig_siktlinje_paa_ekte_terreng():
     assert total > 350 and agree / total > 0.9
     # og tallene i metadata er de samme som regnes her
     assert meta["analysis"]["towerViewshed"]["groundSeenShare"] == round(float((need - np.maximum(hgt, 0) < 1).mean()), 3)
+
+
+def test_sightseeing_start_comes_in_over_the_lowest_ground():
+    hgt = np.zeros((1000, 1000), dtype=np.float32)
+    hgt[:, 520:] = 600.0  # fjell i øst, sjø i vest
+    x, y, alt, heading = analysis.sightseeing_start([500, 505, 495], [500, 500, 500], hgt, 10.0)
+    # starter 3,5 km unna der linja holder seg over sjøen: rett sør eller nord, på vestsiden av fjellet
+    assert np.hypot(x - 500, y - 500) * 10 == pytest.approx(3500)
+    assert heading in (0.0, 180.0) and alt == 450.0
+    # kursen peker fra start mot midten (rutenett: nord er -y)
+    assert (500 - x) * np.sin(np.radians(heading)) - (500 - y) * np.cos(np.radians(heading)) == pytest.approx(350)
+    # høyt terreng overalt (700 m i vest, 1300 m i øst): fortsatt over det laveste, og 300 m over det
+    assert analysis.sightseeing_start([500, 505, 495], [500, 500, 500], hgt + 700, 10.0)[2] == 1000.0
+    # for nær kartkanten til at noen retning får plass
+    assert analysis.sightseeing_start([30, 31, 32], [30, 31, 32], hgt, 10.0) is None
+

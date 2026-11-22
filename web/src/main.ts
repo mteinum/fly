@@ -3,7 +3,7 @@ import { createDiplomaUi, gradeLanding } from "./diploma";
 import { type FlightLog, flightLogName } from "./flightlog";
 import { createGame, isTyping, runLoop, type Weather } from "./game";
 import { GlRenderer } from "./glRenderer";
-import { cornerMapPoint, drawCornerMap, drawHud, drawMessage } from "./hud";
+import { cornerMapPoint, drawCornerMap, drawHud, drawMessage, drawSightsCount } from "./hud";
 import { candidates, declutter, inSight, labelStyle, type PlaceName } from "./labels";
 import { drawOverhead, drawPedestal, overheadHit, pedestalHit, pedestalThrustAt } from "./cockpitViews";
 import { drawPanel, panelHit, thrustAt } from "./panel";
@@ -366,7 +366,8 @@ const MAX_TRANSIT_LABELS = 8;
     // Dempet: liten, halvgjennomsiktig skrift med tynn skygge. Navnene skal kunne leses, ikke ta over bildet.
     g.globalAlpha = 0.63;
     for (const b of declutter(boxes, 16 + shipLabels + flightLabels + transitLabels)) {
-      const { color } = labelStyle(b.place);
+      // et signalbygg som er funnet på denne turen står i grønt, som ruta på kartet
+      const color = b.place.type === "landemerke" && game.sights.list.some((s) => s.found && s.name === b.place.name) ? "#7dff9a" : labelStyle(b.place).color;
       g.strokeStyle = "rgba(0,0,0,.4)"; g.lineWidth = 0.25;
       const foot = b.detail ? b.py + 2.6 : b.py;
       g.beginPath(); g.moveTo(b.px, b.py - (b.detail ? 1.6 : 4.4)); g.lineTo(b.px, foot); g.stroke(); // strek ned til stedet
@@ -540,7 +541,7 @@ const MAX_TRANSIT_LABELS = 8;
     } else if (game.cam === "cockpit") {
       drawPanel(g, terrain, game);
       // Et ekte fly har ikke dette kartet, men uten det er det vanskelig å finne flyplassen
-      if (!photoFrame) drawCornerMap(g, terrain, map, game, 16);
+      if (!photoFrame) { drawCornerMap(g, terrain, map, game, 16); drawSightsCount(g, game, 16); }
       message(TOP + 20);
     } else if (!photoFrame) {
       drawHud(g, terrain, map, game);

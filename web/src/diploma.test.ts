@@ -47,6 +47,19 @@ describe("lenke til delingssiden", () => {
     expect(taxiLine({ ...base, taxiDone: { stand: "17", seconds: 182 } })).toBe("and taxied to stand 17 in 3:02"); // samme ordlyd som delingssiden
     expect(taxiLine(base)).toBe("");
   });
+
+  it("tar med sightseeing i lenka: funnet av i alt, og tiden bare når alle er funnet", () => {
+    const td = { runway: "25", kt: 111.4, fpm: 183.2, crossM: 0.04, pastThresholdM: 153.3, flaps: 4 };
+    const base = { name: "Morten", airportName: "Bodø Airport", icao: "ENBO", touchdown: td, grade: gradeLanding(td), date: new Date(2026, 10, 20) };
+    const get = (sights: { found: number; total: number; seconds: number | null } | null) => {
+      const q = new URL(shareUrl("https://fly.teinum.no/", { ...base, sights })).searchParams;
+      return [q.get("v"), q.get("w"), q.get("x")];
+    };
+    expect(get(null)).toEqual([null, null, null]);
+    expect(get({ found: 0, total: 9, seconds: null })).toEqual([null, null, null]);
+    expect(get({ found: 4, total: 9, seconds: null })).toEqual(["4", "9", null]);
+    expect(get({ found: 9, total: 9, seconds: 400.7 })).toEqual(["9", "9", "400"]); // rundes ned, som klokka i spillet
+  });
 });
 
 describe("måling av landingen", () => {

@@ -162,3 +162,31 @@ def cluster_summary(labels: np.ndarray, eps_m: float = CLUSTER_EPS_M) -> dict:
         "largestCluster": int(sizes.max()) if len(sizes) else 0,
         "medianCluster": int(np.median(sizes)) if len(sizes) else 0,
     }
+
+
+def sightseeing_start(px, py, hgt: np.ndarray, cell: float, distance_m: float = 3500.0, clearance_m: float = 300.0,
+                      min_altitude_m: float = 450.0) -> tuple[float, float, float, float] | None:
+    """Et startsted for en sightseeingtur: (x, y, høyde, rutenettkurs i grader), eller None om ingen retning passer.
+
+    Flyet starter `distance_m` fra midten (medianen) av stedene og flyr mot dem. Av 16 retninger velges den der
+    terrenget langs linja (fra start til 4 km forbi midten) er lavest, så turen kommer inn over sjø eller dal og ikke
+    over en fjellrygg. Høyden er det høyeste terrenget på linja pluss `clearance_m`, minst `min_altitude_m`.
+    VALGT for spillet: avstand, klaring og minstehøyde.
+    """
+    cx, cy = float(np.median(px)), float(np.median(py))
+    rows, cols = hgt.shape
+    best = None
+    for heading in np.arange(0.0, 360.0, 22.5):
+        h = np.radians(heading)
+        along = np.linspace(-distance_m, 4000.0, 76) / cell  # rutenett: x øker mot øst, y mot sør
+        xs, ys = cx + np.sin(h) * along, cy - np.cos(h) * along
+        if xs.min() < 20 or ys.min() < 20 or xs.max() >= cols - 20 or ys.max() >= rows - 20:
+            continue
+        top = float(np.maximum(hgt[ys.astype(int), xs.astype(int)], 0).max())
+        if best is None or top < best[0] - 1e-6:
+            best = (top, float(xs[0]), float(ys[0]), float(heading))
+    if best is None:
+        return None
+    top, x, y, heading = best
+    return x, y, max(min_altitude_m, float(np.ceil((top + clearance_m) / 10) * 10)), heading
+

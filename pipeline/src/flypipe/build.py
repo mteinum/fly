@@ -203,6 +203,18 @@ def build(area: Area) -> Path:
             names.append({"name": sign["name"], "x": round(sx, 2), "y": round(sy, 2), "z": round(max([max(0.0, float(hgt[int(sy), int(sx)])), *roofs]), 1),
                           "size": 8.0, "type": "landemerke", "group": "bebyggelse"})
     names.sort(key=lambda n: -n["size"])  # fortsatt viktigste først (stabil: rekkefølgen ellers er som før)
+    # Sightseeingtur der det er signalbygg å finne og ingen tur er lagt inn for hånd: start 3,5 km unna, mot dem
+    marks = [n for n in names if n["type"] == "landemerke"]
+    start = analysis.sightseeing_start([n["x"] for n in marks], [n["y"] for n in marks], hgt, area.cell) if len(marks) >= 3 and not airport.get("tours") else None
+    if start:
+        tx, ty, altitude, heading_grid = start
+        east, north = grid.grid_to_utm(tx, ty)
+        airport["tours"] = [{
+            "name": f"{airport['name'].split(' Airport')[0]} sights", "runway": airport["runways"][0]["ends"][0]["ident"],
+            "east": round(east, 1), "north": round(north, 1), "x": round(tx, 3), "y": round(ty, 3), "altitudeM": altitude,
+            "headingTrueDeg": round((heading_grid + conv) % 360, 1),  # utsnittets konvergens, som spillet regner tilbake med
+            "source": "regnet ut (analysis.sightseeing_start): 3,5 km fra midten av signalbyggene, fra den kanten der terrenget er lavest",
+        }]
     # Fyr: stedet fra stedsnavnregisteret (navnene over er alt flyttet dit), tårn fra DOM der det finnes
     lights_at = [(*grid.grid_to_utm(n["x"], n["y"]), n["type"]) for n in names if n["type"] in n50.LIGHTHOUSE_TYPES]
     beacons = structures.lighthouses(lights_at, hgt, grid, raw) if lights_at else []

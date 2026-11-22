@@ -17,7 +17,7 @@ $who = $d['name'] !== '' ? $d['name'] : 'A pilot';
 $stars = str_repeat('★', $d['stars']) . str_repeat('☆', 5 - $d['stars']);
 $title = "$who landed an Airbus A320 at " . place($d['airport']) . ": $stars {$d['title']}";
 $description = "Runway {$d['runway']} · {$d['kt']} kt · {$d['fpm']} ft/min · " . number_format($d['cross'], 1)
-    . ' m off the centreline · ' . touchdown($d['past']) . ($d['stand'] === null ? '' : ' · ' . taxi_line($d)) . '. Fly it yourself over real Norwegian terrain.';
+    . ' m off the centreline · ' . touchdown($d['past']) . (extra_line($d) === '' ? '' : ' · ' . extra_line($d)) . '. Fly it yourself over real Norwegian terrain.';
 // Flyplassene å velge mellom, med den diplomet gjelder først
 $cards = airport_cards();
 usort($cards, fn ($a, $b) => ($b['icao'] === $d['icao']) <=> ($a['icao'] === $d['icao']));

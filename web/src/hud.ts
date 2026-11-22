@@ -119,6 +119,16 @@ export function drawCornerMap(g: CanvasRenderingContext2D, t: Terrain, map: Canv
   g.restore();
 }
 
+/** Sightseeing-telleren under oversiktskartet (cockpit, der skjermteksten ikke vises). */
+export function drawSightsCount(g: CanvasRenderingContext2D, game: Game, inset: number): void {
+  if (!game.sights.list.length || game.P.state !== "fly") return;
+  g.save();
+  g.font = `5px ${FONT}`; g.textAlign = "right";
+  g.fillStyle = "rgba(0,0,0,.45)"; g.fillRect(W - inset - 34, TOP + 4 + CORNER_MAP + 1.5, 34, 7);
+  g.fillStyle = "#ffe9b0"; g.fillText(`SIGHTS ${game.sights.found}/${game.sights.list.length}`, W - inset - 1.5, TOP + 4 + CORNER_MAP + 6.8);
+  g.restore();
+}
+
 export function drawMessage(g: CanvasRenderingContext2D, game: Game, y: number): void {
   if (game.msg.t <= 0) return;
   g.save();

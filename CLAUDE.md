@@ -30,7 +30,8 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     lights.py     nattlys (syntetisk plassert; bygningsklynger avgjør hvor det er gatelys)
     terrain.py    blokkmiddel, hillshade, fargekart
     build.py      setter det sammen og skriver fliser + metadata.json
-    analysis.py   synlighet fra tårnet, klaring under innflygingene, bygningsklynger (DBSCAN) -> metadata.json
+    analysis.py   synlighet fra tårnet, klaring under innflygingene, bygningsklynger (DBSCAN), startsted for
+                  sightseeingturen (der det er minst tre signalbygg og ingen tur er lagt inn for hånd) -> metadata.json
     debrief.py    regner ut fakta fra en flylogg (avvik, porter, fart, terreng under flyet)
     mcp_server.py MCP-server som gir en KI-agent verktøyene i debrief.py (kun lokalt, `--group agent`)
     audio.py      lyd generert med ElevenLabs -> web/public/audio/ (krever ELEVENLABS_API_KEY)

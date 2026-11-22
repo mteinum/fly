@@ -57,6 +57,18 @@ grep -q 'd=2026-11-20&amp;g=17&amp;m=182"' "$out/taxi.html" || fail 'taksingen m
 page image.php "$taxi" > "$out/taxi.png"
 php -r '$s = getimagesize($argv[1]); exit($s && $s[0] === 1200 ? 0 : 1);' "$out/taxi.png" || fail 'bildet med taksing er ikke en PNG'
 ! cmp -s "$out/taxi.png" "$out/diploma.png" || fail 'taksingen syntes ikke i bildet'
+# Sightseeing: funnet av i alt, og tiden når alle er funnet
+page index.php "$(with '{"v":"9","w":"9","x":"400"}')" > "$out/sights.html"
+grep -q 'and found all 9 sights in 6:40' "$out/sights.html" || fail 'sightseeing mangler i beskrivelsen'
+grep -q 'v=9&amp;w=9&amp;x=400"' "$out/sights.html" || fail 'sightseeing mangler i bildelenka'
+page index.php "$(with '{"g":"17","m":"182","v":"4","w":"9","x":"400"}')" > "$out/sights2.html"
+grep -q 'and taxied to stand 17 in 3:02 · and found 4 of 9 sights' "$out/sights2.html" || fail 'taksing og sightseeing sammen'
+page image.php "$(with '{"v":"9","w":"9","x":"400"}')" > "$out/sights.png"
+! cmp -s "$out/sights.png" "$out/diploma.png" || fail 'sightseeing syntes ikke i bildet'
+for extra in '{"v":"9"}' '{"v":"10","w":"9"}' '{"v":"0","w":"9"}' '{"v":"2","w":"2"}' '{"v":"<b>","w":"9"}' '{"v":["4"],"w":"9"}' '{"v":"4","w":"99"}'; do
+  page index.php "$(with "$extra")" > "$out/nosights.html"
+  ! grep -q 'sights' "$out/nosights.html" || fail "tok med sightseeing for $extra"
+done
 for extra in '{"g":"17"}' '{"m":"182"}' '{"g":"<b>","m":"182"}' '{"g":"17","m":"99999"}' '{"g":"12345","m":"60"}' '{"g":"17","m":"-5"}' '{"g":["17"],"m":"60"}'; do
   page index.php "$(with "$extra")" > "$out/notaxi.html"
   ! grep -q 'taxied' "$out/notaxi.html" || fail "tok med taksing for $extra"
