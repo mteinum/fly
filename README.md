@@ -47,7 +47,7 @@ klaffspaken, ECAM-tastene ENG og WHEEL og TCAS-velgeren (nede). Resten er tegnet
 
 `L` slår morofigurene av og på (sjimpansen over Dyreparken, krona over Slottet, nordlys i nord og flere; se `web/src/figures.ts`). `?fun=0` starter uten dem.
 
-`K` (eller Photo-knappen på berøringsskjerm) tar et bilde til deling: utsikten med en stripe nederst som sier hvor flyet er, høyde, fart, flyplass og tid. På telefon åpnes delingsarket; ellers lastes bildet ned.
+Kameraknappen nede til venstre (eller `K`) tar et bilde til deling: utsikten med en stripe nederst som sier hvor flyet er, høyde, fart, flyplass og tid. En liten meny viser bildet og lar deg laste det ned eller kopiere det til utklippstavla (og dele det, der enheten har delingsark).
 
 I tårnet zoomer `+` og `-`, musehjulet eller et trykk på kikkerten på benken inn på flyet (2x, 4x, 8x).
 
@@ -171,6 +171,12 @@ leser Kystverkets strøm. Småbåter er ikke med i de åpne dataene. Svarer ikke
 Fly som faktisk er i lufta rundt flyplassen vises i spillet, med kallesignal, type og høyde. Posisjonene kommer
 fra adsb.lol, et nettverk av frivillige mottakere, via en liten tjeneste på samme nettsted
 (`web/public/traffic/`). Dekningen varierer, og kilden har en døgngrense, så himmelen kan være tom.
+
+## Busser og tog
+
+Busser og tog som er ute akkurat nå kjører på kartet, med linjenummer når du er nær. Posisjonene kommer fra Enturs
+åpne data (NLOD) via `web/public/transit/`. Ruter i Oslo og Bybanen i Bergen sender ikke posisjoner dit, så de mangler.
+I utviklingsmodus: `?apt=ENCN&transit=/dev/transit-test.json` viser et opptak.
 
 ## Reprise
 

@@ -17,7 +17,20 @@ h1{font-size:15px;margin:0 0 4px;color:#ffb366}
 .touch{display:none;position:fixed;left:0;right:0;bottom:16px;justify-content:center;gap:6px;flex-wrap:wrap;z-index:2}
 @media (pointer:coarse){.touch{display:flex}}
 .touch button{padding:10px 14px;font-size:16px;background:rgba(27,27,41,.7)}
-.clean #help,.clean #credits,.clean .touch{display:none}
+.clean #help,.clean #credits,.clean .touch,.clean #photoBtn,.clean #photoMenu{display:none}
+/* Fotoknappen nede til venstre. På berøringsskjerm står den i knapperaden i stedet, så den ikke dekkes av den. */
+#photoBtn{position:fixed;left:10px;bottom:36px;z-index:3;width:40px;height:40px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.45);color:#9fd0ff;opacity:.8}
+#photoBtn:hover{opacity:1;background:rgba(0,0,0,.6)}
+@media (pointer:coarse){#photoBtn{display:none}}
+#tPhoto{display:inline-grid;place-items:center;padding:8px 14px}
+#photoMenu{position:fixed;left:10px;bottom:84px;z-index:4;width:min(320px,calc(100vw - 20px));padding:10px;border-radius:10px;background:rgba(16,18,28,.94);box-shadow:0 6px 24px rgba(0,0,0,.5);font-size:13px;color:#e8e2d0}
+#photoMenu[hidden]{display:none}
+#photoMenu img{display:block;width:100%;height:auto;border-radius:6px}
+#photoMenu .row{display:flex;gap:6px;margin-top:8px}
+#photoMenu .row button{flex:1;padding:8px 6px;font-size:13px}
+#photoMenu #photoClose{flex:0 0 34px}
+#photoNote{min-height:1.2em;margin-top:6px;color:#9fd0ff}
+@media (pointer:coarse){#photoMenu{bottom:auto;top:44px}}
 #airports{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 8px}
 #airports a{padding:2px 9px;border:1px solid #444458;border-radius:3px;color:#e8e2d0;text-decoration:none;background:#1b1b29}
 #airports a:hover{background:#26263a}

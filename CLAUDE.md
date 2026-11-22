@@ -43,6 +43,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     footprints.ts  leser buildings.bin og lager trekanter (vegger og flatt tak) for bygg med omriss
     taxiRoute.ts   nettet av taksebaner, korteste vei til en stand, og valg av stand (ruta og valget er syntetiske)
     traffic.ts     andre fly fra ADS-B: UTM -> rutenett, bevegelse og høyde mellom oppdateringer
+    transit.ts     busser og tog fra Entur: UTM -> rutenett, og jevn gliding mellom to meldinger
     ships.ts       skip fra AIS: UTM -> rutenett, bevegelse mellom meldinger, jevne oppdateringer
     flightlog.ts   flylogg per innflyging (UTM 33, sann kurs); L laster ned, utviklingsserveren lagrer i data/flights/
     replay.ts      opptak av de siste 5 s og reprise utenfra etter krasj
@@ -69,6 +70,7 @@ data/flights/    flylogger fra spillet i utviklingsmodus (ikke i git)
 deploy/          publisering til fly.teinum.no (SSH + rsync), kjøres av .github/workflows/deploy.yml
 web/public/share/  delingssiden for diplomer (PHP på webhotellet): index.php, image.php, lib.php
 web/public/traffic/ flytjenesten (PHP på webhotellet): henter fly rundt en flyplass fra adsb.lol, med døgnbudsjett
+web/public/transit/ kollektivtjenesten (PHP): henter busser og tog fra Entur (NLOD), samme oppbygning og samme areas.json
 web/public/weather/ værtjenesten (PHP på webhotellet): henter flyplassens siste METAR fra api.met.no og gir spillet vinden
 web/public/ais/    skipstjenesten (PHP på webhotellet): leser Kystverkets åpne AIS-strøm og gir spillet skipene ved en flyplass
 tests/fixtures/  fasitpunkter fra Kartverkets API-er, og flylogger (flights/, lages av vitest), delt av pytest og vitest

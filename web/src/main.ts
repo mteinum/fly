@@ -14,7 +14,8 @@ import { tcasLevel } from "./tcas";
 import { loadTerrain } from "./terrain";
 import { towerView } from "./tower";
 import { osloTime } from "./clock";
-import { composeSnapshot, deliverSnapshot, snapshotInfo } from "./snapshot";
+import { GLIDE_S, Transit, vehiclePosition, vehicleShape, type TransitMode, type TransitReport } from "./transit";
+import { canShareSnapshot, composeSnapshot, copySnapshot, downloadSnapshot, shareSnapshot, snapshotInfo, type SnapshotInfo } from "./snapshot";
 import { drawTower, towerHit } from "./towerPanel";
 import { type AdsbAircraft, aircraftSize, locate, Traffic } from "./traffic";
 
@@ -251,6 +252,7 @@ async function main(): Promise<void> {
     return { lm, image, place: { name: lm.name, x: lm.x, y: lm.y, z: lm.z, size: 12, type: "landmark", group: "bebyggelse" } satisfies PlaceName };
   });
   const MAX_SHIP_LABELS = 6, DETAIL_FONT = '400 2.1px "Helvetica Neue", Helvetica, Arial, sans-serif';
+const MAX_TRANSIT_LABELS = 8;
   const SIGN_RANGE_M = 9000, SIGN_HEIGHT = 3.4; // logiske enheter: på størrelse med et stedsnavn
   const drawSigns = (cx: number, cy: number, ey: number) => {
     for (const { lm, image, place } of signs) {
@@ -296,6 +298,22 @@ async function main(): Promise<void> {
       boxes.push({ x: px - w / 2 - 2, y: py - 6 - size - lift, w: w + 4, h: size + 3 + lift, place, px, py: py - lift, font, detail: s.detail });
       shipLabels++;
     }
+    // Busser og tog: linjenummeret over de nærmeste, innen 1,5 km (tog 4 km). De er mange, så bare noen få får skilt.
+    let transitLabels = 0;
+    const nearBuses = buses.filter((b) => b.line).map((b) => ({ b, d: Math.hypot(b.x - cx, b.y - cy) * terrain.cell }))
+      .filter(({ b, d }) => d < (b.mode === "rail" ? 4000 : 1500)).sort((p, q) => p.d - q.d);
+    for (const { b } of nearBuses) {
+      if (transitLabels >= MAX_TRANSIT_LABELS) break;
+      const z = Math.max(0, terrain.heightAt(b.x, b.y)) + b.heightM;
+      const place: PlaceName = { name: b.line, x: b.x, y: b.y, z, size: 7, type: "kollektiv", group: "kollektiv" };
+      const at = renderer.project(b.x * terrain.cell, z + 6, b.y * terrain.cell);
+      if (!at || !inSight(terrain, cx, cy, ey, place)) continue;
+      const px = at[0] * W, py = TOP + at[1] * (H - TOP), size = 2.7, font = `700 ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+      g.font = font;
+      const w = g.measureText(b.line).width;
+      boxes.push({ x: px - w / 2 - 1, y: py - 6 - size, w: w + 2, h: size + 3, place, px, py, font });
+      transitLabels++;
+    }
     // Andre fly: de nærmeste i bildet, innen 20 km. Skiltet står over flyet, med type og høyde under kallesignalet.
     let flightLabels = 0;
     for (const a of [...game.traffic].sort((p, q) => Math.hypot(p.x - cx, p.y - cy) - Math.hypot(q.x - cx, q.y - cy))) {
@@ -339,7 +357,7 @@ async function main(): Promise<void> {
     g.textAlign = "center"; g.textBaseline = "alphabetic"; g.lineJoin = "round";
     // Dempet: liten, halvgjennomsiktig skrift med tynn skygge. Navnene skal kunne leses, ikke ta over bildet.
     g.globalAlpha = 0.63;
-    for (const b of declutter(boxes, 16 + shipLabels + flightLabels)) {
+    for (const b of declutter(boxes, 16 + shipLabels + flightLabels + transitLabels)) {
       const { color } = labelStyle(b.place);
       g.strokeStyle = "rgba(0,0,0,.4)"; g.lineWidth = 0.25;
       const foot = b.detail ? b.py + 2.6 : b.py;
@@ -364,10 +382,55 @@ async function main(): Promise<void> {
   document.getElementById("tPhoto")!.onclick = wantPhoto;
   if (import.meta.env.DEV && new URLSearchParams(location.search).has("photo")) setTimeout(wantPhoto, 1500);
   const message = (y: number) => { if (!photoFrame) drawMessage(g, game, y); };
+  // Etter at bildet er tatt: en liten meny over fotoknappen med forhåndsvisning, og valget mellom å laste ned og kopiere
+  const el = (id: string) => document.getElementById(id)!;
+  const photoMenu = el("photoMenu"), photoNote = el("photoNote");
+  let photo: { canvas: HTMLCanvasElement; info: SnapshotInfo } | null = null;
+  const closePhoto = () => { photoMenu.hidden = true; photo = null; overlay.focus(); };
+  const showPhoto = (canvas: HTMLCanvasElement, info: SnapshotInfo) => {
+    photo = { canvas, info };
+    (el("photoPreview") as HTMLImageElement).src = canvas.toDataURL("image/jpeg", 0.7);
+    photoNote.textContent = "";
+    el("photoShare").hidden = !canShareSnapshot();
+    photoMenu.hidden = false;
+  };
+  const act = (id: string, run: (p: NonNullable<typeof photo>) => Promise<string>) => {
+    el(id).onclick = () => {
+      if (!photo) return;
+      run(photo).then((done) => { photoNote.textContent = done; }, () => { photoNote.textContent = "That did not work in this browser. Try Download."; });
+      overlay.focus(); // så tastene fortsatt styrer flyet
+    };
+  };
+  act("photoDownload", async (p) => { await downloadSnapshot(p.canvas, p.info); return "Saved to your downloads."; });
+  act("photoCopy", async (p) => { await copySnapshot(p.canvas); return "Copied. Paste it into a message or a post."; });
+  act("photoShare", async (p) => ((await shareSnapshot(p.canvas, p.info)) ? "Shared." : ""));
+  el("photoClose").onclick = closePhoto;
+  el("photoBtn").onclick = wantPhoto;
+  window.addEventListener("keydown", (e) => { if (e.code === "Escape" && !photoMenu.hidden) closePhoto(); });
+
+  // Kollektivtrafikk: ekte busser og tog fra Entur, hentet fra /transit/ på serveren hvert 20. sekund.
+  // ?transit=adresse (kun utviklingsmodus): f.eks. /dev/transit-test.json. Uten svar er veiene tomme.
+  const transit = new Transit(), transitUrl = import.meta.env.DEV ? (params.get("transit") ?? "https://fly.teinum.no/transit/") : `${import.meta.env.BASE_URL}transit/`;
+  let buses: { x: number; y: number; heading: number; lengthM: number; widthM: number; heightM: number; color: number; line: string; mode: TransitMode }[] = [];
+  if (terrain.meta.traffic) {
+    const poll = async () => {
+      try {
+        const r = await fetch(`${transitUrl}?apt=${chosen.icao}`);
+        if (!r.ok) return;
+        const data: { vehicles: TransitReport[] } = await r.json();
+        transit.update(data.vehicles, terrain, performance.now() / 1000);
+        if (data.vehicles.length) credit("Buses and trains: Entur (NLOD)");
+      } catch { /* ingen busser denne gangen */ }
+    };
+    void poll();
+    setInterval(() => { if (!document.hidden) void poll(); }, GLIDE_S * 1000);
+  }
 
   const frame = (dt: number): void => {
     game.step(dt);
     const shipNow = performance.now() / 1000;
+    buses = transit.list.map((v) => { const [x, y] = vehiclePosition(v, shipNow); return { x, y, heading: v.heading, ...vehicleShape(v.mode), line: v.line, mode: v.mode }; });
+    renderer.setTransit(buses);
     const ships = fleet.list.map((s) => {
       const [x, y] = position(s, terrain, shipNow);
       return { x, y, heading: s.heading, lengthM: s.lengthM, beamM: s.beamM, speed: s.speed, color: shipColor(s.type), name: s.name,
@@ -467,17 +530,8 @@ async function main(): Promise<void> {
     if (!photoFrame) return;
     photoFrame = false;
     const info = snapshotInfo(terrain, chosen, game.replay ? game.replay.plane : game.P, game.time);
-    const photo = composeSnapshot(clean ? [glCanvas] : [glCanvas, overlay], glCanvas.width, glCanvas.height, info);
-    if (import.meta.env.DEV && new URLSearchParams(location.search).has("photo")) {
-      // ?photo i utviklingsmodus: ta bildet av seg selv og vis det over siden, så det kan kontrolleres i et skjermbilde
-      photo.style.cssText = "position:fixed;inset:0;width:100%;height:100%;z-index:99";
-      document.body.append(photo);
-      return;
-    }
-    void deliverSnapshot(photo, info).then(
-      (how) => { if (how === "downloaded") { game.msg.text = "Photo saved to your downloads"; game.msg.t = 2.5; } },
-      () => { game.msg.text = "Could not make the photo"; game.msg.t = 2.5; },
-    );
+    const shot = composeSnapshot(clean ? [glCanvas] : [glCanvas, overlay], glCanvas.width, glCanvas.height, info);
+    showPhoto(shot, info);
   });
 }
 

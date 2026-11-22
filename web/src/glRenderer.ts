@@ -44,7 +44,7 @@ const color = (c: RGB): THREE.Color => new THREE.Color().setRGB(c[0] / 255, c[1]
 
 /** Utslag i grader for klaffstilling 0, 1, 2, 3 og FULL, som på A320 (1 = 1+F). */
 const FLAP_DEG = [0, 10, 15, 20, 35], SLAT_DEG = [0, 18, 22, 22, 27];
-const MAX_SHIPS = 256, MAX_TRAFFIC = 64;
+const MAX_SHIPS = 256, MAX_TRAFFIC = 64, MAX_TRANSIT = 400;
 const SPOILER_DEG = 40; // luftbremsenes utslag når de er helt ute (SYNTETISK tall)
 
 const SRGB_TO_LINEAR = Uint8Array.from({ length: 256 }, (_, v) => Math.round(255 * (v / 255 <= 0.04045 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4)));
@@ -92,6 +92,9 @@ export class GlRenderer {
   private shipHouses!: THREE.InstancedMesh;
   private shipWakes!: THREE.InstancedMesh;
   private shipLights!: THREE.Points;
+  private transitBodies!: THREE.InstancedMesh;
+  private transitWindows!: THREE.InstancedMesh;
+  private transitLights!: THREE.Points;
   /** Andre fly (fra ADS-B): kropp, vinger og halefinne som instanser, og et blinkende lys hver. */
   private trafficBodies!: THREE.InstancedMesh;
   private trafficWings!: THREE.InstancedMesh;
@@ -167,6 +170,7 @@ export class GlRenderer {
     this.addTunnels();
     this.addLighthouses();
     this.addShips();
+    this.addTransit();
     this.addTraffic();
     this.addBridges();
     this.runwayLights = this.pointLights(this.runwayLightPositions(), 3.2);
@@ -440,6 +444,43 @@ export class GlRenderer {
     this.trafficLights.geometry.setDrawRange(0, n);
     pos.needsUpdate = true;
     for (const mesh of [this.trafficBodies, this.trafficWings, this.trafficFins]) mesh.instanceMatrix.needsUpdate = true;
+  }
+
+  /** Busser og tog tegnes som en farget kasse med et mørkt vindusbånd. Hvor de er kommer fra Entur; form, farge og
+   *  størrelse er SYNTETISK (se transit.ts). */
+  private addTransit(): void {
+    const unit = () => new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0);
+    this.transitBodies = new THREE.InstancedMesh(unit(), new THREE.MeshLambertMaterial(), MAX_TRANSIT);
+    this.transitWindows = new THREE.InstancedMesh(unit(), new THREE.MeshLambertMaterial({ color: 0x1c2733 }), MAX_TRANSIT);
+    const light = new THREE.BufferGeometry();
+    light.setAttribute("position", new THREE.Float32BufferAttribute(new Float32Array(MAX_TRANSIT * 3), 3));
+    this.transitLights = new THREE.Points(light, new THREE.PointsMaterial({ color: 0xfff2cc, size: 2.4, sizeAttenuation: false, transparent: true, depthWrite: false }));
+    for (const m of [this.transitBodies, this.transitWindows, this.transitLights]) m.frustumCulled = false;
+    this.transitBodies.count = this.transitWindows.count = 0;
+    light.setDrawRange(0, 0);
+    this.scene.add(this.transitBodies, this.transitWindows, this.transitLights);
+  }
+
+  /** Hvor bussene og togene er nå. x og y i rutenettceller, heading som rutenettkurs i radianer, mål i meter. */
+  setTransit(list: { x: number; y: number; heading: number; lengthM: number; widthM: number; heightM: number; color: number }[]): void {
+    const { cell } = this.t, m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), c = new THREE.Color();
+    const pos = this.transitLights.geometry.getAttribute("position") as THREE.BufferAttribute;
+    const n = Math.min(list.length, MAX_TRANSIT);
+    for (let i = 0; i < n; i++) {
+      const v = list[i], X = v.x * cell, Z = v.y * cell, ground = Math.max(0, this.t.heightAt(v.x, v.y));
+      q.setFromAxisAngle(up, -v.heading); // kassens lengde ligger langs z; kurs 0 = nord = -z
+      m.compose(new THREE.Vector3(X, ground, Z), q, new THREE.Vector3(v.widthM, v.heightM, v.lengthM));
+      this.transitBodies.setMatrixAt(i, m); this.transitBodies.setColorAt(i, c.setHex(v.color, THREE.SRGBColorSpace));
+      // vindusbåndet: litt bredere enn kassa, så det synes på sidene, og litt kortere
+      m.compose(new THREE.Vector3(X, ground + v.heightM * 0.5, Z), q, new THREE.Vector3(v.widthM * 1.04, v.heightM * 0.3, v.lengthM * 0.94));
+      this.transitWindows.setMatrixAt(i, m);
+      pos.setXYZ(i, X + Math.sin(v.heading) * v.lengthM * 0.5, ground + v.heightM * 0.4, Z - Math.cos(v.heading) * v.lengthM * 0.5); // frontlys
+    }
+    this.transitBodies.count = this.transitWindows.count = n;
+    this.transitLights.geometry.setDrawRange(0, n);
+    pos.needsUpdate = true;
+    this.transitBodies.instanceMatrix.needsUpdate = this.transitWindows.instanceMatrix.needsUpdate = true;
+    if (this.transitBodies.instanceColor) this.transitBodies.instanceColor.needsUpdate = true;
   }
 
   /** Skip tegnes som et skrog med overbygg akter, skalert etter lengde og bredde, og kjølvann når de er i fart.
@@ -798,6 +839,8 @@ export class GlRenderer {
     }
     // Antikollisjonslys: et kort hvitt blink i sekundet, dag og natt, så flyene kan ses på avstand
     this.trafficLights.visible = (performance.now() / 1000) % 1.2 < 0.15;
+    this.transitLights.visible = sky.night > 0.05;
+    (this.transitLights.material as THREE.PointsMaterial).opacity = sky.night;
     this.shipLights.visible = sky.night > 0.05;
     (this.shipLights.material as THREE.PointsMaterial).opacity = sky.night;
     this.lamps.visible = sky.night > 0.05;

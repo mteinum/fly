@@ -79,23 +79,36 @@ export function composeSnapshot(layers: CanvasImageSource[], width: number, heig
   return out;
 }
 
-/** Del bildet der enheten har delingsark (telefon og nettbrett), ellers last det ned. Returnerer hva som skjedde. */
-export async function deliverSnapshot(canvas: HTMLCanvasElement, info: SnapshotInfo): Promise<"shared" | "downloaded" | "cancelled"> {
-  const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("kunne ikke lage bildet"))), "image/jpeg", 0.9));
-  const file = new File([blob], `${info.fileName}.jpg`, { type: "image/jpeg" });
-  if (matchMedia("(pointer: coarse)").matches && navigator.canShare?.({ files: [file] })) {
-    try {
-      await navigator.share({ files: [file], title: "fly.teinum.no", text: `${info.headline}. https://fly.teinum.no/` });
-      return "shared";
-    } catch (err) {
-      if ((err as Error).name === "AbortError") return "cancelled";
-      // delingen virket ikke (f.eks. ikke lenger et brukertrykk): last ned i stedet
-    }
-  }
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
+const toBlob = (canvas: HTMLCanvasElement, type: string): Promise<Blob> =>
+  new Promise((resolve, reject) => canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("kunne ikke lage bildet"))), type, 0.9));
+const asFile = async (canvas: HTMLCanvasElement, info: SnapshotInfo): Promise<File> => new File([await toBlob(canvas, "image/jpeg")], `${info.fileName}.jpg`, { type: "image/jpeg" });
+
+/** Last ned bildet som JPEG. */
+export async function downloadSnapshot(canvas: HTMLCanvasElement, info: SnapshotInfo): Promise<void> {
+  const file = await asFile(canvas, info), a = document.createElement("a");
+  a.href = URL.createObjectURL(file);
   a.download = file.name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
-  return "downloaded";
+}
+
+/** Legg bildet på utklippstavla, som PNG (det eneste bildeformatet nettlesere tar imot der). */
+export async function copySnapshot(canvas: HTMLCanvasElement): Promise<void> {
+  // Safari krever at ClipboardItem lages i selve trykket: bildet gis derfor som et løfte, ikke ventet på først
+  await navigator.clipboard.write([new ClipboardItem({ "image/png": toBlob(canvas, "image/png") })]);
+}
+
+/** Har enheten et delingsark som tar bilder (telefon og nettbrett)? */
+export const canShareSnapshot = (): boolean =>
+  typeof navigator.canShare === "function" && navigator.canShare({ files: [new File([""], "x.jpg", { type: "image/jpeg" })] });
+
+/** Åpne delingsarket. Returnerer false hvis brukeren avbrøt. */
+export async function shareSnapshot(canvas: HTMLCanvasElement, info: SnapshotInfo): Promise<boolean> {
+  try {
+    await navigator.share({ files: [await asFile(canvas, info)], title: "fly.teinum.no", text: `${info.headline}. https://fly.teinum.no/` });
+    return true;
+  } catch (err) {
+    if ((err as Error).name === "AbortError") return false;
+    throw err;
+  }
 }

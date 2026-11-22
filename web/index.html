@@ -38,7 +38,13 @@
 </div>
 <div class="touch" id="touch">
   <button data-k="ArrowLeft">◀</button><button data-k="ArrowUp">▲ down</button><button data-k="ArrowDown">▼ up</button><button data-k="ArrowRight">▶</button>
-  <button data-k="KeyW">Thrust +</button><button data-k="KeyS">Thrust −</button><button id="tAuto">Autopilot</button><button id="tGear">Gear</button><button id="tBrake">Speed brake</button><button id="tFlapOut">Flaps +</button><button id="tFlapIn">Flaps −</button><button id="tPark">Park</button><button id="tCam">Camera</button><button id="tPhoto">Photo</button><button id="tTime">Time +2 h</button>
+  <button data-k="KeyW">Thrust +</button><button data-k="KeyS">Thrust −</button><button id="tAuto">Autopilot</button><button id="tGear">Gear</button><button id="tBrake">Speed brake</button><button id="tFlapOut">Flaps +</button><button id="tFlapIn">Flaps −</button><button id="tPark">Park</button><button id="tCam">Camera</button><button id="tPhoto" aria-label="Take a photo"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9Zm3 4.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z"/></svg></button><button id="tTime">Time +2 h</button>
+</div>
+<button id="photoBtn" title="Take a photo (K)" aria-label="Take a photo"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9Zm3 4.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z"/></svg></button>
+<div id="photoMenu" role="dialog" aria-label="Your photo" hidden>
+  <img id="photoPreview" alt="The photo you just took">
+  <div class="row"><button id="photoDownload">Download</button><button id="photoCopy">Copy</button><button id="photoShare" hidden>Share</button><button id="photoClose" aria-label="Close">✕</button></div>
+  <div id="photoNote" role="status"></div>
 </div>
 <button id="aboutOpen" aria-haspopup="dialog">About</button>
 <details id="help">
@@ -47,7 +53,7 @@
     <h1>teinum-fly · Airbus A320 · <span id="where"></span></h1>
     <nav id="airports" aria-label="Choose airport"></nav>
     <div><kbd>←</kbd><kbd>→</kbd> bank · <kbd>↑</kbd> nose down · <kbd>↓</kbd> nose up · <kbd>W</kbd>/<kbd>S</kbd> thrust · <kbd>G</kbd> gear · <kbd>F</kbd>/<kbd>V</kbd> flaps out/in · <kbd>B</kbd> speed brakes · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> autobrake LO/MED/MAX · <kbd>A</kbd> autopilot · <kbd>D</kbd> flight director · <kbd>P</kbd> flight path vector · <kbd>Z</kbd> map range · <kbd>X</kbd> terrain on map</div>
-    <div><kbd>C</kbd> camera (outside, cockpit, tower) · <kbd>U</kbd>/<kbd>J</kbd> look up at the overhead panel / down at the pedestal · <kbd>R</kbd> new approach · <kbd>T</kbd> next runway (at Kjeller also the Oslo city tour) · <kbd>L</kbd> fun figures on/off · <kbd>K</kbd> photo to share · <kbd>Q</kbd>/<kbd>E</kbd> clock ∓ 30 min · <kbd>M</kbd> sound on/off · <kbd>N</kbd> place names on/off · <kbd>L</kbd> download flight log</div>
+    <div><kbd>C</kbd> camera (outside, cockpit, tower) · <kbd>U</kbd>/<kbd>J</kbd> look up at the overhead panel / down at the pedestal · <kbd>R</kbd> new approach · <kbd>T</kbd> next runway (at Kjeller also the Oslo city tour) · <kbd>L</kbd> fun figures on/off · <kbd>K</kbd> or the camera button takes a photo you can download or copy · <kbd>Q</kbd>/<kbd>E</kbd> clock ∓ 30 min · <kbd>M</kbd> sound on/off · <kbd>N</kbd> place names on/off · <kbd>L</kbd> download flight log</div>
     <div class="muted">After landing you can taxi to the terminal: <kbd>W</kbd> to start rolling, <kbd>←</kbd><kbd>→</kbd> steer, <kbd>S</kbd> less thrust, <kbd>Space</kbd> brakes (also during the landing roll, to make an earlier exit), <kbd>Enter</kbd> sets the parking brake, and releases it again. The tower gives you a stand: follow the green line and stay on the asphalt.</div>
     <div class="muted">In the tower: <kbd>+</kbd> / <kbd>−</kbd>, the mouse wheel or a tap on the binoculars zooms in on the plane (2x, 4x, 8x).</div>
     <div class="muted">In the cockpit you can also click or tap the gear lever, the speed brake, thrust and flap levers, and the AP1 and FD buttons.</div>
@@ -87,6 +93,7 @@
       <li>Church towers and lighthouses: where they stand and how tall they are.</li>
       <li>Ships at the coastal airports: where they are right now, their size, course and speed.</li>
       <li>Other aircraft: where they are right now, their altitude, course, speed, callsign and type.</li>
+      <li>Buses and trains: where they last reported being, and their line number. Only what the operators send to Entur: Oslo's city buses, trams and metro and Bergen's light rail are missing.</li>
       <li>Runways, the position of the sun and the time of day.</li>
       <li>The wind: direction and speed as the airport last reported them.</li>
     </ul>
@@ -103,6 +110,7 @@
       <li>The airport signs. They follow the standard pattern (black for where you are, yellow for where the taxiways lead, red before a runway), but their positions are placed by rule, not surveyed.</li>
       <li>Night lights, runway markings, ground detail, and the colours and flat roofs of buildings. Most building heights are estimates.</li>
       <li>The shape of the ships and of other aircraft, and how they move between position reports.</li>
+      <li>The shape, colour and size of buses and trains (buses are drawn two and a half times too large, to be seen from the air), and their straight-line glide between two reports. Trains in tunnels are drawn on the surface.</li>
       <li>How lighthouses flash. Real ones each have their own pattern and colours.</li>
       <li>Tunnels are underground. The dashed lines only show where they run.</li>
       <li>All sound, including the voice from the tower.</li>
@@ -114,6 +122,7 @@
       <li>Elevation (DTM and DOM), N50 map data, building points (Matrikkelen) and place names: © Kartverket, CC BY 4.0.</li>
       <li>Building outlines: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, available under the Open Database License. The building data in the game is shared under the same licence. Taxiways, aprons and stand numbers at the airports are also from OpenStreetMap.</li>
       <li>Ship positions: Kystverket's open AIS data (NLOD), relayed by this site. Small fishing and leisure boats are not included.</li>
+      <li>Buses and trains: <a href="https://developer.entur.no/" target="_blank" rel="noopener">Entur</a>'s open vehicle positions (NLOD), relayed by this site.</li>
       <li>Aircraft positions: <a href="https://www.adsb.lol/" target="_blank" rel="noopener">adsb.lol</a>, a community network of ADS-B receivers, under the Open Database License. Coverage depends on where volunteers have receivers, so some aircraft are missing.</li>
       <li>Wind: the airport's latest weather report (METAR) from <a href="https://api.met.no/" target="_blank" rel="noopener">MET Norway</a>, CC BY 4.0, relayed by this site.</li>
       <li>Airports and runways: OurAirports, public domain.</li>

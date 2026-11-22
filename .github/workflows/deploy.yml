@@ -49,6 +49,8 @@ jobs:
         run: bash deploy/test_ais.sh ais-test
       - name: Flytjeneste - tolk lagrede svar fra adsb.lol
         run: bash deploy/test_traffic.sh traffic-test
+      - name: Kollektivtjeneste - tolk et lagret svar fra Entur
+        run: bash deploy/test_transit.sh transit-test
       - name: Værtjeneste - tolk METAR-er
         run: bash deploy/test_weather.sh weather-test
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

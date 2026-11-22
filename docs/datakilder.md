@@ -478,3 +478,22 @@ Skip, hval og plattform flyttes til nærmeste åpne vann i arealdekket. Fløiban
 Vetrlidsallmenningen og Fløyen, ikke i banens trasé. Nordlyset (Tromsø, Bodø, Mehamn) vises hver mørk natt, uten
 sammenheng med faktisk nordlysaktivitet. Nissen vises i desember og flaggene 17. mai. Ingen logoer eller
 navngitte figurer fra Dyreparken er brukt.
+
+## Busser og tog fra Entur (2026-11-22)
+
+- **Kilde:** Enturs åpne tjeneste Vehicle Positions (GraphQL), `https://api.entur.io/realtime/v2/vehicles/graphql`.
+  Lisens NLOD. Entur krever hodet `ET-Client-Name`; vi sender `teinum-fly`.
+  Dokumentasjon: https://developer.entur.no/docs/open-services/vehicle-positions
+- **Hentes av** `web/public/transit/` på webhotellet, høyst hvert 20. sekund per flyplass og bare mens noen spiller
+  der, med et tak på 6000 oppslag i døgnet. Jeg fant ingen oppgitt kvote for denne tjenesten; blir vi avvist,
+  venter tjenesten minst fem minutter.
+- **Ekte:** hvilke kjøretøy som er ute, siste meldte posisjon, linjenummer og (for de fleste) retning.
+- **Dekning målt 2026-11-22:** Ruter (buss, trikk og T-bane i Oslo) og Bybanen i Bergen sender ingenting. Rundt
+  Oslo finnes tog (Vy, Flytoget, SJ Nord) og regionbusser. Mange kjøretøy står med en posisjon som er opptil en time
+  gammel; bare posisjoner yngre enn 120 s tas med. Fart mangler nesten alltid og brukes ikke.
+- **Utelatt:** ferger (de kommer fra Kystverkets AIS).
+- **SYNTETISK:** form, farge og størrelse (busser 2,5 ganger for store), og bevegelsen mellom to meldinger (rett
+  linje). Tog i tunnel tegnes oppå bakken, og kjøretøy på bruer står på terrenget under brua.
+- **Kontroll:** `deploy/test_transit.sh` tolker et lagret svar (tests/fixtures/entur_sample.json) mot en fasit med
+  koordinater fra pyproj (`pipeline/tests/test_transit.py`).
+

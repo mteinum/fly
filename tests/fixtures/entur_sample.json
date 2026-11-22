@@ -1,0 +1,179 @@
+{
+ "about": "Utdrag av et svar fra Enturs Vehicle Positions rundt Kristiansand, hentet 2026-11-22 12:50 UTC (NLOD). To kjøretøy er lagt til for hånd: ett utenfor kartruta og ett uten posisjon. Ferge og tog har fått fersk tid, så det er transportmåten som prøves.",
+ "now": 1795351800,
+ "area": {
+  "lat": 58.173,
+  "lon": 8.0914,
+  "radiusNm": 10,
+  "box": [
+   81250.0,
+   6456000.0,
+   106850.0,
+   6481600.0
+  ],
+  "geoidM": 40.7
+ },
+ "response": {
+  "data": {
+   "vehicles": [
+    {
+     "vehicleId": "3390123084",
+     "mode": "BUS",
+     "codespace": {
+      "codespaceId": "AKT"
+     },
+     "line": {
+      "publicCode": "40"
+     },
+     "lastUpdated": "2026-11-22T12:48:56Z",
+     "location": {
+      "latitude": 58.1378966197371,
+      "longitude": 7.94934717938304
+     },
+     "bearing": 93.30000305175781
+    },
+    {
+     "vehicleId": "3390123104",
+     "mode": "BUS",
+     "codespace": {
+      "codespaceId": "AKT"
+     },
+     "line": {
+      "publicCode": "40"
+     },
+     "lastUpdated": "2026-11-22T12:48:57Z",
+     "location": {
+      "latitude": 58.1450089998543,
+      "longitude": 7.86872073076665
+     },
+     "bearing": 261.79998779296875
+    },
+    {
+     "vehicleId": "3390123021",
+     "mode": "BUS",
+     "codespace": {
+      "codespaceId": "AKT"
+     },
+     "line": {
+      "publicCode": "M4"
+     },
+     "lastUpdated": "2026-11-22T12:48:56Z",
+     "location": {
+      "latitude": 58.1360512599349,
+      "longitude": 7.9626342561096
+     },
+     "bearing": 284.70001220703125
+    },
+    {
+     "vehicleId": "3390123161",
+     "mode": "BUS",
+     "codespace": {
+      "codespaceId": "AKT"
+     },
+     "line": {
+      "publicCode": "51"
+     },
+     "lastUpdated": "2026-11-22T12:49:00Z",
+     "location": {
+      "latitude": 58.1358972005546,
+      "longitude": 7.94836079701781
+     },
+     "bearing": 184.60000610351562
+    },
+    {
+     "vehicleId": "3390123157",
+     "mode": "BUS",
+     "codespace": {
+      "codespaceId": "AKT"
+     },
+     "line": {
+      "publicCode": "15"
+     },
+     "lastUpdated": "2026-11-22T12:48:58Z",
+     "location": {
+      "latitude": 58.1604414246976,
+      "longitude": 8.01646166481078
+     },
+     "bearing": 338.3999938964844
+    },
+    {
+     "vehicleId": "3390123046",
+     "mode": "BUS",
+     "codespace": {
+      "codespaceId": "AKT"
+     },
+     "line": {
+      "publicCode": "M3"
+     },
+     "lastUpdated": "2026-11-22T11:56:35Z",
+     "location": {
+      "latitude": 58.1372176017612,
+      "longitude": 7.93565961532295
+     },
+     "bearing": 108.4814974788535
+    },
+    {
+     "vehicleId": "3360150857",
+     "mode": "FERRY",
+     "codespace": {
+      "codespaceId": "AKT"
+     },
+     "line": {
+      "publicCode": "92"
+     },
+     "lastUpdated": "2026-11-22T12:49:50Z",
+     "location": {
+      "latitude": 58.0771337728947,
+      "longitude": 7.80890763737261
+     },
+     "bearing": null
+    },
+    {
+     "vehicleId": "18-2259",
+     "mode": "RAIL",
+     "codespace": {
+      "codespaceId": "GOA"
+     },
+     "line": {
+      "publicCode": "F5"
+     },
+     "lastUpdated": "2026-11-22T12:49:50Z",
+     "location": {
+      "latitude": 58.145713,
+      "longitude": 7.986312
+     },
+     "bearing": 89.99916971865372
+    },
+    {
+     "vehicleId": "utenfor",
+     "mode": "BUS",
+     "codespace": {
+      "codespaceId": "AKT"
+     },
+     "line": {
+      "publicCode": "100"
+     },
+     "lastUpdated": "2026-11-22T12:49:55Z",
+     "location": {
+      "latitude": 58.461,
+      "longitude": 8.772
+     },
+     "bearing": 10.0
+    },
+    {
+     "vehicleId": "uten",
+     "mode": "BUS",
+     "codespace": {
+      "codespaceId": "AKT"
+     },
+     "line": {
+      "publicCode": "1"
+     },
+     "lastUpdated": "2026-11-22T12:49:55Z",
+     "location": null,
+     "bearing": null
+    }
+   ]
+  }
+ }
+}

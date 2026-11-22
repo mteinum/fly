@@ -1,0 +1,50 @@
+{
+ "about": "Fasit for entur_sample.json: koordinatene er regnet med pyproj (flypipe.crs), uavhengig av PHP-formelen.",
+ "vehicles": [
+  {
+   "id": "AKT:3390123021",
+   "mode": "bus",
+   "line": "M4",
+   "e": 86068.6,
+   "n": 6465489.6,
+   "bearing": 284.7,
+   "age": 64
+  },
+  {
+   "id": "AKT:3390123084",
+   "mode": "bus",
+   "line": "40",
+   "e": 85310.3,
+   "n": 6465776.2,
+   "bearing": 93.3,
+   "age": 64
+  },
+  {
+   "id": "AKT:3390123157",
+   "mode": "bus",
+   "line": "15",
+   "e": 89509.3,
+   "n": 6467866.2,
+   "bearing": 338.4,
+   "age": 62
+  },
+  {
+   "id": "AKT:3390123161",
+   "mode": "bus",
+   "line": "51",
+   "e": 85229.1,
+   "n": 6465560.4,
+   "bearing": 184.6,
+   "age": 60
+  },
+  {
+   "id": "GOA:18-2259",
+   "mode": "rail",
+   "line": "F5",
+   "e": 87570.2,
+   "n": 6466416.3,
+   "bearing": 90.0,
+   "age": 10
+  }
+ ]
+}
