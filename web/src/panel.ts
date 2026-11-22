@@ -131,6 +131,8 @@ interface Data {
   eng: number;
   /** Høyeste tillatte fart i neste klaffstilling (kt), eller null med full klaff. */
   nextFlapKt: number | null;
+  /** Stillingen flight director ber om (rad), eller null når den er av eller ikke har noe å vise. */
+  fd: Game["fd"];
   /** Terrengvarselet som gjelder nå (se gpws.ts). */
   gpws: TerrainAlert | null;
 }
@@ -195,17 +197,24 @@ function pfd(g: G2D, x: number, y: number, d: Data, body: number): void {
   beginDisplay(g, x, y, DU, body);
   const CY = 52, TOP = 26, BOT = 78;
 
-  // FMA: fem kolonner. Tomme når det flys for hånd; med autopiloten (A) står det den gjør, som i flyet.
-  const land = d.ap !== null && d.raFt < 400;
+  // FMA: fem kolonner, som i flyet. Med flight director (D) står modiene den veileder etter, med autopiloten (A)
+  // også SPEED, AP1 og A/THR. Uten noen av dem er feltet tomt.
+  const guided = d.ap !== null || d.fd !== null, land = guided && d.raFt < 400;
   for (const fx of [20, 40, 60, 80]) if (!(land && fx === 40)) line(g, fx, 2, fx, 16, 0.4, WHITE);
-  if (d.ap) {
-    text(g, "SPEED", 10, 5.2, 4, GREEN);
+  if (guided) {
     if (land) text(g, d.raFt < 40 ? "FLARE" : "LAND", 40, 5.2, 4, GREEN);
     else { text(g, "G/S", 30, 5.2, 4, GREEN); text(g, "LOC", 50, 5.2, 4, GREEN); }
-    text(g, "AP1", 90, 5.2, 4, WHITE); text(g, "A/THR", 90, 13.2, 3.8, WHITE);
   }
+  if (d.ap) { text(g, "SPEED", 10, 5.2, 4, GREEN); text(g, "AP1", 90, 4.6, 3.8, WHITE); text(g, "A/THR", 90, 13.6, 3.6, WHITE); }
+  if (d.fd) text(g, "1FD2", 90, 9.1, 3.6, WHITE);
 
   attitudeBall(g, 46, CY, 21, 25, d, 1.9);
+  // Flight director: to grønne streker som viser stillingen autopiloten ville holdt. Fly så de krysser midt i flysymbolet.
+  // Den vannrette går opp når nesa skal opp, den loddrette til høyre når flyet skal krenge mer mot høyre.
+  if (d.fd) {
+    const fy = CY - clamp((d.fd.pitch - d.pitch) * DEG * 1.9, -15, 15), fx = 46 + clamp((d.fd.bank - d.roll) * DEG * 0.55, -15, 15);
+    line(g, 33, fy, 59, fy, 0.9, GREEN); line(g, fx, CY - 13, fx, CY + 13, 0.9, GREEN);
+  }
   if (d.raFt < 2500) text(g, String(Math.round(d.raFt / (d.raFt < 50 ? 1 : 10)) * (d.raFt < 50 ? 1 : 10)), 46, 74.6, 5.6, d.raFt < 400 ? AMBER : GREEN, "center", SANS, 600);
 
   // Kurs- og glidebaneviser (magenta rombe) mot faste merker: fly MOT romben.
@@ -635,15 +644,16 @@ function fcu(g: G2D, body: number, game: Game): void {
 }
 
 /** EFIS-kontrollpanel ved siden av FCU: trykkinnstilling, FD og LS, og velgere for ND (modus og rekkevidde).
- *  `dir` = 1 for venstre sete, -1 for høyre (speilvendt). SYNTETISK: QNH står alltid på 1013. */
-function efis(g: G2D, x0: number, dir: number, body: number): void {
+ *  `dir` = 1 for venstre sete, -1 for høyre (speilvendt). FD-knappen lyser når flight director er på (D).
+ *  SYNTETISK: QNH står alltid på 1013. */
+function efis(g: G2D, x0: number, dir: number, body: number, fd: boolean): void {
   const y = 108.4, w = 33, at = (o: number, ww = 0): number => (dir > 0 ? x0 + o : x0 + w - o - ww);
   g.fillStyle = shade(52, 60, 70, body); g.beginPath(); g.roundRect(x0, y, w, 13.2, 1.2); g.fill();
   g.strokeStyle = shade(20, 23, 28, body); g.lineWidth = 0.4; g.stroke();
   g.fillStyle = "#06080a"; g.fillRect(at(1.2, 11), y + 1, 11, 5);
   text(g, "QNH", at(1.2, 11) + 0.6, y + 2, 1.4, "#ffb347", "left"); text(g, "1013", at(1.2, 11) + 10.4, y + 4.1, 3.2, "#ffb347", "right", MONO, 600);
   knob(g, at(4), y + 9.7, 2, body, 0, true);
-  key(g, at(7.6, 4.4), y + 7, 4.4, 2.6, "FD", body, false, 1.4, glareInk(body)); key(g, at(7.6, 4.4), y + 10, 4.4, 2.6, "LS", body, true, 1.4, glareInk(body));
+  key(g, at(7.6, 4.4), y + 7, 4.4, 2.6, "FD", body, fd, 1.4, glareInk(body)); key(g, at(7.6, 4.4), y + 10, 4.4, 2.6, "LS", body, true, 1.4, glareInk(body));
   ["CSTR", "WPT", "VOR.D", "NDB", "ARPT"].forEach((s, i) => key(g, at(13.4 + i * 3.9, 3.6), y + 0.9, 3.6, 2.7, s, body, false, 1.05, glareInk(body)));
   // ND-velgerne står på ARC og 10 NM, som er det skjermen viser
   knob(g, at(18.6), y + 8.9, 2.3, body, 0.6 * dir, true); knob(g, at(27.6), y + 8.9, 2.3, body, -1.2 * dir, true);
@@ -806,6 +816,7 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
     trendKt: anim.trend,
     eng: anim.eng,
     // klaffgrensen alene: som speedLimit for neste stilling, med understellet oppe
+    fd: game.fd,
     gpws: terrainAlert(P, t, game.airport),
     nextFlapKt: P.flapCfg < 4 ? speedLimit({ ...P, flapCfg: P.flapCfg + 1, flaps: P.flapCfg + 1, gear: 0, gearDown: false }) * KT : null,
   };
@@ -857,7 +868,7 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
   }
 
   fcu(g, body, game);
-  efis(g, 70, 1, body); efis(g, 217, -1, body);
+  efis(g, 70, 1, body, game.flightDirector); efis(g, 217, -1, body, game.flightDirector);
   glareLights(g, 37, 1, d); glareLights(g, 253, -1, d);
 
   pfd(g, 10, ROW, d, body);

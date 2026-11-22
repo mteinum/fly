@@ -43,6 +43,9 @@ export interface AutopilotCommand {
   flapCfg: number;
   /** Farten den holder nå (kt). Vises i FCU-vinduet. */
   speedKt: number;
+  /** Stillingen den vil ha flyet i nå (rad): nese opp og krenging mot høyre. Vises av flight director på PFD. */
+  pitch: number;
+  bank: number;
 }
 
 /** Autopiloten kan ikke lande herfra. `unable` er grunnen, slik den vises for piloten. */
@@ -92,5 +95,5 @@ export function autopilot(P: Plane, t: Terrain, rw: Runway, end: RunwayEnd): Aut
   push("ArrowRight", "ArrowLeft", bank / 0.75); // rorutslaget er krengingen flyet går mot
   push("ArrowDown", "ArrowUp", ((pitch - P.pitch) * 4) / PITCH_RATE); // pil ned = nese opp
   push("KeyW", "KeyS", ((thr - P.thr) * 2) / 0.4);
-  return { keys, gearDown: step.gear, flapCfg: step.flaps, speedKt: speed * KT };
+  return { keys, gearDown: step.gear, flapCfg: step.flaps, speedKt: speed * KT, pitch, bank };
 }

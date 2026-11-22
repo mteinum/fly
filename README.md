@@ -38,7 +38,7 @@ for fullskjerm.
 
 Taster: piltaster styrer, `W`/`S` gass, `G` understell, `F`/`V` klaff ut/inn,
 `C` bytter mellom utvendig kamera, cockpit og tårn, `R` ny innflyging, `T` bytt bane (03/21), `Q`/`E` stiller klokka en
-halvtime bakover/framover, `M` slår lyden av og på, `N` stedsnavnene. Lyden starter ved første tastetrykk.
+halvtime bakover/framover, `M` slår lyden av og på, `N` stedsnavnene, `D` flight director. Lyden starter ved første tastetrykk.
 
 Flyplass velges under «Hjelp» eller med `?apt=ENZV` (ICAO-kode). `T` blar gjennom alle
 baneender på flyplassen.
@@ -60,6 +60,11 @@ mil. Veiledningen er regnet fra banegeometrien, ikke fra flyplassens faktiske an
 I cockpit varsler flyet når det er på vei i terrenget: «terrain ahead» og gul tekst på ND når det er under
 45 sekunder til, «pull up» og rødt når det haster. Terrenget det gjelder er helfarget på ND. Varselet regnes fra
 høydekartet og flyets bane akkurat nå (`web/src/gpws.ts`); reglene er forenklet og gjelder ikke bygninger og bruer.
+
+## Flight director
+
+De to grønne strekene på PFD viser stillingen autopiloten ville holdt akkurat nå. Fly så de krysser midt i
+flysymbolet, og du følger senterlinja og glidebanen ned. `D` slår dem av og på. De styrer ingenting selv.
 
 ## Autopilot
 

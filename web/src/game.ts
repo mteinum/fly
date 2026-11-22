@@ -45,6 +45,10 @@ export interface Game {
   approach: { count: number; ident: string; autopilot: boolean; platformFt: number };
   /** Det autopiloten flyr etter nå (fart i kt, sann kurs i grader), eller null når den er av. Vises på FCU. */
   apTarget: { speedKt: number; courseTrueDeg: number } | null;
+  /** Flight director (D slår den av og på): stillingen autopiloten ville holdt nå, vist som to grønne streker på PFD
+   *  som piloten kan fly etter. `fd` er null når den er av, eller når autopiloten ikke kunne landet herfra. */
+  flightDirector: boolean;
+  fd: { pitch: number; bank: number } | null;
   /** Autopiloten flyr (A slår den av og på). `approach.autopilot` husker om den har vært brukt på denne innflygingen. */
   autopilot: boolean;
   /** Ett steg: klokke, fysikk, meldinger og ny innflyging når det trengs. */
@@ -88,6 +92,11 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   const controls = (dt: number): Keys => {
     const manual = softStick(held, K, dt);
     game.apTarget = null;
+    game.fd = null;
+    if (game.flightDirector && P.state === "fly") {
+      const want = autopilot(P, terrain, runwayOf(ends[endIdx]), ends[endIdx]);
+      if (!("unable" in want)) game.fd = { pitch: want.pitch, bank: want.bank };
+    }
     if (!game.autopilot || P.state !== "fly") return manual;
     if (MANUAL.some((k) => K[k])) { setAutopilot(false); return manual; }
     const cmd = autopilot(P, terrain, runwayOf(ends[endIdx]), ends[endIdx]);
@@ -127,6 +136,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   const game: Game = {
     P, airport, msg, time, approach,
     autopilot: false,
+    flightDirector: true,
+    fd: null,
     apTarget: null,
     ships: [],
     traffic: [],
@@ -171,6 +182,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     if (e.code === "KeyR") reset();
     if (e.code === "KeyT") { endIdx = (endIdx + 1) % ends.length; reset(); }
     if (e.code === "KeyA") setAutopilot(!game.autopilot);
+    if (e.code === "KeyD") { game.flightDirector = !game.flightDirector; say(`Flight director ${game.flightDirector ? "on" : "off"}`, 2); }
     if (e.code === "KeyG") toggleGear(P, say);
     if (e.code === "KeyB") toggleSpeedBrake(P, say);
     if (e.code === "KeyF") moveFlaps(P, 1, say);
