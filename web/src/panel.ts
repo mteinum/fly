@@ -133,6 +133,8 @@ interface Data {
   trendKt: number;
   /** Motorenes turtall som andel 0-1. SYNTETISK: følger gasshåndtaket med etterslep. */
   eng: number;
+  /** Drivstoff brukt per motor siden innflygingen startet (kg). SYNTETISK: summen av motorens forbruk på E/WD. */
+  fuelUsedKg: number;
   /** Høyeste tillatte fart i neste klaffstilling (kt), eller null med full klaff. */
   nextFlapKt: number | null;
   /** Stillingen flight director ber om (rad), eller null når den er av eller ikke har noe å vise. */
@@ -471,11 +473,13 @@ function arcGauge(g: G2D, cx: number, cy: number, r: number, frac: number, redFr
 
 /** N1 (%) for en gasstilling 0-1. SYNTETISK. */
 const n1At = (f: number): number => 19.5 + f * 80.5;
+/** Drivstofforbruk per motor (kg/t) for et turtall 0-1. SYNTETISK. */
+const fuelFlow = (e: number): number => 320 + e * 2700;
 
 function ewd(g: G2D, x: number, y: number, size: number, d: Data, body: number): void {
   beginDisplay(g, x, y, size, body);
   // Syntetisk: alle motorverdier er regnet fra gasshåndtaket (med etterslep), like for begge motorer
-  const e = d.eng, n1 = n1At(e), egt = 390 + e * 520, n2 = 59 + e * 41, ff = 320 + e * 2700;
+  const e = d.eng, n1 = n1At(e), egt = 390 + e * 520, n2 = 59 + e * 41, ff = fuelFlow(e);
   for (const cx of [22, 54]) {
     arcGauge(g, cx, 17, 11, n1 / 110, 0.92, [[50 / 110, "5"], [100 / 110, "10"]], n1At(d.thr) / 110);
     g.fillStyle = "#020304"; g.fillRect(cx + 0.5, 17.5, 15, 7);
@@ -533,14 +537,11 @@ function ewd(g: G2D, x: number, y: number, size: number, d: Data, body: number):
   g.restore();
 }
 
-/* ---------- SD: systemdisplay (nedre ECAM), WHEEL-siden ---------- */
+/* ---------- SD: systemdisplay (nedre ECAM) ---------- */
 
-/** WHEEL-siden, som flyet viser under innflyging: luftbremsene, understellet og bremsene, og faste data nederst.
- *  Ekte: luftbremser (spoiler 2-4 på hver vinge, som på flyet), understellets stilling, klokke.
- *  SYNTETISK: bremsetemperaturene, vekten, og lufttemperaturene (standardatmosfære fra høyden; TAT fra farten). */
-function sd(g: G2D, x: number, y: number, size: number, d: Data, game: Game, body: number): void {
-  beginDisplay(g, x, y, size, body);
-  const P = d.plane;
+/** WHEEL-siden: luftbremsene, understellet og bremsene.
+ *  Ekte: luftbremser (spoiler 2-4 på hver vinge, som på flyet) og understellets stilling. SYNTETISK: bremsetemperaturene. */
+function sdWheel(g: G2D, P: Plane): void {
   text(g, "WHEEL", 4, 6, 5, WHITE, "left"); line(g, 4, 9.6, 21.5, 9.6, 0.4, WHITE);
   // luftbremser: grønn strek når de ligger inne, pil opp når de er ute
   for (const s of [-1, 1]) for (let i = 1; i <= 5; i++) {
@@ -570,6 +571,39 @@ function sd(g: G2D, x: number, y: number, size: number, d: Data, game: Game, bod
     text(g, String(i + 1), wx, 67.6, 3.8, WHITE);
   });
   text(g, "°C", 50, 56, 3.6, CYAN); text(g, "REL", 22, 73.6, 3.2, WHITE); text(g, "REL", 78, 73.6, 3.2, WHITE);
+}
+
+/** CRUISE-siden: motorene øverst, kabinen nederst.
+ *  Ekte: landingshøyden (flyplassens høyde over havet). SYNTETISK: alt annet. Brukt drivstoff er motorenes
+ *  (syntetiske) forbruk summert siden innflygingen startet; olje, vibrasjon og temperaturer er faste tall;
+ *  kabinhøyde og kabintrykk er regnet fra flyets høyde med et fast forhold. */
+function sdCruise(g: G2D, d: Data, game: Game): void {
+  text(g, "CRUISE", 50, 6, 5, WHITE); line(g, 39, 9.6, 61, 9.6, 0.4, WHITE);
+  text(g, "ENG", 4, 15, 4.4, WHITE, "left"); line(g, 4, 18, 13.6, 18, 0.4, WHITE);
+  const used = String(Math.round(d.fuelUsedKg / 10) * 10);
+  const rows: [number, string, string, string, string][] = [[25, "F.USED", "KG", used, used], [36, "OIL", "QT", "11.5", "11.5"], [45, "VIB N1", "", "0.8", "0.9"], [51.6, "VIB N2", "", "1.2", "1.1"]];
+  for (const [y, label, unit, left, right] of rows) {
+    text(g, label, 50, unit ? y - 2 : y, 3.6, WHITE); if (unit) text(g, unit, 50, y + 2.2, 3, CYAN);
+    text(g, left, 30, y, 4.6, GREEN, "right"); text(g, right, 80, y, 4.6, GREEN, "right");
+    line(g, 32, y, 39, y, 0.4, "#8a8f96"); line(g, 61, y, 68, y, 0.4, "#8a8f96");
+  }
+  text(g, "AIR", 4, 59, 4.4, WHITE, "left"); line(g, 4, 62, 12.6, 62, 0.4, WHITE);
+  const elevFt = Math.round((game.airport.elevationM * FT) / 10) * 10, cabinFt = elevFt + Math.max(0, d.altFt - elevFt) * 0.08;
+  text(g, "LDG ELEV", 36, 59, 3.6, WHITE, "left"); text(g, "AUTO", 60, 59, 3.6, GREEN, "left"); text(g, String(elevFt), 90, 59, 4.4, GREEN, "right"); text(g, "FT", 98, 59.2, 3, CYAN, "right");
+  for (const [x, name, v] of [[10, "CKPT", "22"], [24, "FWD", "23"], [36, "AFT", "23"]] as const) { text(g, name, x, 67, 3, WHITE); text(g, v, x, 72, 4.2, GREEN); }
+  text(g, "°C", 44, 72.2, 3, CYAN);
+  text(g, "ΔP", 56, 66.6, 3.4, WHITE, "left"); text(g, ((d.altFt - cabinFt) * 0.0005).toFixed(1), 74, 66.6, 4.2, GREEN, "right"); text(g, "PSI", 75, 66.8, 2.8, CYAN, "left");
+  text(g, "CAB V/S", 56, 72, 3, WHITE, "left"); text(g, String(Math.round((d.vsFpm * 0.08) / 50) * 50), 89, 72, 4, GREEN, "right"); text(g, "FT/MIN", 99.4, 72.2, 2.2, CYAN, "right");
+  text(g, "CAB ALT", 56, 77, 3, WHITE, "left"); text(g, String(Math.round(cabinFt / 50) * 50), 89, 77, 4, GREEN, "right"); text(g, "FT", 99.4, 77.2, 2.6, CYAN, "right");
+}
+
+/** Nedre ECAM-skjerm. Bytter side selv, som i flyet: CRUISE med understellet oppe, WHEEL når spaken settes ned.
+ *  De faste dataene nederst står på alle sider. Ekte: klokka. SYNTETISK: vekten, og lufttemperaturene
+ *  (standardatmosfære fra høyden; TAT fra farten). */
+function sd(g: G2D, x: number, y: number, size: number, d: Data, game: Game, body: number): void {
+  beginDisplay(g, x, y, size, body);
+  const P = d.plane;
+  if (P.gearDown || P.gear > 0) sdWheel(g, P); else sdCruise(g, d, game);
   // faste data nederst
   line(g, 2, 81, 98, 81, 0.4, WHITE); line(g, 35, 82, 35, 99, 0.4, WHITE); line(g, 63, 82, 63, 99, 0.4, WHITE);
   const satK = 288.15 - 0.0019812 * d.altFt, mach = d.kt / KT / (20.05 * Math.sqrt(satK)), tatK = satK * (1 + 0.2 * mach * mach);
@@ -809,7 +843,7 @@ export function panelHit(lx: number, ly: number): PanelControl | null {
 }
 
 /** Minne mellom to bilder: fartstrend og motorenes etterslep. Tegningen er ellers uten tilstand. */
-const anim = { at: 0, kt: 0, trend: 0, eng: -1 };
+const anim = { at: 0, kt: 0, trend: 0, eng: -1, approach: -1, fuelKg: 0 };
 const SPOOL_S = 1.6; // SYNTETISK: tidskonstant for motorenes turtall etter gasshåndtaket
 
 export function drawPanel(g: G2D, t: Terrain, game: Game): void {
@@ -824,6 +858,8 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
     anim.trend += (clamp((kt - anim.kt) / dt, -5, 5) * 10 - anim.trend) * Math.min(1, dt * 2);
     anim.eng += (P.thr - anim.eng) * Math.min(1, dt / SPOOL_S);
   }
+  if (game.approach.count !== anim.approach) { anim.approach = game.approach.count; anim.fuelKg = 0; }
+  if (P.state === "fly") anim.fuelKg += (fuelFlow(anim.eng) * dt) / 3600;
   anim.at = now; anim.kt = kt;
   const d: Data = {
     kt,
@@ -846,6 +882,7 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
     selAltFt: game.approach.platformFt,
     trendKt: anim.trend,
     eng: anim.eng,
+    fuelUsedKg: anim.fuelKg,
     // klaffgrensen alene: som speedLimit for neste stilling, med understellet oppe
     fd: game.fd,
     gpws: terrainAlert(P, t, game.airport),
