@@ -175,6 +175,90 @@
       "voice": "Eric",
       "text": "Teinum three two zero, check gear down."
     },
+    "atc_wind": {
+      "file": "atc_wind.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Wind"
+    },
+    "atc_degrees": {
+      "file": "atc_degrees.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "degrees,"
+    },
+    "atc_knots": {
+      "file": "atc_knots.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "knots."
+    },
+    "atc_gusting": {
+      "file": "atc_gusting.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "gusting"
+    },
+    "atc_0": {
+      "file": "atc_0.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "zero"
+    },
+    "atc_1": {
+      "file": "atc_1.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "one"
+    },
+    "atc_2": {
+      "file": "atc_2.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "two"
+    },
+    "atc_3": {
+      "file": "atc_3.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "three"
+    },
+    "atc_4": {
+      "file": "atc_4.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "four"
+    },
+    "atc_5": {
+      "file": "atc_5.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "five"
+    },
+    "atc_6": {
+      "file": "atc_6.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "six"
+    },
+    "atc_7": {
+      "file": "atc_7.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "seven"
+    },
+    "atc_8": {
+      "file": "atc_8.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "eight"
+    },
+    "atc_9": {
+      "file": "atc_9.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "niner"
+    },
     "cleared_ENCN_03": {
       "file": "cleared_ENCN_03.mp3",
       "kind": "speech",
@@ -186,6 +270,24 @@
       "kind": "speech",
       "voice": "Eric",
       "text": "Teinum three two zero, Kjevik tower. Runway two one, cleared to land. Wind calm."
+    },
+    "tower_ENCN": {
+      "file": "tower_ENCN.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Kjevik tower."
+    },
+    "cleared_rwy_03": {
+      "file": "cleared_rwy_03.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway zero three, cleared to land."
+    },
+    "cleared_rwy_21": {
+      "file": "cleared_rwy_21.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway two one, cleared to land."
     },
     "welcome_ENCN": {
       "file": "welcome_ENCN.mp3",
@@ -217,6 +319,36 @@
       "voice": "Eric",
       "text": "Teinum three two zero, Sola tower. Runway three six, cleared to land. Wind calm."
     },
+    "tower_ENZV": {
+      "file": "tower_ENZV.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Sola tower."
+    },
+    "cleared_rwy_10": {
+      "file": "cleared_rwy_10.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway one zero, cleared to land."
+    },
+    "cleared_rwy_28": {
+      "file": "cleared_rwy_28.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway two eight, cleared to land."
+    },
+    "cleared_rwy_18": {
+      "file": "cleared_rwy_18.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway one eight, cleared to land."
+    },
+    "cleared_rwy_36": {
+      "file": "cleared_rwy_36.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway three six, cleared to land."
+    },
     "welcome_ENZV": {
       "file": "welcome_ENZV.mp3",
       "kind": "speech",
@@ -234,6 +366,24 @@
       "kind": "speech",
       "voice": "Eric",
       "text": "Teinum three two zero, Flesland tower. Runway three five, cleared to land. Wind calm."
+    },
+    "tower_ENBR": {
+      "file": "tower_ENBR.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Flesland tower."
+    },
+    "cleared_rwy_17": {
+      "file": "cleared_rwy_17.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway one seven, cleared to land."
+    },
+    "cleared_rwy_35": {
+      "file": "cleared_rwy_35.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway three five, cleared to land."
     },
     "welcome_ENBR": {
       "file": "welcome_ENBR.mp3",
@@ -265,6 +415,36 @@
       "voice": "Eric",
       "text": "Teinum three two zero, Gardermoen tower. Runway one nine left, cleared to land. Wind calm."
     },
+    "tower_ENGM": {
+      "file": "tower_ENGM.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Gardermoen tower."
+    },
+    "cleared_rwy_01L": {
+      "file": "cleared_rwy_01L.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway zero one left, cleared to land."
+    },
+    "cleared_rwy_19R": {
+      "file": "cleared_rwy_19R.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway one nine right, cleared to land."
+    },
+    "cleared_rwy_01R": {
+      "file": "cleared_rwy_01R.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway zero one right, cleared to land."
+    },
+    "cleared_rwy_19L": {
+      "file": "cleared_rwy_19L.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway one nine left, cleared to land."
+    },
     "welcome_ENGM": {
       "file": "welcome_ENGM.mp3",
       "kind": "speech",
@@ -282,6 +462,12 @@
       "kind": "speech",
       "voice": "Eric",
       "text": "Teinum three two zero, Mehamn tower. Runway three five, cleared to land. Wind calm."
+    },
+    "tower_ENMH": {
+      "file": "tower_ENMH.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Mehamn tower."
     },
     "welcome_ENMH": {
       "file": "welcome_ENMH.mp3",
@@ -301,6 +487,12 @@
       "voice": "Eric",
       "text": "Teinum three two zero, Tromsø tower. Runway three six, cleared to land. Wind calm."
     },
+    "tower_ENTC": {
+      "file": "tower_ENTC.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Tromsø tower."
+    },
     "welcome_ENTC": {
       "file": "welcome_ENTC.mp3",
       "kind": "speech",
@@ -319,6 +511,24 @@
       "voice": "Eric",
       "text": "Teinum three two zero, Vigra tower. Runway two four, cleared to land. Wind calm."
     },
+    "tower_ENAL": {
+      "file": "tower_ENAL.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Vigra tower."
+    },
+    "cleared_rwy_06": {
+      "file": "cleared_rwy_06.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway zero six, cleared to land."
+    },
+    "cleared_rwy_24": {
+      "file": "cleared_rwy_24.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway two four, cleared to land."
+    },
     "welcome_ENAL": {
       "file": "welcome_ENAL.mp3",
       "kind": "speech",
@@ -336,6 +546,24 @@
       "kind": "speech",
       "voice": "Eric",
       "text": "Teinum three two zero, Bodø tower. Runway two five, cleared to land. Wind calm."
+    },
+    "tower_ENBO": {
+      "file": "tower_ENBO.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero, Bodø tower."
+    },
+    "cleared_rwy_07": {
+      "file": "cleared_rwy_07.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway zero seven, cleared to land."
+    },
+    "cleared_rwy_25": {
+      "file": "cleared_rwy_25.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Runway two five, cleared to land."
     },
     "welcome_ENBO": {
       "file": "welcome_ENBO.mp3",

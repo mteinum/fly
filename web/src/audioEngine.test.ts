@@ -28,7 +28,7 @@ async function setup(cam: Game["cam"] = "cockpit") {
   const audio = new GameAudio("/audio", airport);
   await audio.startNow();
   const P = Object.assign(newPlane(), rwy, { spd: 70, thr: 0.3 });
-  const game = { P, cam, airport, approach: { count: 1, ident: "03", autopilot: false, platformFt: 1500, elapsedS: 0 }, autopilot: false, flightDirector: true, fd: null, nd: { rangeNm: 10, terrain: true }, flightPathVector: false, look: "forward", sys: { seatBelts: true, gpwsTerr: true, tcasStandby: false, sdPage: "auto" }, wind: { fromTrueDeg: 0, kt: 0, vector: { east: 0, north: 0 } }, apTarget: null, msg: { text: "", t: 0 }, time: 0, env: { sunAzimuth: 0, sunElevation: 0, sky: skyState(30) }, step() {}, restart() {}, control() {}, replay: null, flightLog: null, ships: [], traffic: [] } as Game;
+  const game = { P, cam, airport, approach: { count: 1, ident: "03", autopilot: false, platformFt: 1500, elapsedS: 0 }, autopilot: false, flightDirector: true, fd: null, nd: { rangeNm: 10, terrain: true }, flightPathVector: false, look: "forward", sys: { seatBelts: true, gpwsTerr: true, tcasStandby: false, sdPage: "auto" }, wind: { fromTrueDeg: 0, kt: 0, gustKt: null, vector: { east: 0, north: 0 }, source: "none", metar: null }, apTarget: null, msg: { text: "", t: 0 }, time: 0, env: { sunAzimuth: 0, sunElevation: 0, sky: skyState(30) }, step() {}, restart() {}, control() {}, replay: null, flightLog: null, ships: [], traffic: [] } as Game;
   const ground = Math.max(0, t.heightAt(P.x, P.y));
   /** Sett radiohøyden (fot) og kjør én ramme. */
   const frame = (raFt: number, dt = 0.05) => { P.alt = ground + raFt / FT; clock += dt; audio.update(game, t); };
@@ -46,7 +46,7 @@ beforeAll(() => {
 describe("lydmotoren", () => {
   it("leser alle lydene og starter de tre sløyfene", async () => {
     const { audio } = await setup();
-    expect(audio.status).toMatchObject({ state: "running", loaded: 32, loops: 3 });
+    expect(audio.status).toMatchObject({ state: "running", loaded: 49, loops: 3 });
   });
 
   it("gir landingsklarering 2,5 s etter at innflygingen starter, over radio i cockpit", async () => {
@@ -55,6 +55,13 @@ describe("lydmotoren", () => {
     expect(played()).toEqual([]);
     for (let i = 0; i < 20; i++) frame(1500);
     expect(played()).toEqual(["radio", "cleared_ENCN_03"]);
+  });
+
+  it("leser opp vinden i klareringen når det blåser, med kast", async () => {
+    const { frame, played, game } = await setup();
+    Object.assign(game.wind, { fromTrueDeg: 243, kt: 15, gustKt: 27 });
+    for (let i = 0; i < 60; i++) frame(1500);
+    expect(played()).toEqual(["radio", "tower_ENCN", "atc_wind", "atc_2", "atc_4", "atc_0", "atc_degrees", "atc_1", "atc_5", "atc_knots", "atc_gusting", "atc_2", "atc_7", "cleared_rwy_03"]);
   });
 
   it("roper ut høydene i rekkefølge på vei ned, og «retard» til slutt", async () => {

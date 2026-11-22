@@ -1,0 +1,8 @@
+{
+  "about": "Oppdiktet vær til å prøve vind i utviklingsmodus (publiseres ikke): /?apt=ENCN&cam=cockpit&weather=/dev/weather-test.json",
+  "t": 0,
+  "credit": "Weather: MET Norway (CC BY 4.0)",
+  "metar": "ENCN 221220Z 24015G27KT 9999 FEW030 05/01 Q1009",
+  "observed": 0,
+  "wind": { "dir": 240, "kt": 15, "gust": 27 }
+}

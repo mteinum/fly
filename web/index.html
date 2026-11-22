@@ -86,11 +86,13 @@
       <li>Ships at the coastal airports: where they are right now, their size, course and speed.</li>
       <li>Other aircraft: where they are right now, their altitude, course, speed, callsign and type.</li>
       <li>Runways, the position of the sun and the time of day.</li>
+      <li>The wind: direction and speed as the airport last reported them.</li>
     </ul>
 
     <h2>What is made up</h2>
     <ul>
       <li>The flight model. It is simple, with speeds in the range of an A320. The game lets you land it at Mehamn, whose 880 m runway no A320 could use.</li>
+      <li>The wind is the same everywhere on the map and at every height, without gusts or turbulence.</li>
       <li>The glide path and localiser. They are geometry from the runway ends, not the airport's ILS.</li>
       <li>Night lights, runway markings, ground detail, and the colours and flat roofs of buildings. Most building heights are estimates.</li>
       <li>The shape of the ships and of other aircraft, and how they move between position reports.</li>
@@ -106,6 +108,7 @@
       <li>Building outlines: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, available under the Open Database License. The building data in the game is shared under the same licence.</li>
       <li>Ship positions: Kystverket's open AIS data (NLOD), relayed by this site. Small fishing and leisure boats are not included.</li>
       <li>Aircraft positions: <a href="https://www.adsb.lol/" target="_blank" rel="noopener">adsb.lol</a>, a community network of ADS-B receivers, under the Open Database License. Coverage depends on where volunteers have receivers, so some aircraft are missing.</li>
+      <li>Wind: the airport's latest weather report (METAR) from <a href="https://api.met.no/" target="_blank" rel="noopener">MET Norway</a>, CC BY 4.0, relayed by this site.</li>
       <li>Airports and runways: OurAirports, public domain.</li>
       <li>Sound: generated with ElevenLabs.</li>
       <li>Drawn with three.js.</li>
@@ -114,7 +117,7 @@
     <p>Not affiliated with Airbus, Avinor or Kartverket.</p>
 
     <h2>Privacy</h2>
-    <p>The game has no accounts and stores nothing about you. The ship and aircraft services keep the latest positions, nothing about visitors. The site loads Google Tag Manager for visitor statistics. If you share a diploma, the name you typed is part of the link.</p>
+    <p>The game has no accounts and stores nothing about you. The ship, aircraft and weather services keep the latest positions and weather report, nothing about visitors. The site loads Google Tag Manager for visitor statistics. If you share a diploma, the name you typed is part of the link.</p>
 
     <h2>Source code</h2>
     <p><a href="https://github.com/mteinum/fly" target="_blank" rel="noopener">github.com/mteinum/fly</a>. The code is under the MIT licence; data, sound and fonts have their own terms.</p>

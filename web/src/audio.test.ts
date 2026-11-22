@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { altitudeCallout, CALLOUTS } from "./audio";
+import { altitudeCallout, CALLOUTS, windReadout } from "./audio";
 import { warnings } from "./physics";
 import { newPlane } from "./plane";
 
@@ -50,5 +50,19 @@ describe("varsler", () => {
 
   it("er stille når flyet ikke flyr", () => {
     expect(warnings(plane({ spd: 10, state: "landed" }), 0)).toEqual({ overspeed: false, stall: false, gearNotDown: false });
+  });
+});
+
+describe("tårnets vindmelding", () => {
+  it("leser retningen i hele ti grader med tre sifre, og farten uten ledende null", () => {
+    expect(windReadout(60, 7)).toEqual(["atc_wind", "atc_0", "atc_6", "atc_0", "atc_degrees", "atc_7", "atc_knots"]);
+    expect(windReadout(326, 21)).toEqual(["atc_wind", "atc_3", "atc_3", "atc_0", "atc_degrees", "atc_2", "atc_1", "atc_knots"]);
+  });
+
+  it("sier 360 for nord, og tar med kast bare når de er sterkere enn middelvinden", () => {
+    expect(windReadout(0, 10).slice(1, 4)).toEqual(["atc_3", "atc_6", "atc_0"]);
+    expect(windReadout(357, 10).slice(1, 4)).toEqual(["atc_3", "atc_6", "atc_0"]);
+    expect(windReadout(330, 21, 33).slice(-3)).toEqual(["atc_gusting", "atc_3", "atc_3"]);
+    expect(windReadout(330, 21, 21)).not.toContain("atc_gusting");
   });
 });

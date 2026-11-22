@@ -1,7 +1,7 @@
 import { GameAudio } from "./audio";
 import { createDiplomaUi, gradeLanding } from "./diploma";
 import { type FlightLog, flightLogName } from "./flightlog";
-import { createGame, isTyping, runLoop } from "./game";
+import { createGame, isTyping, runLoop, type Weather } from "./game";
 import { GlRenderer } from "./glRenderer";
 import { drawCornerMap, drawHud, drawMessage } from "./hud";
 import { candidates, declutter, inSight, labelStyle, type PlaceName } from "./labels";
@@ -69,7 +69,17 @@ async function main(): Promise<void> {
   map.getContext("2d")!.drawImage(assets.colormap, 0, 0, 512, 512);
 
   const renderer = new GlRenderer(document.getElementById("gl") as HTMLCanvasElement, terrain, assets);
-  const game = createGame(terrain, overlay);
+  // Vinden på flyplassen akkurat nå: siste METAR fra Meteorologisk institutt, hentet fra /weather/ på serveren.
+  // Spillet venter høyst to sekunder på svaret; uten svar er det vindstille. `?wind=` i adressen går foran.
+  const weatherUrl = import.meta.env.DEV ? (params.get("weather") ?? "https://fly.teinum.no/weather/") : `${import.meta.env.BASE_URL}weather/`;
+  let weather: Weather | null = null;
+  if (!params.has("wind")) {
+    try {
+      const r = await fetch(`${weatherUrl}?apt=${chosen.icao}`, { signal: AbortSignal.timeout(2000) });
+      if (r.ok) weather = await r.json();
+    } catch { /* ingen vind denne gangen */ }
+  }
+  const game = createGame(terrain, overlay, weather);
   // Mus og berøring på instrumentpanelet i cockpit: spakene og knappene som kan betjenes (se panelHit i panel.ts).
   // Gasshåndtakene kan dras; resten er ett trykk.
   const logicalY = (e: PointerEvent): number => { const r = overlay.getBoundingClientRect(); return TOP + ((e.clientY - r.top) / r.width) * W; };
@@ -144,6 +154,7 @@ async function main(): Promise<void> {
   let credits = [...terrain.meta.attribution];
   const showCredits = () => { document.getElementById("credits")!.textContent = [...credits, "Audio: generated with ElevenLabs"].join(" · "); };
   const credit = (text: string) => { if (!credits.includes(text)) { credits = [...credits, text]; showCredits(); } };
+  if (game.wind.source === "metar") credit("Weather: MET Norway (CC BY 4.0)");
   if (terrain.meta.traffic) {
     const poll = async () => {
       try {

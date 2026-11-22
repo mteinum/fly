@@ -63,6 +63,7 @@ data/flights/    flylogger fra spillet i utviklingsmodus (ikke i git)
 deploy/          publisering til fly.teinum.no (SSH + rsync), kjøres av .github/workflows/deploy.yml
 web/public/share/  delingssiden for diplomer (PHP på webhotellet): index.php, image.php, lib.php
 web/public/traffic/ flytjenesten (PHP på webhotellet): henter fly rundt en flyplass fra adsb.lol, med døgnbudsjett
+web/public/weather/ værtjenesten (PHP på webhotellet): henter flyplassens siste METAR fra api.met.no og gir spillet vinden
 web/public/ais/    skipstjenesten (PHP på webhotellet): leser Kystverkets åpne AIS-strøm og gir spillet skipene ved en flyplass
 tests/fixtures/  fasitpunkter fra Kartverkets API-er, og flylogger (flights/, lages av vitest), delt av pytest og vitest
 reference/       opprinnelig piksel-prototype (én HTML-fil), kun til oppslag
@@ -184,7 +185,8 @@ cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstje
 - Spillet fyller hele vinduet. Skjermtekst, panel og tårninteriør tegnes i logiske enheter
   (grunnflate 320 x 200, se web/src/screen.ts): bruk `W` og `TOP` for det som skal følge
   vinduskanten, og `OX` for å sentrere faste oppsett. Ikke anta 16:10.
-- Serverkode finnes tre steder, alle PHP på webhotellet. Flytjenesten (traffic/) er bygget som skipstjenesten, men
+- Serverkode finnes fire steder, alle PHP på webhotellet. Værtjenesten (weather/) henter flyplassens METAR fra
+  api.met.no høyst hvert tiende minutt per flyplass, før svaret sendes (ett lite kall), og lagrer bare meldingen. Flytjenesten (traffic/) er bygget som skipstjenesten, men
   henter fra adsb.lol, som tillater 500 forespørsler i døgnet uten nøkkel: den spør høyst hvert 45. sekund per
   flyplass, bare mens noen spiller, og stopper på 440 per døgn (regnskapet ligger i traffic/cache/lock). Delingssiden (share/) lagrer ingenting og tar ikke imot
   opplastinger: diplomet tegnes fra tallene i adressen, og alt derfra avgrenses i lib.php. Titlene der må holdes

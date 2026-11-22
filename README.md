@@ -51,7 +51,7 @@ betjenes med mus eller finger.
 Flyplass velges under «Hjelp» eller med `?apt=ENZV` (ICAO-kode). `T` blar gjennom alle
 baneender på flyplassen.
 
-URL-parametre: `?apt=ENGM`, `?wind=240/15` (vind fra 240° sann retning, 15 kt; uten den er det vindstille), `?cam=cockpit` eller `?cam=tower`, `?rwy=21`, `?cfg=full` (start med understell nede
+URL-parametre: `?apt=ENGM`, `?wind=240/15` (vind fra 240° sann retning, 15 kt; uten den brukes flyplassens vind akkurat nå), `?cam=cockpit` eller `?cam=tower`, `?rwy=21`, `?cfg=full` (start med understell nede
 og full klaff), `?time=22:00` og `?date=2026-06-21`
 (norsk tid; uten dem starter spillet kl. 13:00 i dag), og `?pos=øst,nord,høyde,kurs` (UTM 33,
 meter, sann kurs), f.eks. `?pos=91725,6468775,70,174` for Varoddbrua.
@@ -71,12 +71,17 @@ høydekartet og flyets bane akkurat nå (`web/src/gpws.ts`); reglene er forenkle
 
 ## Vind
 
-Med `?wind=240/15` blåser det jevnt fra 240° (sann retning) med 15 knop over hele kartet. Flyet flytter seg da
-med lufta: nesa må peke opp mot vinden for å holde senterlinja, motvind gir lavere fart over bakken og kortere
+Det blåser i spillet som på flyplassen akkurat nå: vinden er fra flyplassens siste METAR (Meteorologisk institutt),
+hentet via en liten tjeneste på samme nettsted (`web/public/weather/`). Den er jevn over hele kartet; kastene leses
+opp av tårnet, men flymodellen bruker bare middelvinden. Spillet velger banen med mest motvind, og tårnet leser opp
+vinden i klareringen. Svarer ikke tjenesten, er det vindstille. `?wind=240/15` setter vinden selv (fra 240° sann
+retning, 15 knop), og `?wind=0/0` gir vindstille.
+
+Flyet flytter seg med lufta: nesa må peke opp mot vinden for å holde senterlinja, motvind gir lavere fart over bakken og kortere
 utrulling. ND viser vinden med pil, og fart over bakken (GS) ved siden av farten gjennom lufta (TAS). Den grønne
 romben på kursbåndet på PFD og på kompassbuen på ND viser kursen over bakken. `P` viser fartsvektoren
 («fuglen») på PFD: et grønt symbol som står der flyet faktisk er på vei, ut til siden når det driver. Autopiloten og flight director
-regner med vinden. Flygelederen sier fortsatt «wind calm»: klareringene er innspilt på forhånd.
+regner med vinden.
 
 ## Etter landing
 

@@ -14,6 +14,18 @@ import { towerView } from "./tower";
 const FT = 3.28084;
 const LOOPS = ["engine", "wind", "tower_room"] as const;
 const ONE_SHOTS = ["gear", "flaps", "speedbrake", "touchdown", "crash", "splash", "warning", "radio", "retard", "too_low_gear", "stall", "go_around", "terrain_ahead", "pull_up", "traffic"];
+/** Ordene tårnet leser vinden med. Tallene er ett klipp per siffer. */
+const ATC_WORDS = ["atc_wind", "atc_degrees", "atc_knots", "atc_gusting", ...Array.from({ length: 10 }, (_, i) => `atc_${i}`)];
+
+/** Klippene tårnet leser vinden med: «wind two four zero degrees, one five knots», og «gusting two seven» ved kast.
+ *  Retningen leses i hele ti grader med tre sifre (nord er 360), farten uten ledende null. */
+export function windReadout(fromDeg: number, kt: number, gustKt: number | null = null): string[] {
+  const digits = (n: string): string[] => [...n].map((c) => `atc_${c}`);
+  const dir = (Math.round(fromDeg / 10) * 10) % 360 || 360;
+  return ["atc_wind", ...digits(String(dir).padStart(3, "0")), "atc_degrees", ...digits(String(Math.round(kt))), "atc_knots",
+    ...(gustKt !== null && gustKt > kt ? ["atc_gusting", ...digits(String(Math.round(gustKt)))] : [])];
+}
+
 /** Radiohøyder (fot) flyet roper ut på vei ned. */
 export const CALLOUTS = [1000, 500, 400, 300, 200, 100, 50, 40, 30, 20, 10];
 
@@ -32,6 +44,8 @@ export class GameAudio {
   private ctx: AudioContext | null = null;
   private master!: GainNode;
   private buffers = new Map<string, AudioBuffer>();
+  /** Hvor i hvert taleklipp lyden faktisk er (start og lengde i s), så klipp som settes sammen ikke får pauser imellom. */
+  private voiced = new Map<string, [number, number]>();
   private loops = new Map<string, Loop>();
   private ready = false;
   /** Når hver talekanal er ledig igjen (AudioContext-tid), så utrop ikke snakker i munnen på hverandre. */
@@ -75,11 +89,22 @@ export class GameAudio {
     this.master.connect(ctx.destination);
     const icao = this.airport.icao;
     const towerClips = [...this.airport.runways.flatMap((rw) => rw.ends.map((e) => `cleared_${icao}_${e.ident}`)), `welcome_${icao}`];
-    const names = [...LOOPS, ...ONE_SHOTS, ...CALLOUTS.map((c) => `alt_${c}`), ...towerClips];
+    // klarering satt sammen av deler, når tårnet skal lese opp vinden: tårnets navn, vinden, og banen
+    const parts = [`tower_${icao}`, ...this.airport.runways.flatMap((rw) => rw.ends.map((e) => `cleared_rwy_${e.ident}`)), ...ATC_WORDS];
+    const names = [...LOOPS, ...ONE_SHOTS, ...CALLOUTS.map((c) => `alt_${c}`), ...towerClips, ...parts];
     await Promise.all(names.map(async (name) => {
       try {
         const data = await (await fetch(`${this.baseUrl}/${name}.mp3`)).arrayBuffer();
-        this.buffers.set(name, await ctx.decodeAudioData(data));
+        const buffer = await ctx.decodeAudioData(data);
+        this.buffers.set(name, buffer);
+        if (parts.includes(name) && typeof buffer.getChannelData === "function") {
+          // finn første og siste sted med lyd: generert tale har stillhet i begge ender
+          const s = buffer.getChannelData(0), quiet = 0.02;
+          let a = 0, b = s.length - 1;
+          while (a < b && Math.abs(s[a]) < quiet) a++;
+          while (b > a && Math.abs(s[b]) < quiet) b--;
+          this.voiced.set(name, [Math.max(0, a / buffer.sampleRate - 0.02), Math.min(buffer.duration, (b - a) / buffer.sampleRate + 0.06)]);
+        }
       } catch { /* manglende lydfil: spillet går videre uten den */ }
     }));
     for (const name of LOOPS) {
@@ -108,7 +133,7 @@ export class GameAudio {
   }
 
   /** Spill en lyd én gang. `radio` gir telefonbånd og litt forvrengning, som over flyradio. */
-  private play(name: string, volume: number, radio = false): number {
+  private play(name: string, volume: number, radio = false, when = 0): number {
     const ctx = this.ctx, buffer = this.buffers.get(name);
     if (!ctx || !buffer || volume <= 0.001) return 0;
     this.played.push(name);
@@ -123,8 +148,9 @@ export class GameAudio {
       source.connect(band).connect(shaper).connect(gain);
     } else source.connect(gain);
     gain.connect(this.master);
-    source.start();
-    return buffer.duration;
+    const [offset, length] = this.voiced.get(name) ?? [0, buffer.duration];
+    source.start(when, offset, length);
+    return length;
   }
 
   /** Tale på en kanal. Hoppes over hvis kanalen er opptatt, med mindre den er viktig. */
@@ -133,6 +159,13 @@ export class GameAudio {
     if (!opts.force && now < this.busy[channel]) return;
     const d = this.play(name, volume, opts.radio);
     if (d) this.busy[channel] = now + d + 0.15;
+  }
+
+  /** Flere taleklipp etter hverandre på tårnets kanal, som én melding. */
+  private sayAll(names: string[], volume: number, radio: boolean): void {
+    let at = this.ctx!.currentTime;
+    for (const name of names) at += this.play(name, volume, radio, at) + 0.03;
+    this.busy.tower = at + 0.15;
   }
 
   private later(seconds: number, run: () => void): void {
@@ -178,7 +211,11 @@ export class GameAudio {
       this.later(2.5, () => {
         if (game.approach.count !== count) return;
         if (game.cam !== "tower") this.play("radio", 0.25);
-        this.say("tower", `cleared_${this.airport.icao}_${ident}`, 0.9, { radio: game.cam !== "tower", force: true });
+        // I vind leser tårnet den opp: «Teinum 320, Kjevik tower. Wind 240 degrees 15 knots. Runway 03, cleared to land.»
+        // Vindstille, eller mangler noen av delene: den ferdige klareringen, som slutter med «wind calm».
+        const parts = [`tower_${this.airport.icao}`, ...windReadout(game.wind.fromTrueDeg, game.wind.kt, game.wind.gustKt), `cleared_rwy_${ident}`];
+        if (game.wind.kt >= 3 && parts.every((p) => this.buffers.has(p))) this.sayAll(parts, 0.9, game.cam !== "tower");
+        else this.say("tower", `cleared_${this.airport.icao}_${ident}`, 0.9, { radio: game.cam !== "tower", force: true });
       });
     } else if (P.state === "fly") {
       if (P.gearDown !== prev.gearDown && !tower) this.play("gear", 0.5);

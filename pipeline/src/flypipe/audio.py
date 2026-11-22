@@ -61,6 +61,12 @@ SPEECH: dict[str, tuple[tuple[str, str], str]] = {
     "pull_up": (VOICE_CALLOUT, "Terrain ahead. Pull up!"),
     "traffic": (VOICE_CALLOUT, "Traffic. Traffic."),
     "go_around": (VOICE_TOWER, "Teinum three two zero, check gear down."),
+    # Ordene tårnet leser vinden med, ett klipp per ord og siffer (settes sammen i web/src/audio.ts)
+    "atc_wind": (VOICE_TOWER, "Wind"),
+    "atc_degrees": (VOICE_TOWER, "degrees,"),
+    "atc_knots": (VOICE_TOWER, "knots."),
+    "atc_gusting": (VOICE_TOWER, "gusting"),
+    **{f"atc_{i}": (VOICE_TOWER, w) for i, w in enumerate(["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "niner"])},
 }
 
 
@@ -81,6 +87,11 @@ def tower_speech(raw_dir: Path) -> dict[str, tuple[tuple[str, str], str]]:
                     VOICE_TOWER,
                     f"Teinum three two zero, {tower} tower. Runway {spoken_runway(end['ident'])}, cleared to land. Wind calm.",
                 )
+        # delene klareringen settes sammen av når vinden skal leses opp imellom
+        out[f"tower_{icao}"] = (VOICE_TOWER, f"Teinum three two zero, {tower} tower.")
+        for rw in load_airport(icao, raw_dir)["runways"]:
+            for end in rw["ends"]:
+                out[f"cleared_rwy_{end['ident']}"] = (VOICE_TOWER, f"Runway {spoken_runway(end['ident'])}, cleared to land.")
         out[f"welcome_{icao}"] = (VOICE_TOWER, f"Teinum three two zero, welcome to {place}. Vacate when able.")
     return out
 

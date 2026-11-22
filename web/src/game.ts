@@ -72,9 +72,10 @@ export interface Game {
   sys: { seatBelts: boolean; gpwsTerr: boolean; tcasStandby: boolean; sdPage: "auto" | "eng" | "wheel" };
   /** Fartsvektoren («fuglen») på PFD: viser hvor flyet er på vei over bakken. P slår den av og på. */
   flightPathVector: boolean;
-  /** Vinden: hvor den kommer fra (sann retning i grader) og farten i knop, og det samme som fart i rutenettet.
-   *  Vindstille hvis ikke `?wind=240/15` er gitt. Jevn over hele kartet og hele innflygingen. */
-  wind: { fromTrueDeg: number; kt: number; vector: Wind };
+  /** Vinden: hvor den kommer fra (sann retning i grader) og middelvinden i knop, og det samme som fart i rutenettet.
+   *  `source` sier hvor den kom fra: flyplassens METAR, adressen (`?wind=240/15`) eller ingen (vindstille).
+   *  Jevn over hele kartet og hele innflygingen; kastene (`gustKt`) leses opp av tårnet, men flymodellen bruker dem ikke. */
+  wind: { fromTrueDeg: number; kt: number; gustKt: number | null; vector: Wind; source: "none" | "url" | "metar"; metar: string | null };
   /** Navigasjonsdisplayet: rekkevidden i NM (Z blar 10, 20, 40) og om terrenget tegnes (X). */
   nd: { rangeNm: number; terrain: boolean };
   /** Autopiloten flyr (A slår den av og på). `approach.autopilot` husker om den har vært brukt på denne innflygingen. */
@@ -100,13 +101,31 @@ const TIME_STEP_MS = 30 * 60 * 1000;
 /** Rekkeviddene ND kan stå på (NM). Flyet har også 80, 160 og 320, men kartutsnittet er bare 14 NM bredt. */
 export const ND_RANGES = [10, 20, 40];
 
-export function createGame(terrain: Terrain, focus: HTMLElement): Game {
+/** Vinden på flyplassen fra værtjenesten (web/public/weather): siste METAR, og vinden lest ut av den. */
+export interface Weather { metar: string | null; wind: { dir: number | null; kt: number; gust: number | null } | null }
+
+/** `weather` er flyplassens vind akkurat nå, når den er hentet. `?wind=` i adressen går foran. */
+export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weather | null = null): Game {
   const airport = terrain.meta.airports[0];
   // Alle baneender på flyplassen, i den rekkefølgen T blar gjennom dem
   const ends = airport.runways.flatMap((rw) => rw.ends);
   const runwayOf = (end: (typeof ends)[number]) => airport.runways.find((rw) => rw.ends.includes(end))!;
   const params = new URLSearchParams(location.search);
-  let endIdx = Math.max(0, ends.findIndex((e) => e.ident === params.get("rwy")));
+  // Vinden: fra adressen («?wind=240/15», sann retning den kommer fra og knop, høyst 50; «?wind=0/0» er vindstille),
+  // ellers fra flyplassens siste METAR. Variabel vind (VRB) har ingen retning og regnes som vindstille.
+  // Retninger fra kilder er sanne; rutenettet er dreid med meridiankonvergensen.
+  const windArg = /^(\d{1,3})\/(\d{1,2})$/.exec(params.get("wind") ?? ""), observed = !windArg && weather?.wind && weather.wind.dir !== null ? weather.wind : null;
+  const windKt = windArg ? Math.min(50, Number(windArg[2])) : observed ? Math.min(60, observed.kt) : 0;
+  const windDeg = windKt > 0 ? (windArg ? Number(windArg[1]) : observed!.dir!) % 360 : 0;
+  const wind: Game["wind"] = {
+    fromTrueDeg: windDeg, kt: windKt, gustKt: observed?.gust ?? null,
+    vector: windFrom(((windDeg - terrain.meta.gridConvergenceDeg) * Math.PI) / 180, windKt / 1.943844),
+    source: windArg ? "url" : weather?.wind ? "metar" : "none", metar: windArg ? null : weather?.metar ?? null,
+  };
+  // Banen: den som er bedt om, ellers den med mest motvind (som tårnet ville valgt), ellers den første
+  const headwind = (e: (typeof ends)[number]) => Math.cos(((windDeg - e.headingTrueDeg) * Math.PI) / 180);
+  const intoWind = windKt >= 3 ? ends.indexOf([...ends].sort((p, q) => headwind(q) - headwind(p))[0]) : 0;
+  let endIdx = params.has("rwy") ? Math.max(0, ends.findIndex((e) => e.ident === params.get("rwy"))) : intoWind;
   const P = newPlane();
   const K: Keys = {};
   const held: Record<string, number> = {}; // hvor lenge piltastene har vært holdt, som utslag 0-1
@@ -173,11 +192,6 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     };
   };
   const time = startTime(params, Date.now());
-  // Vind fra adressen: «retning/fart», sann retning den kommer fra og knop (høyst 50). Retninger fra kilder er sanne;
-  // rutenettet er dreid med meridiankonvergensen.
-  const windArg = /^(\d{1,3})\/(\d{1,2})$/.exec(params.get("wind") ?? ""), windKt = windArg ? Math.min(50, Number(windArg[2])) : 0;
-  const windDeg = windArg && windKt > 0 ? Number(windArg[1]) % 360 : 0;
-  const wind = { fromTrueDeg: windDeg, kt: windKt, vector: windFrom(((windDeg - terrain.meta.gridConvergenceDeg) * Math.PI) / 180, windKt / 1.943844) };
   const game: Game = {
     P, airport, msg, time, approach,
     autopilot: false,
