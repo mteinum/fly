@@ -140,6 +140,8 @@ interface Data {
   nextFlapKt: number | null;
   /** Fart over bakken (kt) og sann kurs over bakken (grader). Uten vind er de lik farten og kursen flyet har. */
   gsKt: number; trackDeg: number;
+  /** Fartsvektoren («fuglen») vises, og banevinkelen over bakken i grader (negativ = nedover). */
+  fpv: boolean; fpaDeg: number;
   /** Stillingen flight director ber om (rad), eller null når den er av eller ikke har noe å vise. */
   fd: Game["fd"];
   /** Terrengvarselet som gjelder nå (se gpws.ts). */
@@ -223,6 +225,14 @@ function pfd(g: G2D, x: number, y: number, d: Data, body: number): void {
   if (d.fd) {
     const fy = CY - clamp((d.fd.pitch - d.pitch) * DEG * 1.9, -15, 15), fx = 46 + clamp((d.fd.bank - d.roll) * DEG * 0.55, -15, 15);
     line(g, 33, fy, 59, fy, 0.9, GREEN); line(g, fx, CY - 13, fx, CY + 13, 0.9, GREEN);
+  }
+  // Fartsvektoren («fuglen»): der flyet er på vei over bakken. Til siden for flysymbolet er avdriften, og over eller
+  // under horisonten er banevinkelen. Legg den på rullebanen, så treffer flyet rullebanen. Symbolet krenger ikke.
+  if (d.fpv) {
+    const hx = wrap180(d.trackDeg - d.hdg) * 1.9, hy = -(d.fpaDeg - d.pitch * DEG) * 1.9, c = Math.cos(-d.roll), s = Math.sin(-d.roll);
+    const bx = 46 + clamp(hx * c - hy * s, -18, 18), by = CY + clamp(hx * s + hy * c, -22, 22);
+    g.strokeStyle = GREEN; g.lineWidth = 0.7;
+    g.beginPath(); g.arc(bx, by, 1.7, 0, 7); g.moveTo(bx - 1.7, by); g.lineTo(bx - 4.6, by); g.moveTo(bx + 1.7, by); g.lineTo(bx + 4.6, by); g.moveTo(bx, by - 1.7); g.lineTo(bx, by - 3.6); g.stroke();
   }
   if (d.raFt < 2500) text(g, String(Math.round(d.raFt / (d.raFt < 50 ? 1 : 10)) * (d.raFt < 50 ? 1 : 10)), 46, 74.6, 5.6, d.raFt < 400 ? AMBER : GREEN, "center", SANS, 600);
 
@@ -716,7 +726,8 @@ function fcu(g: G2D, body: number, game: Game): void {
   win(x + 4, 17, "SPD", ap ? String(Math.round(ap.speedKt)) : "---●");
   win(x + 25, 17, "HDG        LAT", ap ? String(Math.round(ap.courseTrueDeg) % 360).padStart(3, "0") : "---●");
   g.fillStyle = "#06080a"; g.fillRect(x + 45.5, y + 1, 15, 6.2);
-  text(g, "HDG  V/S", x + 53, y + 2.8, 1.5, LCD); text(g, "TRK  FPA", x + 53, y + 5.4, 1.5, "#5b4526");
+  // lyser på den som gjelder: TRK FPA når fartsvektoren vises (P, eller klikk her)
+  text(g, "HDG  V/S", x + 53, y + 2.8, 1.5, game.flightPathVector ? "#5b4526" : LCD); text(g, "TRK  FPA", x + 53, y + 5.4, 1.5, game.flightPathVector ? LCD : "#5b4526");
   win(x + 64, 20, "ALT    LVL/CH", `${game.approach.platformFt}${ap ? "●" : ""}`);
   win(x + 87, 17, "V/S", "-----");
   for (const kx of [12.5, 33.5, 74, 95.5]) knob(g, x + kx, y + 10.1, 2, body, 0, true);
@@ -877,6 +888,7 @@ export const thrustAt = (ly: number): number => clamp((LEVER_BOTTOM - 2.6 - ly) 
 export function panelHit(lx: number, ly: number): PanelControl | null {
   const inside = (x: number, y: number, w: number, h: number, pad = 0.8): boolean => lx >= x - pad && lx <= x + w + pad && ly >= y - pad && ly <= y + h + pad;
   if (inside(FCU_X + 45.6, GLARE_Y + 8.3, 4.6, 3.7)) return { kind: "autopilot" };
+  if (inside(FCU_X + 45.5, GLARE_Y + 1, 15, 6.2, 0)) return { kind: "flightPathVector" };
   if (inside(EFIS_L + 7.6, GLARE_Y + 7, 4.4, 2.6) || inside(EFIS_R + EFIS_W - 12, GLARE_Y + 7, 4.4, 2.6)) return { kind: "flightDirector" };
   if (Math.hypot(lx - EFIS_L - 27.6, ly - GLARE_Y - 8.9) <= 3.2 || Math.hypot(lx - EFIS_R - EFIS_W + 27.6, ly - GLARE_Y - 8.9) <= 3.2) return { kind: "ndRange" };
   if (inside(TERR_L, TERR_Y, TERR_W, TERR_H) || inside(TERR_R, TERR_Y, TERR_W, TERR_H)) return { kind: "ndTerrain" };
@@ -931,6 +943,7 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
     fuelUsedKg: anim.fuelKg,
     // klaffgrensen alene: som speedLimit for neste stilling, med understellet oppe
     gsKt: P.state === "fly" ? ground.speed * KT : kt, trackDeg: P.state === "fly" ? t.trueHeadingDeg(ground.track) : t.trueHeadingDeg(P.hdg),
+    fpv: game.flightPathVector && P.state === "fly", fpaDeg: Math.atan2(verticalSpeed(P), ground.speed) * DEG,
     fd: game.fd,
     gpws: terrainAlert(P, t, game.airport, game.wind.vector),
     nextFlapKt: P.flapCfg < 4 ? speedLimit({ ...P, flapCfg: P.flapCfg + 1, flaps: P.flapCfg + 1, gear: 0, gearDown: false }) * KT : null,

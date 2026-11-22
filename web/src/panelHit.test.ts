@@ -23,6 +23,7 @@ describe("trykk på instrumentpanelet", () => {
 
   it("treffer AP1 på FCU og FD på begge EFIS-panelene", () => {
     expect(panelHit(106 + 47.9, 108.4 + 10)).toEqual({ kind: "autopilot" });
+    expect(panelHit(106 + 53, 108.4 + 4)).toEqual({ kind: "flightPathVector" }); // HDG V/S / TRK FPA-vinduet
     expect(panelHit(70 + 9.8, 108.4 + 8.3)).toEqual({ kind: "flightDirector" });
     expect(panelHit(217 + 23.2, 108.4 + 8.3)).toEqual({ kind: "flightDirector" });
   });

@@ -26,7 +26,7 @@ export interface Replay {
 export type PanelControl =
   | { kind: "gear" } | { kind: "speedBrake" } | { kind: "autopilot" } | { kind: "flightDirector" }
   /** Rekkevidden på ND (neste trinn), og terrengbildet på ND av/på. */
-  | { kind: "ndRange" } | { kind: "ndTerrain" }
+  | { kind: "ndRange" } | { kind: "ndTerrain" } | { kind: "flightPathVector" }
   /** Autobremsen: 1 = LO, 2 = MED, 3 = MAX. */
   | { kind: "autobrake"; level: number }
   /** Klaffspaken settes i stilling 0-4. */
@@ -62,6 +62,8 @@ export interface Game {
    *  som piloten kan fly etter. `fd` er null når den er av, eller når autopiloten ikke kunne landet herfra. */
   flightDirector: boolean;
   fd: { pitch: number; bank: number } | null;
+  /** Fartsvektoren («fuglen») på PFD: viser hvor flyet er på vei over bakken. P slår den av og på. */
+  flightPathVector: boolean;
   /** Vinden: hvor den kommer fra (sann retning i grader) og farten i knop, og det samme som fart i rutenettet.
    *  Vindstille hvis ikke `?wind=240/15` er gitt. Jevn over hele kartet og hele innflygingen. */
   wind: { fromTrueDeg: number; kt: number; vector: Wind };
@@ -112,6 +114,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     say(on ? "Autopilot on" : `Autopilot off${why}`, 2.5);
   };
   const toggleFlightDirector = () => { game.flightDirector = !game.flightDirector; say(`Flight director ${game.flightDirector ? "on" : "off"}`, 2); };
+  const toggleBird = () => { game.flightPathVector = !game.flightPathVector; say(`Flight path vector ${game.flightPathVector ? "on" : "off"}`, 2); };
   const nextRange = () => { game.nd.rangeNm = ND_RANGES[(ND_RANGES.indexOf(game.nd.rangeNm) + 1) % ND_RANGES.length]; say(`ND range ${game.nd.rangeNm} NM`, 1.5); };
   const toggleTerrain = () => { game.nd.terrain = !game.nd.terrain; say(`Terrain on ND ${game.nd.terrain ? "on" : "off"}`, 1.5); };
   /** Kontrollene dette steget: pilotens taster, eller autopilotens utslag når den flyr. */
@@ -173,6 +176,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     flightDirector: true,
     fd: null,
     nd: { rangeNm: ND_RANGES[0], terrain: true },
+    flightPathVector: false,
     wind,
     apTarget: null,
     ships: [],
@@ -188,6 +192,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
       else if (c.kind === "flightDirector") toggleFlightDirector();
       else if (c.kind === "ndRange") nextRange();
       else if (c.kind === "ndTerrain") toggleTerrain();
+      else if (c.kind === "flightPathVector") toggleBird();
       else if (c.kind === "autobrake") setAutobrake(P, c.level, say);
       else if (c.kind === "flaps") for (let i = Math.abs(c.cfg - P.flapCfg), step = Math.sign(c.cfg - P.flapCfg); i > 0; i--) moveFlaps(P, step, say);
       else if (P.state === "fly") {
@@ -236,6 +241,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     if (e.code === "KeyA") setAutopilot(!game.autopilot);
     if (e.code === "KeyD") toggleFlightDirector();
     if (e.code === "Digit1" || e.code === "Digit2" || e.code === "Digit3") setAutobrake(P, Number(e.code.slice(5)), say);
+    if (e.code === "KeyP") toggleBird();
     if (e.code === "KeyZ") nextRange();
     if (e.code === "KeyX") toggleTerrain();
     if (e.code === "KeyG") toggleGear(P, say);

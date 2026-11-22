@@ -38,7 +38,7 @@ for fullskjerm.
 
 Taster: piltaster styrer, `W`/`S` gass, `G` understell, `F`/`V` klaff ut/inn,
 `C` bytter mellom utvendig kamera, cockpit og tårn, `R` ny innflyging, `T` bytt bane (03/21), `Q`/`E` stiller klokka en
-halvtime bakover/framover, `M` slår lyden av og på, `N` stedsnavnene, `D` flight director,
+halvtime bakover/framover, `M` slår lyden av og på, `N` stedsnavnene, `D` flight director, `P` fartsvektoren,
 `1`/`2`/`3` autobrems LO/MED/MAX, `Z` rekkevidden på ND (10, 20, 40 NM), `X` terrenget på ND av og på. Lyden starter ved første tastetrykk.
 
 I cockpit kan understellsspaken, luftbremsen, gasshåndtakene (dra), klaffspaken og knappene AP1 og FD også
@@ -70,7 +70,8 @@ høydekartet og flyets bane akkurat nå (`web/src/gpws.ts`); reglene er forenkle
 Med `?wind=240/15` blåser det jevnt fra 240° (sann retning) med 15 knop over hele kartet. Flyet flytter seg da
 med lufta: nesa må peke opp mot vinden for å holde senterlinja, motvind gir lavere fart over bakken og kortere
 utrulling. ND viser vinden med pil, og fart over bakken (GS) ved siden av farten gjennom lufta (TAS). Den grønne
-romben på kursbåndet på PFD og på kompassbuen på ND viser kursen over bakken. Autopiloten og flight director
+romben på kursbåndet på PFD og på kompassbuen på ND viser kursen over bakken. `P` viser fartsvektoren
+(«fuglen») på PFD: et grønt symbol som står der flyet faktisk er på vei, ut til siden når det driver. Autopiloten og flight director
 regner med vinden. Flygelederen sier fortsatt «wind calm»: klareringene er innspilt på forhånd.
 
 ## Etter landing
