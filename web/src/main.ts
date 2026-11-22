@@ -312,6 +312,25 @@ const MAX_TRANSIT_LABELS = 8;
       g.restore();
     }
   };
+  /** Nåla over punktet flyet styrer mot (trykket ut i kartet, eller ?to=): en rød dråpe med spissen i bakken der
+   *  punktet er, og avstanden dit. Ligger punktet utenfor bildet, tegnes ingenting: krysset på kartet viser veien. */
+  const drawPin = () => {
+    const to = game.directTo;
+    if (!to) return;
+    const ground = Math.max(0, terrain.heightAt(to.x, to.y)), at = renderer.project(to.x * terrain.cell, ground, to.y * terrain.cell);
+    if (!at) return;
+    const px = at[0] * W, py = TOP + at[1] * (H - TOP), r = 3.2, cy = py - 9;
+    const km = (Math.hypot(to.x - game.P.x, to.y - game.P.y) * terrain.cell) / 1000;
+    g.save();
+    g.fillStyle = "#ff4a3d"; g.strokeStyle = "#fff"; g.lineWidth = 0.5;
+    // dråpen: en sirkel som smalner ned til spissen
+    g.beginPath(); g.arc(px, cy, r, Math.PI * 0.82, Math.PI * 0.18); g.lineTo(px, py); g.closePath(); g.fill(); g.stroke();
+    g.fillStyle = "#fff"; g.beginPath(); g.arc(px, cy, 1.1, 0, Math.PI * 2); g.fill();
+    g.font = '600 3.4px "Helvetica Neue", Helvetica, Arial, sans-serif'; g.textAlign = "center";
+    g.lineWidth = 0.8; g.strokeStyle = "rgba(0,0,0,.6)"; g.strokeText(`${km.toFixed(1)} km`, px, cy - r - 1.6);
+    g.fillStyle = "#fff"; g.fillText(`${km.toFixed(1)} km`, px, cy - r - 1.6);
+    g.restore();
+  };
   const drawNames = () => {
     const [ex, ey, ez] = renderer.eye, cx = ex / terrain.cell, cy = ez / terrain.cell;
     drawSigns(cx, cy, ey);
@@ -551,6 +570,7 @@ const MAX_TRANSIT_LABELS = 8;
     g.clearRect(0, TOP, W, H - TOP);
     if (clean) return;
     if (showNames && !game.replay) drawNames();
+    if (!game.replay && !photoFrame) drawPin();
     if (game.replay) {
       // reprisen vises uten instrumenter: bare merket og hva som skjedde
       g.font = "bold 9px ui-monospace, Menlo, Consolas, monospace"; g.textAlign = "left"; g.textBaseline = "alphabetic";
