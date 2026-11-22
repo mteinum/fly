@@ -568,6 +568,17 @@ Det er Voxel Space som trenger et unntak.
   lå i cachen ga det 256 flere bygg: 123 i Oslo, 68 ved Flesland, 23 ved Kjevik, 15 i Tromsø.
 - Gårdsrom (indre ringer) tas fortsatt ikke med.
 
+**57. Flyet sank ned i rullebanen under utrullingen**
+- Etter landing ble høyden satt én gang, der hjulene tok bakken. Under utrullingen flyttet flyet seg bortover
+  uten at høyden fulgte terrenget. På Vigra stiger banen 10 m fra den ene enden til den andre, så flyet og
+  kameraet endte under bakken: skjermteksten viste «AGL -7».
+- Meldt av bruker med skjermbilde («clipping problemer?»). Feilen har ligget der siden utrullingen ble laget.
+  Den syntes ikke på de første flyplassene, der banene er nesten flate, og taksingen (som ble laget senere)
+  fulgte bakken riktig.
+- Ingen test sjekket høyden under utrullingen. Den nye testen ruller ut på Vigra og gir 10,06 m avvik uten
+  rettelsen.
+- Rettet: høyden settes fra terrenget i hvert steg av utrullingen, som under taksing.
+
 ### Åpne spørsmål / ikke kontrollert
 
 - OurAirports er ikke sjekket mot gjeldende AIP Norge, bare mot DTM og

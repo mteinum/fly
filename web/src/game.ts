@@ -236,7 +236,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
         const [nx, ny] = game.taxiPlan.route[Math.min(2, game.taxiPlan.route.length - 1)];
         const back = (nx - P.x) * Math.sin(P.hdg) - (ny - P.y) * Math.cos(P.hdg) < 0;
         game.taxiCall = { count: game.taxiCall.count + 1, turnAround: back };
-        say(`Tower: ${back ? "turn around on the runway (slowly, under 10 kt), " : ""}taxi to ${name}${game.taxiPlan.via.length ? ` via ${game.taxiPlan.via.join(", ")}` : ""}.${P.taxi ? "" : " Press W."}`, 10);
+        say(`Tower: ${back ? "turn around on the runway (slowly, under 10 kt), " : ""}taxi to ${name}${game.taxiPlan.via.length ? ` via ${game.taxiPlan.via.join(", ")}` : ""}.${P.taxi ? "" : " Taxiing is optional: press W, or wait for your diploma."}`, 10);
       }
       // framme: flyet står stille på standen. Parkeringsbremsen settes av seg selv.
       if (P.taxi && P.spd === 0 && toStandM < STAND_REACHED_M) park(P, say);

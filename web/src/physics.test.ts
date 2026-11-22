@@ -3,7 +3,7 @@ import { CALM, groundVelocity, windFrom } from "./physics";
 import { APPROACH_DIST_M, moveFlaps, onRunway, PITCH_RATE, runwayOffset, softStick, speedLimit, stallSpeed, startApproach, toggleGear, toggleSpeedBrake, update } from "./physics";
 import { newPlane } from "./plane";
 import { BRIDGE, BUILDING } from "./terrain";
-import { loadTestTerrain } from "./testTerrain";
+import { hasTiles, loadTestTerrain } from "./testTerrain";
 
 const t = loadTestTerrain();
 const airport = t.meta.airports[0];
@@ -61,6 +61,20 @@ describe("bakkekontakt", () => {
     const { P, said } = lowOver(le.x + 0.2 * (he.x - le.x), le.y + 0.2 * (he.y - le.y));
     expect(P.state).toBe("landed");
     expect(said).toMatch(/^Landed/);
+  });
+
+  it.skipIf(!hasTiles("alesund10"))("utrullingen følger bakken der banen stiger (Vigra stiger 10 m)", () => {
+    const ta = loadTestTerrain("alesund10"), apt = ta.meta.airports[0], [a, b] = apt.runways[0].ends;
+    const P = Object.assign(newPlane(), { state: "landed", x: a.x + 0.15 * (b.x - a.x), y: a.y + 0.15 * (b.y - a.y), hdg: (a.headingGridDeg * Math.PI) / 180, spd: 65, autobrake: 1,
+      touchdown: { runway: a.ident, kt: 126, fpm: 100, crossM: 0, pastThresholdM: 300, flaps: 4 } });
+    P.alt = Math.max(0, ta.heightAt(P.x, P.y)) + 1;
+    let worst = 0;
+    for (let i = 0; i < 60 * 60 && P.spd > 0; i++) {
+      update(P, ta, apt, {}, 1 / 60, () => {});
+      worst = Math.max(worst, Math.abs(P.alt - 1 - Math.max(0, ta.heightAt(P.x, P.y))));
+    }
+    expect(P.state).toBe("landed");
+    expect(worst).toBeLessThan(0.01);
   });
 
   it("fjorden gir plask", () => {

@@ -313,6 +313,7 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
       }
       P.x += (Math.sin(P.hdg) * P.spd * dt) / t.cell;
       P.y -= (Math.cos(P.hdg) * P.spd * dt) / t.cell;
+      P.alt = Math.max(0, t.heightAt(P.x, P.y)) + 1; // følger bakken: en bane som stiger ville ellers svelget flyet
       if (P.spd > OVERRUN_SPEED && !onRunway(t, airport, P.x, P.y)) {
         P.state = "crash"; P.t = 3;
         say("Runway overrun! Land earlier or use more autobrake (3 = MAX).", 3.5);
