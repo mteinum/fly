@@ -1,5 +1,7 @@
 # teinum-fly
 
+[![Innflyging over Ålesund sentrum mot bane 06 på Vigra, med skip fra AIS og oversiktskart](docs/skjermbilde.jpg)](https://fly.teinum.no/?apt=ENAL)
+
 Flysimulator over ekte norsk terreng: innflyging med Airbus A320 til Kjevik (ENCN),
 Sola (ENZV), Flesland (ENBR), Ålesund (ENAL), Gardermoen (ENGM), Bodø (ENBO), Tromsø (ENTC), Mehamn (ENMH) eller Kjeller (ENKJ), med en tur over Oslo sentrum (`?apt=ENKJ&tour`, eller `T` forbi siste bane). Hver flyplass har et kartutsnitt
 på 25,6 x 25,6 km i 10 m-celler (Kjeller: 30,7 km, så Oslo sentrum er med). WebGL, sann målestokk, bygninger
