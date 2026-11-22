@@ -45,6 +45,8 @@ EFFECTS: dict[str, tuple[str, float, bool]] = {
 # Flyplassene spillet har, med navnet flygelederen bruker på tårnet og på stedet.
 # Banene hentes fra OurAirports når lyden genereres, så de følger dataene.
 AIRPORTS = {"ENCN": ("Kjevik", "Kjevik"), "ENZV": ("Sola", "Sola"), "ENBR": ("Flesland", "Bergen"), "ENGM": ("Gardermoen", "Oslo"), "ENMH": ("Mehamn", "Mehamn"), "ENTC": ("Tromsø", "Tromsø"), "ENAL": ("Vigra", "Ålesund"), "ENBO": ("Bodø", "Bodø")}
+NATO = ["Alpha", "Bravo", "Charlie", "Delta", "Echo", "Foxtrot", "Golf", "Hotel", "India", "Juliett", "Kilo", "Lima", "Mike", "November", "Oscar", "Papa",
+        "Quebec", "Romeo", "Sierra", "Tango", "Uniform", "Victor", "Whiskey", "X-ray", "Yankee", "Zulu"]
 DIGITS = ["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"]
 SIDES = {"L": " left", "R": " right", "C": " center"}
 
@@ -67,6 +69,15 @@ SPEECH: dict[str, tuple[tuple[str, str], str]] = {
     "atc_knots": (VOICE_TOWER, "knots."),
     "atc_gusting": (VOICE_TOWER, "gusting"),
     **{f"atc_{i}": (VOICE_TOWER, w) for i, w in enumerate(["zero", "one", "two", "three", "four", "five", "six", "seven", "eight", "niner"])},
+    # Takseklareringen: «Teinum 320, taxi to stand one six via Bravo, Yankee». Taksebanene leses med bokstavalfabetet.
+    "atc_callsign": (VOICE_TOWER, "Teinum three two zero,"),
+    "atc_backtrack": (VOICE_TOWER, "turn around on the runway,"),
+    "atc_taxi_stand": (VOICE_TOWER, "taxi to stand"),
+    "atc_taxi_apron": (VOICE_TOWER, "taxi to the apron"),
+    "atc_via": (VOICE_TOWER, "via"),
+    "atc_left": (VOICE_TOWER, "left"),
+    "atc_right": (VOICE_TOWER, "right"),
+    **{f"atc_letter_{w[0]}": (VOICE_TOWER, f"{w},") for w in NATO},
 }
 
 

@@ -259,6 +259,204 @@
       "voice": "Eric",
       "text": "niner"
     },
+    "atc_callsign": {
+      "file": "atc_callsign.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Teinum three two zero,"
+    },
+    "atc_backtrack": {
+      "file": "atc_backtrack.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "turn around on the runway,"
+    },
+    "atc_taxi_stand": {
+      "file": "atc_taxi_stand.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "taxi to stand"
+    },
+    "atc_taxi_apron": {
+      "file": "atc_taxi_apron.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "taxi to the apron"
+    },
+    "atc_via": {
+      "file": "atc_via.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "via"
+    },
+    "atc_left": {
+      "file": "atc_left.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "left"
+    },
+    "atc_right": {
+      "file": "atc_right.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "right"
+    },
+    "atc_letter_A": {
+      "file": "atc_letter_A.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Alpha,"
+    },
+    "atc_letter_B": {
+      "file": "atc_letter_B.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Bravo,"
+    },
+    "atc_letter_C": {
+      "file": "atc_letter_C.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Charlie,"
+    },
+    "atc_letter_D": {
+      "file": "atc_letter_D.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Delta,"
+    },
+    "atc_letter_E": {
+      "file": "atc_letter_E.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Echo,"
+    },
+    "atc_letter_F": {
+      "file": "atc_letter_F.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Foxtrot,"
+    },
+    "atc_letter_G": {
+      "file": "atc_letter_G.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Golf,"
+    },
+    "atc_letter_H": {
+      "file": "atc_letter_H.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Hotel,"
+    },
+    "atc_letter_I": {
+      "file": "atc_letter_I.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "India,"
+    },
+    "atc_letter_J": {
+      "file": "atc_letter_J.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Juliett,"
+    },
+    "atc_letter_K": {
+      "file": "atc_letter_K.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Kilo,"
+    },
+    "atc_letter_L": {
+      "file": "atc_letter_L.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Lima,"
+    },
+    "atc_letter_M": {
+      "file": "atc_letter_M.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Mike,"
+    },
+    "atc_letter_N": {
+      "file": "atc_letter_N.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "November,"
+    },
+    "atc_letter_O": {
+      "file": "atc_letter_O.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Oscar,"
+    },
+    "atc_letter_P": {
+      "file": "atc_letter_P.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Papa,"
+    },
+    "atc_letter_Q": {
+      "file": "atc_letter_Q.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Quebec,"
+    },
+    "atc_letter_R": {
+      "file": "atc_letter_R.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Romeo,"
+    },
+    "atc_letter_S": {
+      "file": "atc_letter_S.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Sierra,"
+    },
+    "atc_letter_T": {
+      "file": "atc_letter_T.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Tango,"
+    },
+    "atc_letter_U": {
+      "file": "atc_letter_U.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Uniform,"
+    },
+    "atc_letter_V": {
+      "file": "atc_letter_V.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Victor,"
+    },
+    "atc_letter_W": {
+      "file": "atc_letter_W.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Whiskey,"
+    },
+    "atc_letter_X": {
+      "file": "atc_letter_X.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "X-ray,"
+    },
+    "atc_letter_Y": {
+      "file": "atc_letter_Y.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Yankee,"
+    },
+    "atc_letter_Z": {
+      "file": "atc_letter_Z.mp3",
+      "kind": "speech",
+      "voice": "Eric",
+      "text": "Zulu,"
+    },
     "cleared_ENCN_03": {
       "file": "cleared_ENCN_03.mp3",
       "kind": "speech",

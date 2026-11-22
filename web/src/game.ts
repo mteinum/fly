@@ -75,6 +75,8 @@ export interface Game {
    *  når flyplassen ikke har stands som kan nås. `taxiResult` er hvordan det gikk, når flyet står: til diplomet. */
   taxiPlan: TaxiPlan | null;
   taxiResult: string | null;
+  /** Takseklareringer tårnet har gitt (teller opp for hver), og om den siste ba flyet snu på banen. Lyden leser den opp. */
+  taxiCall: { count: number; turnAround: boolean };
   /** Takset helt fram til en nummerert stand: standen og tiden fra landing (s). Til diplomet og delingslenka. */
   taxiDone: { stand: string; seconds: number } | null;
   /** Fartsvektoren («fuglen») på PFD: viser hvor flyet er på vei over bakken. P slår den av og på. */
@@ -191,6 +193,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
         // Går ruta bakover langs rullebanen, må flyet snu der det står: det går bare i lav fart
         const [nx, ny] = game.taxiPlan.route[Math.min(2, game.taxiPlan.route.length - 1)];
         const back = (nx - P.x) * Math.sin(P.hdg) - (ny - P.y) * Math.cos(P.hdg) < 0;
+        game.taxiCall = { count: game.taxiCall.count + 1, turnAround: back };
         say(`Tower: ${back ? "turn around on the runway (slowly, under 10 kt), " : ""}taxi to ${name}${game.taxiPlan.via.length ? ` via ${game.taxiPlan.via.join(", ")}` : ""}.${P.taxi ? "" : " Press W."}`, 10);
       }
       // framme: flyet står stille på standen. Parkeringsbremsen settes av seg selv.
@@ -249,6 +252,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     flightPathVector: false,
     taxiPlan: null,
     taxiResult: null,
+    taxiCall: { count: 0, turnAround: false },
     taxiDone: null,
     look: params.get("look") === "up" ? "up" : params.get("look") === "down" ? "down" : "forward",
     sys: { seatBelts: true, gpwsTerr: true, tcasStandby: false, sdPage: "auto" },

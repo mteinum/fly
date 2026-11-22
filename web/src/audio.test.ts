@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { altitudeCallout, CALLOUTS, windReadout } from "./audio";
+import { altitudeCallout, CALLOUTS, taxiReadout, windReadout } from "./audio";
 import { warnings } from "./physics";
 import { newPlane } from "./plane";
 
@@ -64,5 +64,17 @@ describe("tårnets vindmelding", () => {
     expect(windReadout(357, 10).slice(1, 4)).toEqual(["atc_3", "atc_6", "atc_0"]);
     expect(windReadout(330, 21, 33).slice(-3)).toEqual(["atc_gusting", "atc_3", "atc_3"]);
     expect(windReadout(330, 21, 21)).not.toContain("atc_gusting");
+  });
+});
+
+describe("tårnets takseklarering", () => {
+  it("leser standen siffer for siffer og taksebanene med bokstavalfabetet", () => {
+    expect(taxiReadout("16", ["B", "Y"], false)).toEqual(["atc_callsign", "atc_taxi_stand", "atc_1", "atc_6", "atc_via", "atc_letter_B", "atc_letter_Y"]);
+    expect(taxiReadout("171L", ["A5"], false)).toEqual(["atc_callsign", "atc_taxi_stand", "atc_1", "atc_7", "atc_1", "atc_left", "atc_via", "atc_letter_A", "atc_5"]);
+  });
+
+  it("sier «the apron» uten nummer, tar med snuingen, og hopper over navn den ikke kan lese", () => {
+    expect(taxiReadout("", [], true)).toEqual(["atc_callsign", "atc_backtrack", "atc_taxi_apron"]);
+    expect(taxiReadout("H50", ["L BLUE", "76", "C"], false)).toEqual(["atc_callsign", "atc_taxi_apron", "atc_via", "atc_letter_C"]);
   });
 });

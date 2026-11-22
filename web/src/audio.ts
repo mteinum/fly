@@ -26,6 +26,21 @@ export function windReadout(fromDeg: number, kt: number, gustKt: number | null =
     ...(gustKt !== null && gustKt > kt ? ["atc_gusting", ...digits(String(Math.round(gustKt)))] : [])];
 }
 
+/** Ordene i takseklareringen, og bokstavalfabetet taksebanene leses med. */
+const ATC_TAXI = ["atc_callsign", "atc_backtrack", "atc_taxi_stand", "atc_taxi_apron", "atc_via", "atc_left", "atc_right", ...[..."ABCDEFGHIJKLMNOPQRSTUVWXYZ"].map((c) => `atc_letter_${c}`)];
+
+/** Klippene tårnet leser takseklareringen med: «Teinum 320, taxi to stand one six via Bravo, Yankee».
+ *  Standen leses siffer for siffer («171L» = one seven one left), taksebanene med bokstavalfabetet («A5» = Alpha five).
+ *  En stand uten nummer er «the apron». Navn som ikke er en bokstav med eventuelle sifre (som «L BLUE») leses ikke. */
+export function taxiReadout(standRef: string, via: string[], turnAround: boolean): string[] {
+  const out = ["atc_callsign", ...(turnAround ? ["atc_backtrack"] : [])];
+  if (/^[0-9]{1,3}[LR]?$/.test(standRef)) out.push("atc_taxi_stand", ...[...standRef].map((c) => (c === "L" ? "atc_left" : c === "R" ? "atc_right" : `atc_${c}`)));
+  else out.push("atc_taxi_apron");
+  const named = via.filter((r) => /^[A-Z][0-9]{0,2}$/.test(r));
+  if (named.length) out.push("atc_via", ...named.flatMap((r) => [`atc_letter_${r[0]}`, ...[...r.slice(1)].map((c) => `atc_${c}`)]));
+  return out;
+}
+
 /** Radiohøyder (fot) flyet roper ut på vei ned. */
 export const CALLOUTS = [1000, 500, 400, 300, 200, 100, 50, 40, 30, 20, 10];
 
@@ -51,7 +66,7 @@ export class GameAudio {
   /** Når hver talekanal er ledig igjen (AudioContext-tid), så utrop ikke snakker i munnen på hverandre. */
   private busy = { callout: 0, tower: 0 };
   private repeatAt = { stall: 0, gear: 0, warning: 0, terrain: 0 };
-  private prev = { ra: Infinity, state: "", gearDown: true, flapCfg: -1, speedBrake: false, approach: -1 };
+  private prev = { ra: Infinity, state: "", gearDown: true, flapCfg: -1, speedBrake: false, approach: -1, taxiCall: 0 };
   private pending: { at: number; run: () => void }[] = [];
   private warnedGear = -1;
   /** Flyene det er gitt trafikkvarsel for nå: «traffic, traffic» sies én gang per fly, når varselet kommer. */
@@ -90,7 +105,7 @@ export class GameAudio {
     const icao = this.airport.icao;
     const towerClips = [...this.airport.runways.flatMap((rw) => rw.ends.map((e) => `cleared_${icao}_${e.ident}`)), `welcome_${icao}`];
     // klarering satt sammen av deler, når tårnet skal lese opp vinden: tårnets navn, vinden, og banen
-    const parts = [`tower_${icao}`, ...this.airport.runways.flatMap((rw) => rw.ends.map((e) => `cleared_rwy_${e.ident}`)), ...ATC_WORDS];
+    const parts = [`tower_${icao}`, ...this.airport.runways.flatMap((rw) => rw.ends.map((e) => `cleared_rwy_${e.ident}`)), ...ATC_WORDS, ...ATC_TAXI];
     const names = [...LOOPS, ...ONE_SHOTS, ...CALLOUTS.map((c) => `alt_${c}`), ...towerClips, ...parts];
     await Promise.all(names.map(async (name) => {
       try {
@@ -223,6 +238,15 @@ export class GameAudio {
       if (P.speedBrake !== prev.speedBrake && !tower) this.play("speedbrake", 0.2); // klippet er 7 dB sterkere enn klaffelyden
     }
 
+    // Takseklareringen: leses når spillet har gitt den (game.taxiCall teller dem), satt sammen av enkeltklipp
+    if (game.taxiCall.count !== prev.taxiCall) {
+      prev.taxiCall = game.taxiCall.count;
+      const plan = game.taxiPlan, parts = plan ? taxiReadout(plan.stand.ref, plan.via, game.taxiCall.turnAround) : [];
+      if (parts.length && parts.every((p) => this.buffers.has(p))) {
+        if (!tower) this.play("radio", 0.25);
+        this.sayAll(parts, 0.9, !tower);
+      }
+    }
     if (P.state !== prev.state) {
       if (P.state === "landed") {
         this.play("touchdown", 0.45 * near);

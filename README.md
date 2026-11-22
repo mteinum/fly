@@ -104,7 +104,7 @@ piltastene styrer nesehjulet, mellomrom eller pil ned bremser (mellomrom bremser
 Hold deg på asfalten: i lav fart kjører flyet seg fast i gresset, i fart er det en ulykke. Gjør du ingenting,
 kommer diplomet seks sekunder etter at flyet har stanset, som før.
 
-Tårnet gir deg en stand og taksebanene dit («taxi to stand 16 via B, Y»). Ruta er merket med en grønn stripe på
+Tårnet gir deg en stand og taksebanene dit («taxi to stand 16 via B, Y»), på skjermen og over radioen. Ruta er merket med en grønn stripe på
 bakken og en grønn søyle på standen, og hjørnekartet bytter til et kart over flyplassen. Ruta regnes på nytt
 underveis, så tar du en annen vei, følger den med. Stans på standen, så settes parkeringsbremsen av seg selv, og
 under diplomet står det hvordan taksingen gikk. Takset du helt fram til en nummerert stand, står det også på
