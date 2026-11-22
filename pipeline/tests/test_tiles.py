@@ -159,9 +159,18 @@ def test_place_names_are_whole_names_inside_the_map(any_tiles):
     assert not [n[0] for n in names if n[0].endswith("-") or not n[0].strip()]
     # tunnelnavn er med (tunnelene tegnes stiplet), og sier selv at de er tunneler
     assert all("tunnel" in n[0].lower() for n in names if n[5] == "tunnel")
-    if meta["id"] == "kjeller10":  # signalbyggene fra data/landmarks.json er med, men ikke Slottet (det har krone)
-        signs = {n[0] for n in names if n[5] == "landemerke"}
-        assert {"Operaen", "Stortinget", "Barcode", "Holmenkollbakken"} <= signs and len(signs) == 13 and "Slottet" not in signs
+    # Signalbyggene i data/landmarks.json som ligger i utsnittet er med som landemerker, innen 600 m av der fila sier.
+    # Slottet er ikke blant dem (det har krone).
+    if meta["cellSize"] == 10:
+        wanted = json.loads((TILES.parents[3] / "data" / "landmarks.json").read_text(encoding="utf-8"))["signs"]
+        marks = [n for n in names if n[5] == "landemerke"]
+        inside = [s for s in wanted if grid.west <= s["east"] < grid.east and grid.south < s["north"] <= grid.north]
+        for s in inside:
+            sx, sy = grid.utm_to_grid(s["east"], s["north"])
+            assert any(n[0] == s["name"] and np.hypot(n[1] - sx, n[2] - sy) * 10 < 600 for n in marks), s["name"]
+        assert len(marks) == len(inside) and "Slottet" not in {n[0] for n in marks}
+        if meta["id"] == "kjeller10":
+            assert {"Operaen", "Stortinget", "Barcode", "Rådhuset"} <= {n[0] for n in marks}
     sizes = [n[4] for n in names]
     assert sizes == sorted(sizes, reverse=True)  # viktigste først
     for name, x, y, z, *_ in names:

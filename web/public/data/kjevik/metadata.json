@@ -305,7 +305,7 @@
   "aeroways": null,
   "names": {
     "file": "names.json",
-    "count": 1024,
+    "count": 1029,
     "source": "N50 Kartdata, tekstlaget (stedsnavn fra Sentralt stedsnavnregister)",
     "about": "size er kartets skriftstørrelse i 1:50 000 og brukes som mål på hvor viktig navnet er"
   },

@@ -188,10 +188,17 @@ def build(area: Area) -> Path:
             z = max([max(0.0, float(hgt[int(ly), int(lx)])), *roofs])  # over takene rundt, så skiltet ikke står inne i et bygg
             landmarks.append({"id": lm["id"], "name": lm["name"], "x": round(lx, 2), "y": round(ly, 2), "z": round(z, 1), "image": lm["image"]})
     # Signalbygg uten navn i N50 (data/landmarks.json, «signs»): et navneskilt som de andre stedsnavnene, over taket
-    have = {n["name"] for n in names}
     for sign in json.loads(LANDMARKS.read_text(encoding="utf-8")).get("signs", []) if area.n50_county else []:
         sx, sy = grid.utm_to_grid(sign["east"], sign["north"])
-        if 0 <= sx < grid.width and 0 <= sy < grid.height and sign["name"] not in have:
+        if not (0 <= sx < grid.width and 0 <= sy < grid.height):
+            continue
+        # står navnet alt i kartet like ved, løftes det i stedet (fyr beholder typen: den styrer fyrtårnene)
+        same = [n for n in names if n["name"] == sign["name"] and np.hypot(n["x"] - sx, n["y"] - sy) * area.cell < 600]
+        if same:
+            for n in same:
+                if n["type"] not in n50.LIGHTHOUSE_TYPES:
+                    n["type"], n["size"] = "landemerke", max(n["size"], 8.0)
+        else:
             roofs = [it[4] for it in items if it[2] == structures.BUILDING and abs(it[0] - sx) < 3 and abs(it[1] - sy) < 3]
             names.append({"name": sign["name"], "x": round(sx, 2), "y": round(sy, 2), "z": round(max([max(0.0, float(hgt[int(sy), int(sx)])), *roofs]), 1),
                           "size": 8.0, "type": "landemerke", "group": "bebyggelse"})

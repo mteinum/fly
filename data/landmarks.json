@@ -11,7 +11,7 @@
       "imageSource": "UiA-merket med «UiA» fra universitetets LaTeX-mal for oppgaver"
     }
   ],
-  "signsAbout": "Signalbygg som får navneskilt i spillet (uten logo), der N50 ikke har navnet. Slottet er ikke med: det har en krone over seg (figures.ts).",
+  "signsAbout": "Signalbygg som får navneskilt i spillet (uten logo). Står navnet alt i N50 innen 600 m, løftes det til landemerke der det står; ellers legges det inn her. Steder med en morofigur som sier det samme (Slottet har krone, Dyreparken, Sverd i fjell) er ikke med.",
   "signs": [
     {
       "name": "Operaen",
@@ -90,6 +90,282 @@
       "east": 262784,
       "north": 6649269,
       "source": "OpenStreetMap, midtpunktet av way 1509499373, «Radisson Blu Plaza Hotel, Oslo» (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Kilden",
+      "east": 88118,
+      "north": 6465620,
+      "source": "OpenStreetMap, way 273362400 (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Kunstsilo",
+      "east": 88113,
+      "north": 6465522,
+      "source": "OpenStreetMap, node 11897215486 (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Kristiansand domkirke",
+      "east": 88034,
+      "north": 6466412,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Aquarama",
+      "east": 88770,
+      "north": 6466405,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Sørlandssenteret",
+      "east": 96383,
+      "north": 6469340,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Stavanger domkirke",
+      "east": -31760,
+      "north": 6573637,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Norsk Oljemuseum",
+      "east": -31626,
+      "north": 6574067,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Viking stadion",
+      "east": -32746,
+      "north": 6567563,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Valbergtårnet",
+      "east": -31839,
+      "north": 6573919,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Stavanger konserthus",
+      "east": -32276,
+      "north": 6574369,
+      "source": "OpenStreetMap, way 159929187 (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Universitetet i Stavanger",
+      "east": -34522,
+      "north": 6570427,
+      "source": "OpenStreetMap, node 267591852 (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Ullandhaugtårnet",
+      "east": -33743,
+      "north": 6570625,
+      "source": "OpenStreetMap, way 154235474 (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Kvadrat",
+      "east": -33862,
+      "north": 6563470,
+      "source": "OpenStreetMap, relation 5761711 (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Bryggen",
+      "east": -31916,
+      "north": 6734767,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Håkonshallen",
+      "east": -32236,
+      "north": 6735161,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Grieghallen",
+      "east": -31826,
+      "north": 6733882,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Fløyen",
+      "east": -30929,
+      "north": 6734394,
+      "source": "OpenStreetMap, node 264999117 (utsiktspunktet) (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Brann Stadion",
+      "east": -30581,
+      "north": 6731225,
+      "source": "OpenStreetMap, way 553089982 (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Akvariet i Bergen",
+      "east": -32963,
+      "north": 6735278,
+      "source": "OpenStreetMap, relation 6637426 (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Fjellstua",
+      "east": 45450,
+      "north": 6958186,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Ålesund kirke",
+      "east": 44460,
+      "north": 6957974,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Sunnmøre museum",
+      "east": 49050,
+      "north": 6957055,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "NTNU i Ålesund",
+      "east": 49068,
+      "north": 6957445,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Atlanterhavsparken",
+      "east": 41812,
+      "north": 6957711,
+      "source": "OpenStreetMap, relation 13568581 (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Ishavskatedralen",
+      "east": 654677,
+      "north": 7731670,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Tromsø domkirke",
+      "east": 653474,
+      "north": 7731675,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Fjellheisen",
+      "east": 654876,
+      "north": 7730622,
+      "source": "OpenStreetMap, way 82443298 (midt på taubanen) (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Polarmuseet",
+      "east": 653710,
+      "north": 7732076,
+      "source": "OpenStreetMap, node 3798726950 (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Bodø domkirke",
+      "east": 473373,
+      "north": 7462994,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Aspmyra stadion",
+      "east": 473472,
+      "north": 7462352,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Nord universitet",
+      "east": 481080,
+      "north": 7463682,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Norsk Luftfartsmuseum",
+      "east": 474727,
+      "north": 7462274,
+      "source": "OpenStreetMap, way 153340863 (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Forsvarets flysamling",
+      "east": 282143,
+      "north": 6678964,
+      "source": "OpenStreetMap, way 125496552, «Forsvarets flysamling Gardermoen» (© OpenStreetMap contributors, ODbL), lest 2026-11-22"
+    },
+    {
+      "name": "Mehamn kirke",
+      "east": 963055,
+      "north": 7930817,
+      "source": "Sentralt stedsnavnregister, søk på navnet, slått opp 2026-11-22"
+    },
+    {
+      "name": "Christiansholm",
+      "east": 88553,
+      "north": 6466143,
+      "source": "N50 stedsnavn (alt i kartet): løftes til landemerke så det ses på 5 km"
+    },
+    {
+      "name": "Troldhaugen",
+      "east": -32891,
+      "north": 6726214,
+      "source": "N50 stedsnavn (alt i kartet): løftes til landemerke så det ses på 5 km"
+    },
+    {
+      "name": "Gamlehaugen",
+      "east": -32107,
+      "north": 6728730,
+      "source": "N50 stedsnavn (alt i kartet): løftes til landemerke så det ses på 5 km"
+    },
+    {
+      "name": "Fantoft stavkirke",
+      "east": -31261,
+      "north": 6728202,
+      "source": "N50 stedsnavn (alt i kartet): løftes til landemerke så det ses på 5 km"
+    },
+    {
+      "name": "Polaria",
+      "east": 653203,
+      "north": 7731110,
+      "source": "N50 stedsnavn (alt i kartet): løftes til landemerke så det ses på 5 km"
+    },
+    {
+      "name": "Alfheim stadion",
+      "east": 652613,
+      "north": 7731655,
+      "source": "N50 stedsnavn (alt i kartet): løftes til landemerke så det ses på 5 km"
+    },
+    {
+      "name": "Tromsø museum",
+      "east": 651842,
+      "north": 7730014,
+      "source": "N50 stedsnavn (alt i kartet): løftes til landemerke så det ses på 5 km"
+    },
+    {
+      "name": "Eidsvollsbygningen",
+      "east": 288453,
+      "north": 6691054,
+      "source": "N50 stedsnavn (alt i kartet): løftes til landemerke så det ses på 5 km"
+    },
+    {
+      "name": "Rådhuset",
+      "east": 261508,
+      "north": 6649298,
+      "source": "N50 stedsnavn (alt i kartet): løftes til landemerke så det ses på 5 km"
+    },
+    {
+      "name": "Akershus festning",
+      "east": 261668,
+      "north": 6648786,
+      "source": "N50 stedsnavn (alt i kartet): løftes til landemerke så det ses på 5 km"
+    },
+    {
+      "name": "Oslo domkirke",
+      "east": 262232,
+      "north": 6649323,
+      "source": "N50 stedsnavn (alt i kartet): løftes til landemerke så det ses på 5 km"
+    },
+    {
+      "name": "Oscarshall",
+      "east": 259195,
+      "north": 6649258,
+      "source": "N50 stedsnavn (alt i kartet): løftes til landemerke så det ses på 5 km"
     }
   ]
 }
