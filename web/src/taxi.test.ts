@@ -78,6 +78,26 @@ describe.skipIf(!hasTiles("kjevik10"))("taksing på Kjevik", () => {
     expect(onPavement(t, airport, P.x, P.y)).toBe(false);
   });
 
+  it("stanser på kortere strekning under utrullingen når piloten bremser selv", () => {
+    const roll = (K: Keys): number => {
+      const airport = t.meta.airports[0], rw = airport.runways[0], end = rw.ends[0], P = newPlane();
+      startApproach(P, t, end);
+      for (let i = 0; i < 300 * 60 && P.state === "fly"; i++) {
+        const cmd = autopilot(P, t, rw, end);
+        if ("unable" in cmd) break;
+        if (cmd.gearDown !== P.gearDown) toggleGear(P, quiet);
+        if (cmd.flapCfg !== P.flapCfg) moveFlaps(P, Math.sign(cmd.flapCfg - P.flapCfg), quiet);
+        update(P, t, airport, cmd.keys, 1 / 60, quiet);
+      }
+      let m = 0;
+      for (let i = 0; i < 120 * 60 && P.spd > 0; i++) { m += P.spd / 60; update(P, t, airport, K, 1 / 60, quiet); }
+      return m;
+    };
+    const auto = roll({}), braked = roll({ Space: true });
+    expect(auto).toBeGreaterThan(600); // MED: ca. 700 m
+    expect(braked).toBeLessThan(auto * 0.6); // fotbremsene: ca. halve strekningen
+  });
+
   it("nekter å sette parkeringsbremsen i fart", () => {
     const P = landed(t);
     run(P, t, { KeyW: true }, 6);

@@ -33,12 +33,16 @@ export const PARK_DELAY = 6;
 const TAXI_THRUST = 1.6, TAXI_MAX_THR = 0.5; // m/s² ved full gass, og hvor langt gasshåndtakene går på bakken
 const TAXI_DRAG = 0.08, TAXI_DRAG_PER_SPEED = 0.015; // rullemotstand: 10 % gass gir ca. 10 kt, 20 % ca. 30 kt
 const TAXI_BRAKE = 3; // m/s² med fotbremsene helt inne
+/** Full bremsing med fotbremsene under utrullingen (m/s²): det en A320 klarer på tørr bane. */
+export const MANUAL_BRAKE = 6;
 const TAXI_TURN = 0.45, TAXI_SIDE_ACCEL = 2.2; // rad/s i lav fart, og hvor krapt det går an å svinge i fart (m/s²)
 /** Forlater flyet asfalten fortere enn dette (m/s, ca. 23 kt), er det en ulykke. Saktere: det kjører seg fast. */
 const TAXI_CRASH_SPEED = 12;
 // m utenfor kanten flyet tåler. Romslig: kryssene er kartlagt som linjer uten de avrundede hjørnene asfalten har,
 // så den som skjærer en sving er i virkeligheten fortsatt på asfalt.
 const PAVEMENT_MARGIN = 8;
+/** Bredden på asfalten langs innkjøringslinja til en stand, der oppstillingsflata ikke er kartlagt (m). SYNTETISK. */
+export const STAND_LANE_M = 20;
 const ROLLOUT_STEER = 0.08; // rad/s: så fort nesehjulet retter flyet inn etter banen under utrullingen
 /** Største stampefart med full stikke (rad/s), ca. 11°/s. Var 34°/s, som var altfor kvikt å håndfly. */
 export const PITCH_RATE = 0.2;
@@ -142,14 +146,18 @@ export function onPavement(t: Terrain, airport: Airport, x: number, y: number): 
   }
   const aero = t.aeroways;
   if (!aero) return false;
-  for (const tw of aero.taxiways) {
-    const reach = (tw.width / 2 + PAVEMENT_MARGIN) / t.cell;
-    for (let i = 1; i < tw.line.length; i++) {
-      const [ax, ay] = tw.line[i - 1], [bx, by] = tw.line[i], dx = bx - ax, dy = by - ay;
+  const near = (line: [number, number][], widthM: number): boolean => {
+    const reach = (widthM / 2 + PAVEMENT_MARGIN) / t.cell;
+    for (let i = 1; i < line.length; i++) {
+      const [ax, ay] = line[i - 1], [bx, by] = line[i], dx = bx - ax, dy = by - ay;
       const f = clamp(((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1), 0, 1);
       if (Math.hypot(x - ax - f * dx, y - ay - f * dy) <= reach) return true;
     }
-  }
+    return false;
+  };
+  for (const tw of aero.taxiways) if (near(tw.line, tw.width)) return true;
+  // innkjøringslinja til en stand ligger på asfalt, også der flata rundt ikke er kartlagt
+  for (const st of aero.stands) if (st.line && near(st.line, STAND_LANE_M)) return true;
   for (const ring of aero.aprons) {
     let inside = false;
     for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -267,7 +275,7 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
     // Under ca. 30 kt kan piloten ta over og takse: gass (W), eller styring mens flyet ennå ruller
     if (P.state === "landed" && !P.taxi && t.aeroways && P.spd < TAXI_ENTRY && (axis(K.KeyW) > 0 || (P.spd > 0.5 && (axis(K.ArrowLeft) > 0 || axis(K.ArrowRight) > 0)))) {
       P.taxi = true; P.thr = 0;
-      say("Taxi: ← → steer · W / S thrust · Space brake · Enter parks", 7);
+      say("← → steer · W / S thrust · Space brake · follow the green line", 7);
     }
     if (P.state === "landed" && P.taxi) {
       taxi(P, t, airport, K, dt, say);
@@ -277,7 +285,8 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
       // Utrulling: bakkespoilerne går ut av seg selv når de er armert, autobremsen holder nedbremsingen den er satt til, og
       // nesehjulet retter flyet inn etter banen (SYNTETISK: spillet har ikke sideror eller hjulstyring).
       if (P.spoilersArmed || P.speedBrake) P.brake = Math.min(1, P.brake + dt / BRAKE_TIME);
-      P.spd = Math.max(0, P.spd - AUTOBRAKE_DECEL[P.autobrake] * dt);
+      // Mellomrom er fotbremsene: full bremsing under utrullingen, for å rekke en avkjøring autobremsen ville rullet forbi
+      P.spd = Math.max(0, P.spd - Math.max(AUTOBRAKE_DECEL[P.autobrake], MANUAL_BRAKE * axis(K.Space)) * dt);
       const end = airport.runways.flatMap((rw) => rw.ends).find((e) => e.ident === P.touchdown?.runway);
       if (end) {
         const off = Math.atan2(Math.sin((end.headingGridDeg * Math.PI) / 180 - P.hdg), Math.cos((end.headingGridDeg * Math.PI) / 180 - P.hdg));

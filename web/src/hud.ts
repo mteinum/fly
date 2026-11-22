@@ -51,12 +51,47 @@ export function drawMap(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImag
   g.restore();
 }
 
+/** Flyplasskart under taksing: rullebaner, taksebaner og oppstillingsflater, ruta til standen i grønt, og flyet.
+ *  Rutenett-nord opp. Utsnittet følger ruta: alt fra flyet til standen er med, og minst 500 m på hver led. */
+function drawGroundMap(g: CanvasRenderingContext2D, t: Terrain, game: Game, x: number, y: number, m: number): void {
+  const plan = game.taxiPlan!, P = game.P, aero = t.aeroways;
+  let x0 = P.x, x1 = P.x, y0 = P.y, y1 = P.y;
+  for (const [px, py] of plan.route) { x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py); }
+  const span = Math.max(x1 - x0, y1 - y0, 500 / t.cell) + 160 / t.cell, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, k = m / span;
+  const sx = (px: number) => x + m / 2 + (px - cx) * k, sy = (py: number) => y + m / 2 + (py - cy) * k;
+  const path = (pts: [number, number][], close = false) => { g.beginPath(); pts.forEach(([px, py], i) => (i ? g.lineTo(sx(px), sy(py)) : g.moveTo(sx(px), sy(py)))); if (close) g.closePath(); };
+  g.save();
+  g.beginPath(); g.rect(x, y, m, m); g.clip();
+  g.fillStyle = "#1d2b1f"; g.fillRect(x, y, m, m);
+  g.lineCap = "round"; g.lineJoin = "round";
+  if (aero) {
+    g.fillStyle = "#565a60";
+    for (const ring of aero.aprons) { path(ring, true); g.fill(); }
+    g.strokeStyle = "#6c7077";
+    for (const tw of aero.taxiways) { g.lineWidth = Math.max(0.5, (tw.width / t.cell) * k); path(tw.line); g.stroke(); }
+  }
+  g.strokeStyle = "#a9adb4";
+  for (const rw of game.airport.runways) { g.lineWidth = Math.max(0.8, (rw.widthM / t.cell) * k); path([[rw.ends[0].x, rw.ends[0].y], [rw.ends[1].x, rw.ends[1].y]]); g.stroke(); }
+  g.strokeStyle = "#2fe04a"; g.lineWidth = 0.8; path(plan.route); g.stroke();
+  const [stx, sty] = plan.stand.at;
+  g.fillStyle = "#2fe04a"; g.beginPath(); g.arc(sx(stx), sy(sty), 1.6, 0, Math.PI * 2); g.fill();
+  g.font = `bold 4px ${FONT}`; g.textAlign = "center"; g.fillStyle = "#d8ffe0";
+  g.fillText(plan.stand.ref || "APRON", sx(stx), sy(sty) - 2.6);
+  g.translate(sx(P.x), sy(P.y));
+  g.rotate(P.hdg);
+  g.fillStyle = "#ff4a3d"; g.strokeStyle = "#fff"; g.lineWidth = 0.4;
+  g.beginPath(); g.moveTo(0, -3.2); g.lineTo(2.2, 2.4); g.lineTo(0, 1.2); g.lineTo(-2.2, 2.4); g.closePath();
+  g.fill(); g.stroke();
+  g.restore();
+}
+
 /** Oversiktskartet oppe i høyre hjørne. `inset` er avstanden fra høyre kant (i cockpit står vindusstolpen der). */
 export function drawCornerMap(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImageSource, game: Game, inset: number): void {
   const m = 52, mx = W - m - inset, my = TOP + 4;
   g.save();
   g.fillStyle = "#000"; g.fillRect(mx - 1, my - 1, m + 2, m + 2);
-  drawMap(g, t, map, game, mx, my, m);
+  if (game.taxiPlan && game.P.state === "landed") drawGroundMap(g, t, game, mx, my, m);
+  else drawMap(g, t, map, game, mx, my, m);
   g.restore();
 }
 

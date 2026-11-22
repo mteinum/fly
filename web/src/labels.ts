@@ -64,6 +64,7 @@ export function declutter<T extends Box>(boxes: T[], max: number): T[] {
 
 /** Farge og skriftstil etter hva slags sted det er. */
 export function labelStyle(n: PlaceName): { color: string; italic: boolean } {
+  if (n.type === "stand") return { color: "#7dff9a", italic: false }; // standen flyet takser til: samme grønne som ruta
   if (n.type === "fly") return { color: "#ffffff", italic: false }; // andre fly fra ADS-B
   if (n.type === "skip") return { color: "#fff3a6", italic: false }; // skip fra AIS: samme gule som på kartet, dempet
   if (n.type === "bru" || n.type === "flyplass") return { color: "#ffd27a", italic: false };

@@ -3,11 +3,12 @@ import { autobrakeFor, autopilot } from "./autopilot";
 import { startTime } from "./clock";
 import { gradeLanding } from "./diploma";
 import { type FlightLog, FlightLogger } from "./flightlog";
-import { type Keys, moveFlaps, park, setAutobrake, softStick, startApproach, toggleGear, toggleSpeedBrake, update, type Wind, windFrom } from "./physics";
+import { type Keys, moveFlaps, park, setAutobrake, softStick, TAXI_ENTRY, startApproach, toggleGear, toggleSpeedBrake, update, type Wind, windFrom } from "./physics";
 import { Recorder, REPLAY_HOLD } from "./replay";
 import { newPlane, type Plane } from "./plane";
 import { type SkyState, skyState } from "./sky";
 import { sunPosition } from "./sun";
+import { buildTaxiGraph, chooseStand, lastExitM, planTaxi, type TaxiGraph, type TaxiPlan } from "./taxiRoute";
 import type { TcasLevel } from "./tcas";
 import type { Airport, Terrain } from "./terrain";
 
@@ -70,6 +71,10 @@ export interface Game {
   /** Brytere på overheadpanelet og midtkonsollen som virker: setebelteskiltet (SIGNS i landingsmemoet), terrengvarselet,
    *  TCAS i beredskap (da vises ingen trafikk), og hvilken side SD viser («auto» følger understellet). */
   sys: { seatBelts: boolean; gpwsTerr: boolean; tcasStandby: boolean; sdPage: "auto" | "eng" | "wheel" };
+  /** Etter landing: standen flyet har fått og ruta dit fra der flyet er nå (fornyes mens flyet takser), eller null
+   *  når flyplassen ikke har stands som kan nås. `taxiResult` er hvordan det gikk, når flyet står: til diplomet. */
+  taxiPlan: TaxiPlan | null;
+  taxiResult: string | null;
   /** Fartsvektoren («fuglen») på PFD: viser hvor flyet er på vei over bakken. P slår den av og på. */
   flightPathVector: boolean;
   /** Vinden: hvor den kommer fra (sann retning i grader) og middelvinden i knop, og det samme som fart i rutenettet.
@@ -159,11 +164,48 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     if ("unable" in cmd) { setAutopilot(false, `: ${cmd.unable}`); return manual; }
     if (cmd.gearDown !== P.gearDown) toggleGear(P, say);
     if (cmd.flapCfg !== P.flapCfg) moveFlaps(P, Math.sign(cmd.flapCfg - P.flapCfg), say);
-    if (cmd.autobrake !== P.autobrake) setAutobrake(P, cmd.autobrake, say);
+    if (Math.max(cmd.autobrake, plannedAutobrake) !== P.autobrake) setAutobrake(P, Math.max(cmd.autobrake, plannedAutobrake), say);
     game.apTarget = { speedKt: cmd.speedKt, courseTrueDeg: ends[endIdx].headingTrueDeg };
     return cmd.keys;
   };
   const recorder = new Recorder(), logger = new FlightLogger(terrain, airport);
+  // Taksing til en stand: nettet av taksebaner bygges én gang; standen velges ved landing og ruta fornyes underveis
+  const taxiGraph: TaxiGraph | null = buildTaxiGraph(terrain, airport);
+  let stand: TaxiGraph["stands"][number] | null = null, taxiS = 0, replanIn = 0, toldRoute = false, plannedAutobrake = 2, sawParked = false;
+  const STAND_REACHED_M = 25;
+  /** Etter landing: velg stand, hold ruta fersk, si fra om den, og avgjør hvordan taksingen endte. */
+  const taxiStep = (dt: number): void => {
+    if (P.state !== "landed" || !taxiGraph) return;
+    if (!stand) stand = chooseStand(taxiGraph, airport, approach.count);
+    if (!stand) return;
+    const name = stand.ref ? `stand ${stand.ref}` : "the apron", toStandM = Math.hypot(P.x - stand.at[0], P.y - stand.at[1]) * terrain.cell;
+    if (!P.parked) {
+      taxiS += dt;
+      replanIn -= dt;
+      if (replanIn <= 0) { replanIn = 1.5; game.taxiPlan = planTaxi(terrain, taxiGraph, P.x, P.y, stand, P.hdg); }
+      // Tårnet gir standen og ruta når flyet er nede i taksefart. SYNTETISK: se taxiRoute.ts.
+      if (!toldRoute && game.taxiPlan && P.spd < TAXI_ENTRY) {
+        toldRoute = true;
+        // Går ruta bakover langs rullebanen, må flyet snu der det står: det går bare i lav fart
+        const [nx, ny] = game.taxiPlan.route[Math.min(2, game.taxiPlan.route.length - 1)];
+        const back = (nx - P.x) * Math.sin(P.hdg) - (ny - P.y) * Math.cos(P.hdg) < 0;
+        say(`Tower: ${back ? "turn around on the runway (slowly, under 10 kt), " : ""}taxi to ${name}${game.taxiPlan.via.length ? ` via ${game.taxiPlan.via.join(", ")}` : ""}.${P.taxi ? "" : " Press W."}`, 10);
+      }
+      // framme: flyet står stille på standen. Parkeringsbremsen settes av seg selv.
+      if (P.taxi && P.spd === 0 && toStandM < STAND_REACHED_M) park(P, say);
+    }
+    // Parkert siden sist: også når bremsen ble satt med Enter eller på panelet, som skjer mellom to steg
+    const justParked = P.parked && !sawParked;
+    sawParked = P.parked;
+    if (justParked && P.taxi) {
+      const time = `${Math.floor(taxiS / 60)}:${String(Math.floor(taxiS % 60)).padStart(2, "0")}`;
+      game.taxiResult = P.stuck ? `Got stuck in the grass on the way to ${name}.`
+        : toStandM < STAND_REACHED_M ? `Taxied to ${name} in ${time}.`
+        : `Parked ${Math.round(toStandM / 10) * 10} m from ${name}.`;
+      if (!P.stuck) say(toStandM < STAND_REACHED_M ? `Parked at ${name}. Welcome to ${airport.name.split(",").pop()!.trim()}!` : game.taxiResult, 6);
+      game.taxiPlan = null;
+    }
+  };
   let replayTime = 0;
   const reset = () => {
     // en innflyging som avbrytes i lufta logges også, hvis den varte lenge nok til å si noe
@@ -171,9 +213,12 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     if (aborted && aborted.samples.length > 20) game.flightLog = aborted;
     recorder.clear();
     game.replay = null;
+    game.taxiPlan = game.taxiResult = null;
+    stand = null; taxiS = 0; replanIn = 0; toldRoute = false; sawParked = false;
     game.autopilot = approach.autopilot = false;
     startApproach(P, terrain, ends[endIdx]);
-    P.autobrake = autobrakeFor(runwayOf(ends[endIdx]), ends[endIdx]); // MED, eller MAX på korte baner. Piloten kan endre den (1, 2, 3)
+    // MED, eller MAX på korte baner og der MED ville rullet forbi siste avkjøring. Piloten kan endre den (1, 2, 3)
+    plannedAutobrake = P.autobrake = autobrakeFor(runwayOf(ends[endIdx]), ends[endIdx], taxiGraph && lastExitM(taxiGraph, runwayOf(ends[endIdx]), ends[endIdx]));
     logger.start(P, runwayOf(ends[endIdx]), ends[endIdx], new Date());
     approach.count++;
     approach.elapsedS = 0;
@@ -199,6 +244,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     fd: null,
     nd: { rangeNm: ND_RANGES[0], terrain: true },
     flightPathVector: false,
+    taxiPlan: null,
+    taxiResult: null,
     look: params.get("look") === "up" ? "up" : params.get("look") === "down" ? "down" : "forward",
     sys: { seatBelts: true, gpwsTerr: true, tcasStandby: false, sdPage: "auto" },
     wind,
@@ -246,6 +293,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
       const wasFlying = P.state === "fly";
       if (wasFlying) approach.elapsedS += dt; // stoppeklokka på panelet: står når flyet har landet
       const again = update(P, terrain, airport, controls(dt), dt, say, wind.vector);
+      taxiStep(dt);
       if (wasFlying) logger.step(P, dt, game.autopilot);
       if (wasFlying && P.state !== "fly") game.flightLog = logger.finish(P, msg.text, P.touchdown && gradeLanding(P.touchdown), game.autopilot) ?? game.flightLog;
       if (P.state !== "fly") game.autopilot = false;
@@ -309,6 +357,13 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     P.alt = pos[2];
     P.hdg = ((pos[3] - terrain.meta.gridConvergenceDeg) * Math.PI) / 180;
     P.pitch = 0;
+  }
+  // ?taxi: hopp over flygingen og start på rullebanen etter landing, i taksefart (til å øve på taksing). Uten
+  // landing blir det ikke noe diplom.
+  if (params.has("taxi")) {
+    const end = ends[endIdx], rw = runwayOf(end), h = (end.headingGridDeg * Math.PI) / 180, d = (rw.lengthM * 0.45) / terrain.cell;
+    const x = end.x + Math.sin(h) * d, y = end.y - Math.cos(h) * d;
+    Object.assign(P, { state: "landed", x, y, hdg: h, alt: Math.max(0, terrain.heightAt(x, y)) + 1, spd: 12, pitch: 0, roll: 0, thr: 0, gearDown: true, gear: 1, flapCfg: 4, flaps: 4, taxi: true });
   }
   // ?cfg=full: start ferdig satt opp for landing (understell nede, full klaff)
   // ?ap: la autopiloten fly fra start

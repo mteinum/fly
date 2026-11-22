@@ -7,6 +7,7 @@
  * etter et fast mønster, ikke etter flyplassens faktiske oppmerking.
  */
 import * as THREE from "three";
+import { STAND_LANE_M } from "./physics";
 import type { Terrain } from "./terrain";
 
 const LIFT = 0.22; // m over terrenget. Lavere enn rullebanen (0,3), som dermed ligger øverst der de møtes
@@ -102,6 +103,21 @@ function standNumber(t: Terrain, ref: string, x: number, z: number, heading: num
   return mesh;
 }
 
+/** Ruta til standen under taksing: en grønn stripe langs taksebanene (som «follow the greens» på store flyplasser)
+ *  og en lysende søyle på standen, så den ses på avstand. SYNTETISK: hjelpemidler for spilleren. */
+export function buildTaxiRoute(t: Terrain, route: [number, number][], stand: [number, number]): THREE.Object3D[] {
+  const line = new Builder(t, LIFT + 0.2);
+  line.strip(route.map(([x, y]): XZ => [x * t.cell, y * t.cell]), 1.4);
+  const mesh = line.mesh(0x2fe04a, -5);
+  mesh.material = new THREE.MeshBasicMaterial({ color: 0x2fe04a, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5 });
+  const x = stand[0] * t.cell, z = stand[1] * t.cell, y = Math.max(0, t.heightAt(stand[0], stand[1]));
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 40, 10), new THREE.MeshBasicMaterial({ color: 0x2fe04a, transparent: true, opacity: 0.45, depthWrite: false }));
+  beam.position.set(x, y + 20, z);
+  const pad = new THREE.Mesh(new THREE.RingGeometry(9, 11, 40).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ color: 0x2fe04a, side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5 }));
+  pad.position.set(x, y + LIFT + 0.25, z);
+  return [mesh, beam, pad];
+}
+
 /** Flatene som tegner flyplassens bakkeanlegg, eller ingen når utsnittet ikke har det. */
 export function buildAirportGround(t: Terrain): THREE.Object3D[] {
   const aero = t.aeroways;
@@ -121,11 +137,13 @@ export function buildAirportGround(t: Terrain): THREE.Object3D[] {
     if (st.line && st.line.length > 1) {
       const line = st.line.map(m), [ax, az] = line[line.length - 2], [bx, bz] = line[line.length - 1];
       heading = Math.atan2(bx - ax, -(bz - az));
+      apron.strip(line, STAND_LANE_M); // asfalt langs linja, også der flata rundt ikke er kartlagt
       paint.strip(line, LINE_W);
     }
     if (st.ref) out.push(standNumber(t, st.ref, x, z, heading));
   }
-  // innkjøringslinjene ble lagt til etter at malingen ble bygget: bygg den på nytt
+  // innkjøringslinjene ble lagt til etter at flatene ble bygget: bygg dem på nytt
+  out[0] = apron.mesh(0x55575b, -1);
   out[2] = paint.mesh(0xd9b61c, -3);
   return out;
 }

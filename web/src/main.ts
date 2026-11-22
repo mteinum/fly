@@ -198,6 +198,7 @@ async function main(): Promise<void> {
   // Diplom etter landing: bildet tas i landingsøyeblikket, diplomet vises når flyet står stille
   const diploma = createDiplomaUi("https://fly.teinum.no/"), glCanvas = document.getElementById("gl") as HTMLCanvasElement;
   let landingPhoto: HTMLCanvasElement | null = null, wasLanded = false;
+  let shownPlan: typeof game.taxiPlan = null; // ruta som er tegnet på bakken nå
   // R og T starter ny innflyging og lukker diplomet - men ikke når de er bokstaver i navnet som skrives
   addEventListener("keydown", (e) => { if (!isTyping(e) && (e.code === "KeyR" || e.code === "KeyT")) diploma.hide(); });
 
@@ -289,6 +290,17 @@ async function main(): Promise<void> {
       boxes.push({ x: px - w / 2 - 2, y: py - 6 - size - 2.6, w: w + 4, h: size + 5.6, place, px, py: py - 2.6, font, detail: a.detail });
       flightLabels++;
     }
+    // Standen flyet skal til, mens det takser: skilt over stedet, foran alle stedsnavn
+    if (game.taxiPlan) {
+      const st = game.taxiPlan.stand, z = Math.max(0, terrain.heightAt(st.at[0], st.at[1]));
+      const at = renderer.project(st.at[0] * terrain.cell, z + 26, st.at[1] * terrain.cell);
+      if (at) {
+        const name = st.ref ? `STAND ${st.ref}` : "APRON", size = 3.4, font = `700 ${size}px "Helvetica Neue", Helvetica, Arial, sans-serif`;
+        g.font = font;
+        const w = g.measureText(name).width, px = at[0] * W, py = TOP + at[1] * (H - TOP);
+        boxes.unshift({ x: px - w / 2 - 2, y: py - 6 - size, w: w + 4, h: size + 3, place: { name, x: st.at[0], y: st.at[1], z, size: 12, type: "stand", group: "stand" }, px, py, font });
+      }
+    }
     for (const { place, distanceM } of candidates(terrain, cx, cy, ey)) {
       const at = renderer.project(place.x * terrain.cell, place.z + 20, place.y * terrain.cell);
       if (!at || !inSight(terrain, cx, cy, ey, place)) continue;
@@ -343,6 +355,7 @@ async function main(): Promise<void> {
       return { id: a.id, x, y, alt, heading: a.course, climb: a.climb, ...aircraftSize(a.cat), name: a.flight || a.type || "aircraft", detail, tcas };
     });
     renderer.setTraffic(others);
+    if (game.taxiPlan !== shownPlan) { shownPlan = game.taxiPlan; renderer.setTaxiRoute(shownPlan); }
     game.traffic = others;
     showInfo();
     audio.update(game, terrain);
@@ -364,10 +377,13 @@ async function main(): Promise<void> {
       // Autopiloten får karakter, men ikke diplom: det er for den som fløy selv
       const grade = gradeLanding(game.P.touchdown);
       // Kjørte piloten seg fast under taksingen etterpå, skal den beskjeden stå: ellers ser flyet bare ut til å ha stanset
-      game.msg.text = `${game.P.stuck ? "Stuck in the grass. " : ""}Autopilot: ${"★".repeat(grade.stars)}${"☆".repeat(5 - grade.stars)} ${grade.title}. Press R and beat it.`;
+      const stars = `${"★".repeat(grade.stars)}${"☆".repeat(5 - grade.stars)}`;
+      // etter taksing: kort, så linja får plass ved siden av hjørnekartet
+      game.msg.text = game.taxiResult ? `${game.taxiResult} Autopilot landing ${stars}. Press R.`
+        : `${game.P.stuck ? "Stuck in the grass. " : ""}Autopilot: ${stars} ${grade.title}. Press R and beat it.`;
       game.msg.t = 1;
     } else if (landed && game.P.parked && game.P.touchdown && !diploma.open && !clean && landingPhoto) {
-      diploma.show({ airportName: chosen.name, icao: chosen.icao, touchdown: game.P.touchdown }, landingPhoto, () => { diploma.hide(); game.restart(); });
+      diploma.show({ airportName: chosen.name, icao: chosen.icao, touchdown: game.P.touchdown, taxi: game.taxiResult }, landingPhoto, () => { diploma.hide(); game.restart(); });
       landingPhoto = null;
     }
     wasLanded = landed;

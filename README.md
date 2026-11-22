@@ -51,7 +51,7 @@ betjenes med mus eller finger.
 Flyplass velges under «Hjelp» eller med `?apt=ENZV` (ICAO-kode). `T` blar gjennom alle
 baneender på flyplassen.
 
-URL-parametre: `?apt=ENGM`, `?wind=240/15` (vind fra 240° sann retning, 15 kt; uten den brukes flyplassens vind akkurat nå), `?cam=cockpit` eller `?cam=tower`, `?rwy=21`, `?cfg=full` (start med understell nede
+URL-parametre: `?apt=ENGM`, `?wind=240/15` (vind fra 240° sann retning, 15 kt; uten den brukes flyplassens vind akkurat nå), `?cam=cockpit` eller `?cam=tower`, `?rwy=21`, `?taxi` (start på rullebanen etter landing, for å øve på taksing), `?cfg=full` (start med understell nede
 og full klaff), `?time=22:00` og `?date=2026-06-21`
 (norsk tid; uten dem starter spillet kl. 13:00 i dag), og `?pos=øst,nord,høyde,kurs` (UTM 33,
 meter, sann kurs), f.eks. `?pos=91725,6468775,70,174` for Varoddbrua.
@@ -92,15 +92,22 @@ regner med vinden.
 
 Når hjulene tar bakken går bakkespoilerne ut av seg selv, og autobremsen bremser flyet: LO 1,7 m/s², MED 3 m/s²
 (ca. 700 m fra 126 kt) eller MAX 8 m/s². Hver innflyging starter med MED, eller MAX der banen er for kort for
-MED (Mehamn). Ruller flyet av enden på banen i fart, er det en utforkjøring. MAX er sterkere enn flyet klarer;
+MED (Mehamn) eller der MED ville rullet forbi banens siste avkjøring (Kjevik bane 03). Mellomrom bremser hardt
+for hånd under utrullingen. Ruller flyet av enden på banen i fart, er det en utforkjøring. MAX er sterkere enn flyet klarer;
 uten det kunne ingen landet på Mehamns 880 m.
 
 ## Taksing
 
 Når flyet har rullet ned til ca. 30 knop kan du ta over og takse: `W` gir gass (og starter taksingen), `S` tar den av,
-piltastene styrer nesehjulet, mellomrom eller pil ned bremser, og `Enter` setter parkeringsbremsen når flyet står.
+piltastene styrer nesehjulet, mellomrom eller pil ned bremser (mellomrom bremser også hardt under utrullingen, for
+å rekke en tidligere avkjøring), og `Enter` setter parkeringsbremsen når flyet står.
 Hold deg på asfalten: i lav fart kjører flyet seg fast i gresset, i fart er det en ulykke. Gjør du ingenting,
 kommer diplomet seks sekunder etter at flyet har stanset, som før.
+
+Tårnet gir deg en stand og taksebanene dit («taxi to stand 16 via B, Y»). Ruta er merket med en grønn stripe på
+bakken og en grønn søyle på standen, og hjørnekartet bytter til et kart over flyplassen. Ruta regnes på nytt
+underveis, så tar du en annen vei, følger den med. Stans på standen, så settes parkeringsbremsen av seg selv, og
+under diplomet står det hvordan taksingen gikk. `?taxi` i adressen hopper over flygingen og starter på rullebanen.
 
 ## Flight director
 

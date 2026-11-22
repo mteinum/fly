@@ -51,11 +51,15 @@ export interface AutopilotCommand {
 }
 
 /** Autobremsen som passer banen (2 = MED, 3 = MAX): MED der bremsestrekningen fra utflatingsfarten, pluss en
- *  firedel, får plass på banen som er igjen 600 m inne (der hjulene tar bakken senest). Ellers MAX.
+ *  firedel, får plass på banen som er igjen 600 m inne (der hjulene tar bakken senest). Ellers MAX. Er avstanden til
+ *  banens siste avkjøring kjent (`lastExitM`, fra baneenden), velges MAX også når det er det som skal til for å rekke den.
  *  Brukes av autopiloten, og som utgangspunkt når en innflyging starter. */
-export function autobrakeFor(rw: Runway, end: RunwayEnd): number {
-  const medStopM = ((FLARE_KT / KT) ** 2 / (2 * AUTOBRAKE_DECEL[2])) * 1.25;
-  return rw.lengthM - end.displacedThresholdM - 600 > medStopM ? 2 : 3;
+export function autobrakeFor(rw: Runway, end: RunwayEnd, lastExitM: number | null = null): number {
+  const stopM = (level: number) => ((FLARE_KT / KT) ** 2 / (2 * AUTOBRAKE_DECEL[level])) * 1.25;
+  if (rw.lengthM - end.displacedThresholdM - 600 <= stopM(2)) return 3;
+  // Ville MED rullet forbi den siste avkjøringen, mens MAX stanser før den: MAX, så flyet slipper å snu på banen
+  const past = (level: number) => lastExitM !== null && end.displacedThresholdM + 600 + stopM(level) > lastExitM;
+  return past(2) && !past(3) ? 3 : 2;
 }
 
 /** Autopiloten kan ikke lande herfra. `unable` er grunnen, slik den vises for piloten. */

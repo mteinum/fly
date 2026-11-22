@@ -12,7 +12,7 @@ import * as THREE from "three";
 import type { Camera, Environment } from "./game";
 import { addGroundDetail, type GroundDetail } from "./groundDetail";
 import { buildRunwayDecal } from "./runwayDecal";
-import { buildAirportGround } from "./taxiDecal";
+import { buildAirportGround, buildTaxiRoute } from "./taxiDecal";
 import type { Plane } from "./plane";
 import type { RGB } from "./sky";
 import { CHURCH_TOWER_HALF_WIDTH, LIGHTHOUSE_RADIUS } from "./physics";
@@ -385,6 +385,18 @@ export class GlRenderer {
     this.trafficBodies.count = this.trafficWings.count = this.trafficFins.count = 0;
     light.setDrawRange(0, 0);
     this.scene.add(this.trafficBodies, this.trafficWings, this.trafficFins, this.trafficLights);
+  }
+
+  private taxiRoute: THREE.Object3D[] = [];
+  /** Tegn ruta til standen (eller fjern den med null). Kalles når ruta er ny, ikke hvert bilde. */
+  setTaxiRoute(plan: { route: [number, number][]; stand: { at: [number, number] } } | null): void {
+    for (const o of this.taxiRoute) {
+      this.scene.remove(o);
+      const m = o as THREE.Mesh;
+      m.geometry.dispose(); (m.material as THREE.Material).dispose();
+    }
+    this.taxiRoute = plan ? buildTaxiRoute(this.t, plan.route, plan.stand.at) : [];
+    for (const o of this.taxiRoute) this.scene.add(o);
   }
 
   /** Hvor de andre flyene er nå. x og y i rutenettceller, alt i meter over havet, heading som rutenettkurs. */

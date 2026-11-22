@@ -40,6 +40,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     autopilot.ts   regelstyrt autopilot for innflyging og landing (A), flyr med spillerens kontroller
     guidance.ts    avvik fra senterlinje og 3° glidebane (vises som ILS på PFD, syntetisk)
     footprints.ts  leser buildings.bin og lager trekanter (vegger og flatt tak) for bygg med omriss
+    taxiRoute.ts   nettet av taksebaner, korteste vei til en stand, og valg av stand (ruta og valget er syntetiske)
     traffic.ts     andre fly fra ADS-B: UTM -> rutenett, bevegelse og høyde mellom oppdateringer
     ships.ts       skip fra AIS: UTM -> rutenett, bevegelse mellom meldinger, jevne oppdateringer
     flightlog.ts   flylogg per innflyging (UTM 33, sann kurs); L laster ned, utviklingsserveren lagrer i data/flights/

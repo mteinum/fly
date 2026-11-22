@@ -34,6 +34,8 @@ export interface DiplomaData {
   touchdown: Touchdown;
   grade: Grade;
   date: Date;
+  /** Hvordan taksingen etterpå gikk, når piloten takset selv. Står under diplomet; teller ikke i karakteren. */
+  taxi?: string | null;
 }
 
 const W = 1200, H = 630;
@@ -172,7 +174,7 @@ export function createDiplomaUi(siteUrl: string): DiplomaUi {
       photo = shot;
       onAgain = again;
       const r = current.grade.remarks;
-      note.textContent = r.length ? `Marked down for: ${r.join(", ")}.` : "Nothing to fault.";
+      note.textContent = `${r.length ? `Marked down for: ${r.join(", ")}.` : "Nothing to fault."}${data.taxi ? ` ${data.taxi}` : ""}`;
       drawDiploma(canvas, current, photo);
       root.hidden = false;
     },
