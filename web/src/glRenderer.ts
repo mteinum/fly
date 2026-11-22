@@ -53,18 +53,19 @@ const SRGB_TO_LINEAR = Uint8Array.from({ length: 256 }, (_, v) => Math.round(255
 function busStopTexture(): THREE.CanvasTexture {
   const c = document.createElement("canvas");
   c.width = c.height = 128;
-  const g = c.getContext("2d")!, BLUE = "#14458f";
+  const g = c.getContext("2d")!, BLUE = "#14458f", WHITE = "#e4e8ee";
   g.fillStyle = "#8d9399"; g.fillRect(61, 70, 6, 58); // stolpen
-  g.fillStyle = "#ffffff"; g.beginPath(); g.roundRect(14, 4, 100, 72, 8); g.fill();
-  g.fillStyle = BLUE; g.beginPath(); g.roundRect(18, 8, 92, 64, 5); g.fill();
+  // tynn lys kant: på avstand flyter kant og bunn sammen, og en bred kant gjør hele skiltet hvitt
+  g.fillStyle = WHITE; g.beginPath(); g.roundRect(14, 4, 100, 72, 8); g.fill();
+  g.fillStyle = BLUE; g.beginPath(); g.roundRect(16, 6, 96, 68, 6); g.fill();
   // bussen: kasse med skrå front, fire vinduer og to hjul
-  g.fillStyle = "#ffffff";
+  g.fillStyle = WHITE;
   g.beginPath(); g.moveTo(34, 24); g.lineTo(100, 24); g.lineTo(100, 52); g.lineTo(28, 52); g.lineTo(28, 40); g.closePath(); g.fill();
   g.fillStyle = BLUE;
   for (let i = 0; i < 4; i++) { g.beginPath(); g.roundRect(i === 0 ? 33 : 34 + i * 16.5, 28, 14, 10, 2); g.fill(); }
   for (const x of [44, 84]) {
     g.fillStyle = BLUE; g.beginPath(); g.arc(x, 52, 8, 0, 7); g.fill();
-    g.fillStyle = "#ffffff"; g.beginPath(); g.arc(x, 52, 6, 0, 7); g.fill();
+    g.fillStyle = WHITE; g.beginPath(); g.arc(x, 52, 6, 0, 7); g.fill();
   }
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -603,12 +604,12 @@ export class GlRenderer {
   /** Veitunneler: stiplet linje oppå bakken og sjøen der tunnelen går under, slik et kart tegner dem.
    *  Hvor tunnelen går er ekte (N50). At den synes, er SYNTETISK: en tunnel ses ikke fra lufta. */
   /** Bussholdeplassene (Enturs stoppestedsregister): det blå holdeplasskiltet (skilt 512) på en stolpe, alltid vendt
-   *  mot kameraet. Hvor holdeplassene er, er ekte. Skiltet er SYNTETISK forstørret til 9 m bredde på en 14 m høy
+   *  mot kameraet. Hvor holdeplassene er, er ekte. Skiltet er SYNTETISK forstørret til 8 m bredde på en 12 m høy
    *  stolpe, ellers synes det ikke fra lufta, og det står ett skilt per holdeplass, ikke ett per kjøreretning. */
   private addBusStops(): void {
     const stops = this.t.busStops;
     if (!stops.length) return;
-    const { cell } = this.t, HEIGHT = 14, pos = new Float32Array(stops.length * 3);
+    const { cell } = this.t, HEIGHT = 12, pos = new Float32Array(stops.length * 3);
     stops.forEach((s, i) => pos.set([s.x * cell, this.t.roadPlace(s.x, s.y)[2] + HEIGHT / 2, s.y * cell], i * 3));
     const geo = new THREE.BufferGeometry();
     geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
@@ -946,8 +947,9 @@ export class GlRenderer {
     }
     // Antikollisjonslys: et kort hvitt blink i sekundet, dag og natt, så flyene kan ses på avstand
     this.trafficLights.visible = (performance.now() / 1000) % 1.2 < 0.15;
-    // skiltene lyser ikke selv: de dempes med dagslyset
-    if (this.busStopSigns) (this.busStopSigns.material as THREE.PointsMaterial).color.setScalar(1 - 0.72 * sky.night);
+    // Skiltene tegnes uten lyssetting, så de ville lyst opp mot terrenget. De dempes til omtrent samme lyshet som
+    // husene i dagslys, og videre ned med mørket.
+    if (this.busStopSigns) (this.busStopSigns.material as THREE.PointsMaterial).color.setScalar(0.74 - 0.52 * sky.night);
     this.transitLights.visible = sky.night > 0.05;
     (this.transitLights.material as THREE.PointsMaterial).opacity = sky.night;
     this.shipLights.visible = sky.night > 0.05;

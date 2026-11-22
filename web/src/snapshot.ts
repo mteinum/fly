@@ -92,10 +92,12 @@ export async function downloadSnapshot(canvas: HTMLCanvasElement, info: Snapshot
   setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
 }
 
-/** Legg bildet på utklippstavla, som PNG (det eneste bildeformatet nettlesere tar imot der). */
-export async function copySnapshot(canvas: HTMLCanvasElement): Promise<void> {
-  // Safari krever at ClipboardItem lages i selve trykket: bildet gis derfor som et løfte, ikke ventet på først
-  await navigator.clipboard.write([new ClipboardItem({ "image/png": toBlob(canvas, "image/png") })]);
+/** Legg bildet på utklippstavla, som PNG (det eneste bildeformatet nettlesere tar imot der).
+ *  `canvas` kan være et løfte om et bilde som ikke er tatt ennå: Safari krever at utklippstavla bes om i selve
+ *  trykket, og bildet tas først i neste ramme. */
+export async function copySnapshot(canvas: HTMLCanvasElement | Promise<HTMLCanvasElement>): Promise<void> {
+  const png = Promise.resolve(canvas).then((c) => toBlob(c, "image/png"));
+  await navigator.clipboard.write([new ClipboardItem({ "image/png": png })]);
 }
 
 /** Har enheten et delingsark som tar bilder (telefon og nettbrett)? */

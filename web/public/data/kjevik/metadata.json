@@ -300,6 +300,8 @@
       }
     ]
   },
+  "busStops": null,
+  "rails": null,
   "aeroways": null,
   "names": {
     "file": "names.json",
@@ -309,7 +311,7 @@
   },
   "structures": {
     "file": "structures.json",
-    "bridgeCells": 139,
+    "bridgeCells": 141,
     "buildingCells": 7067,
     "bridgeHeights": "DOM 1 m (nhm_dom_topo_25833), median langs senterlinja per celle",
     "bridgeLines": 61,
@@ -339,7 +341,7 @@
       "R",
       "F"
     ],
-    "roadCells": 5328,
+    "roadCells": 5326,
     "roadKm": 281.3,
     "bridgeKm": 7.2,
     "tunnels": 25,

@@ -549,6 +549,15 @@ Det er Voxel Space som trenger et unntak.
 - Rettet: kjøretøy står på brudekket der de er innen halve brubredden pluss 15 m fra en brus senterlinje, og et
   kjøretøy som ellers ville stått i vannet flyttes inn på nærmeste bru innen 200 m (`Terrain.roadPlace`).
 
+**55. Bruer med humper og hull i veibanen**
+- Dekkhøyden leses ut av DOM 1 m for hver femte meter langs brua. Der en prøve traff et hull i modellen eller noe
+  annet enn veibanen, fulgte dekket med: den ene Varoddbrua hadde fall på opptil 12 m midt i veibanen.
+- Meldt av bruker med skjermbilde («den går veldig opp-ned»). Feilen har ligget der siden bruene fikk dekkhøyde.
+- Mitt første forsøk på rettelse (et polynom tilpasset prøvene) gjorde en annen bru 110 m dyp: polynomet svingte
+  vilt der halve brua var dårlige prøver. Oppdaget fordi jeg listet de verste bruene etter ombygging.
+- Rettet: prøver som avviker mer enn 1,5 m fra medianen av naboene erstattes med en rett linje mellom de gode
+  prøvene (`structures.smooth_deck`). Det legges aldri inn høyder utenfor det prøvene spenner over.
+
 ### Åpne spørsmål / ikke kontrollert
 
 - OurAirports er ikke sjekket mot gjeldende AIP Norge, bare mot DTM og

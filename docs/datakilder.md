@@ -524,5 +524,5 @@ navngitte figurer fra Dyreparken er brukt.
   Bodø 130, Mehamn 4. Kontrollert at spørringen ikke kutter svaret: Oslo sentrum ga 478 både i én og i fire ruter.
 - **Ekte:** hvor holdeplassene ligger og hva de heter (navnet vises ikke i spillet ennå).
 - **SYNTETISK:** skiltets størrelse. Skilt 512 («holdeplass for buss») er tegnet etter det offentlige trafikkskiltet,
-  9 m bredt på en 14 m høy stolpe, og vender alltid mot kameraet.
+  8 m bredt på en 12 m høy stolpe, og vender alltid mot kameraet.
 

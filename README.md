@@ -47,7 +47,7 @@ klaffspaken, ECAM-tastene ENG og WHEEL og TCAS-velgeren (nede). Resten er tegnet
 
 `L` slår morofigurene av og på (sjimpansen over Dyreparken, krona over Slottet, nordlys i nord og flere; se `web/src/figures.ts`). `?fun=0` starter uten dem.
 
-Kameraknappen nede til venstre (eller `K`) tar et bilde til deling: utsikten med en stripe nederst som sier hvor flyet er, høyde, fart, flyplass og tid. En liten meny viser bildet og lar deg laste det ned eller kopiere det til utklippstavla (og dele det, der enheten har delingsark).
+Kameraknappen nede til venstre (eller `K`) tar et bilde til deling: utsikten med en stripe nederst som sier hvor flyet er, høyde, fart, flyplass og tid. Bildet kopieres til utklippstavla med en gang, og en liten meny viser det og lar deg også laste det ned (og dele det, der enheten har delingsark).
 
 I tårnet zoomer `+` og `-`, musehjulet eller et trykk på kikkerten på benken inn på flyet (2x, 4x, 8x).
 

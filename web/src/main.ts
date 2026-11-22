@@ -376,8 +376,17 @@ const MAX_TRANSIT_LABELS = 8;
 
   // Bilde til deling (K eller Photo-knappen). Tas i samme ramme som 3D-bildet tegnes, ellers er WebGL-lerretet tomt.
   // I den ramma tegnes ikke skjermtekst, hjørnekart og meldinger: bildet skal vise utsikten, ikke måleverdiene.
+  // Bildet kopieres til utklippstavla med en gang, uten at spilleren må velge det: kopieringen bes om her, i selve
+  // trykket (nettleseren krever det), og får bildet når ramma er tegnet.
   let photoWanted = false, photoFrame = false;
-  const wantPhoto = () => { photoWanted = true; };
+  let photoTaken: ((c: HTMLCanvasElement) => void) | null = null, photoCopied: Promise<void> | null = null;
+  const wantPhoto = () => {
+    if (photoWanted) return;
+    photoWanted = true;
+    const shot = new Promise<HTMLCanvasElement>((resolve) => { photoTaken = resolve; });
+    photoCopied = navigator.clipboard && typeof ClipboardItem !== "undefined" ? copySnapshot(shot) : Promise.reject(new Error("ingen utklippstavle"));
+    photoCopied.catch(() => {}); // meldingen kommer når menyen vises
+  };
   window.addEventListener("keydown", (e) => { if (e.code === "KeyK" && !e.repeat && !isTyping(e)) wantPhoto(); });
   document.getElementById("tPhoto")!.onclick = wantPhoto;
   if (import.meta.env.DEV && new URLSearchParams(location.search).has("photo")) setTimeout(wantPhoto, 1500);
@@ -390,7 +399,13 @@ const MAX_TRANSIT_LABELS = 8;
   const showPhoto = (canvas: HTMLCanvasElement, info: SnapshotInfo) => {
     photo = { canvas, info };
     (el("photoPreview") as HTMLImageElement).src = canvas.toDataURL("image/jpeg", 0.7);
-    photoNote.textContent = "";
+    photoNote.textContent = "Copying…";
+    const copied = photoCopied;
+    const say = (text: string) => { if (photo?.canvas === canvas && photoCopied === copied) photoNote.textContent = text; };
+    const failed = "Could not copy in this browser. Use Download.";
+    copied?.then(() => say("Copied. Paste it into a message or a post."), () => say(failed));
+    // noen nettlesere svarer aldri (venter på en tillatelse ingen ser): ikke la «Copying…» stå
+    setTimeout(() => { if (photoNote.textContent === "Copying…") say(failed); }, 5000);
     el("photoShare").hidden = !canShareSnapshot();
     photoMenu.hidden = false;
   };
@@ -402,7 +417,7 @@ const MAX_TRANSIT_LABELS = 8;
     };
   };
   act("photoDownload", async (p) => { await downloadSnapshot(p.canvas, p.info); return "Saved to your downloads."; });
-  act("photoCopy", async (p) => { await copySnapshot(p.canvas); return "Copied. Paste it into a message or a post."; });
+  act("photoCopy", async (p) => { await copySnapshot(p.canvas); return "Copied again."; });
   act("photoShare", async (p) => ((await shareSnapshot(p.canvas, p.info)) ? "Shared." : ""));
   el("photoClose").onclick = closePhoto;
   el("photoBtn").onclick = wantPhoto;
@@ -531,6 +546,8 @@ const MAX_TRANSIT_LABELS = 8;
     photoFrame = false;
     const info = snapshotInfo(terrain, chosen, game.replay ? game.replay.plane : game.P, game.time);
     const shot = composeSnapshot(clean ? [glCanvas] : [glCanvas, overlay], glCanvas.width, glCanvas.height, info);
+    photoTaken?.(shot);
+    photoTaken = null;
     showPhoto(shot, info);
   });
 }

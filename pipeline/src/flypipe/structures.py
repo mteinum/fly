@@ -45,6 +45,36 @@ LANTERN_HEIGHT = 5.0  # m, NOMINELL høyde på en fyrlykt (ingen data)
 TOWER_MAX_TIP_AREA = 30  # m2 innen 3 m av toppen: et tårn er smalt øverst, et stort tak er det ikke
 
 
+DECK_WINDOW = 15  # prøver til hver side (ca. 75 m) som medianen tas over: mer enn det lengste hullet vi har sett (45 m)
+DECK_OUTLIER_M = 1.5  # en prøve som avviker mer enn dette fra medianen av naboene, er ikke veibanen
+
+
+def smooth_deck(z: list[float]) -> list[float]:
+    """Dekkhøyden langs en bru, renset for prøver som ikke traff veibanen.
+
+    DOM er overflata sett ovenfra. Langs en bru treffer noen prøver et hull i modellen eller sjøen ved siden av
+    (høyden faller mange meter), andre en lysmast, en kabel eller et tårn (høyden spretter opp). En veibane gjør
+    ingen av delene. Prøver som avviker mer enn DECK_OUTLIER_M fra medianen av naboene, erstattes med en rett
+    linje mellom de nærmeste prøvene som ikke gjør det, og resultatet glattes lett. Det legges aldri inn høyder
+    utenfor det prøvene selv spenner over. Bruer med færre enn åtte prøver står urørt.
+    """
+    a = np.asarray(z, dtype=float)
+    if a.size < 8:
+        return [float(v) for v in a]
+    half = min(DECK_WINDOW, (a.size - 1) // 2)
+    pad = np.pad(a, half, mode="edge")
+    med = np.array([np.median(pad[i : i + 2 * half + 1]) for i in range(a.size)])
+    keep = np.abs(a - med) <= DECK_OUTLIER_M
+    if keep.sum() < 2:
+        return [float(v) for v in a]
+    idx = np.arange(a.size)
+    clean = np.interp(idx, idx[keep], a[keep])  # utenfor første og siste gode prøve holdes høyden
+    pad = np.concatenate([[clean[0]] * 2, clean, [clean[-1]] * 2])
+    smooth = np.convolve(pad, np.ones(5) / 5, mode="valid")
+    smooth[[0, 1, -2, -1]] = clean[[0, 1, -2, -1]]  # endene skal møte veien på land der prøvene sier
+    return [float(v) for v in smooth]
+
+
 def sample_bridges(bridges: gpd.GeoDataFrame, raw_dir: Path) -> list[dict]:
     """Bruer som polylinjer med dekkhøyde: [{"width": m, "points": [(øst, nord, z), ...]}]."""
     parts = []
@@ -72,7 +102,7 @@ def sample_bridges(bridges: gpd.GeoDataFrame, raw_dir: Path) -> list[dict]:
                 # median av 5 x 5 m: ser bort fra biler, rekkverk og lysmaster
                 win = dom[max(r - 2, 0) : r + 3, max(c - 2, 0) : c + 3]
                 pts.append((p.x, p.y, float(np.median(win))))
-            out.append({"width": width, "points": pts})
+            out.append({"width": width, "points": [(x, y, z) for (x, y, _), z in zip(pts, smooth_deck([p[2] for p in pts]))]})
     return out
 
 
