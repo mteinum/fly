@@ -465,7 +465,10 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
   if (params.has("taxi")) {
     const end = ends[endIdx], rw = runwayOf(end), h = (end.headingGridDeg * Math.PI) / 180, d = (rw.lengthM * 0.45) / terrain.cell;
     const x = end.x + Math.sin(h) * d, y = end.y - Math.cos(h) * d;
-    Object.assign(P, { state: "landed", x, y, hdg: h, alt: Math.max(0, terrain.heightAt(x, y)) + 1, spd: 12, pitch: 0, roll: 0, thr: 0, gearDown: true, gear: 1, flapCfg: 4, flaps: 4, taxi: true });
+    // ?taxi=øst,nord,sannKurs (UTM 33): start på bakken akkurat der, til feilsøking
+    const at = params.get("taxi")!.split(",").map(Number), [gx, gy] = at.length === 3 && at.every(Number.isFinite) ? terrain.utmToGrid(at[0], at[1]) : [x, y];
+    const gh = at.length === 3 && at.every(Number.isFinite) ? ((at[2] - terrain.meta.gridConvergenceDeg) * Math.PI) / 180 : h;
+    Object.assign(P, { state: "landed", x: gx, y: gy, hdg: gh, alt: Math.max(0, terrain.heightAt(gx, gy)) + 1, spd: 12, pitch: 0, roll: 0, thr: 0, gearDown: true, gear: 1, flapCfg: 4, flaps: 4, taxi: true });
   }
   // ?cfg=full: start ferdig satt opp for landing (understell nede, full klaff)
   // ?ap: la autopiloten fly fra start
