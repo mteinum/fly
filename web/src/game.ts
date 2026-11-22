@@ -446,6 +446,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
   });
   addEventListener("keyup", (e) => { K[e.code] = false; });
+  // Langt trykk på en styreknapp skal ikke åpne nettleserens meny
+  document.getElementById("touch")?.addEventListener("contextmenu", (e) => e.preventDefault());
   document.querySelectorAll<HTMLButtonElement>("#touch button[data-k]").forEach((b) => {
     const k = b.dataset.k!;
     b.addEventListener("pointerdown", (e) => { e.preventDefault(); K[k] = true; });
