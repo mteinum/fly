@@ -12,7 +12,7 @@ import * as THREE from "three";
 import type { Camera, Environment } from "./game";
 import { addGroundDetail, type GroundDetail } from "./groundDetail";
 import { buildRunwayDecal } from "./runwayDecal";
-import { buildAirportGround, buildTaxiRoute } from "./taxiDecal";
+import { buildAirportGround, buildTaxiRoute, taxiLightPositions } from "./taxiDecal";
 import type { Plane } from "./plane";
 import type { RGB } from "./sky";
 import { CHURCH_TOWER_HALF_WIDTH, LIGHTHOUSE_RADIUS } from "./physics";
@@ -78,6 +78,10 @@ export class GlRenderer {
   private sunDisc: THREE.Mesh;
   private stars: THREE.Points;
   private runwayLights: THREE.Points;
+  /** Oppstillingsflatene: flombelyst om natta. */
+  private apronMat: THREE.MeshStandardMaterial | null = null;
+  /** Blå kantlys langs taksebanene: lyser bare når det er mørkt. */
+  private taxiLights: THREE.Points;
   private lamps: THREE.Points;
   /** Fyrlys: ett punkt per fyr, med hver sin blinketakt (SYNTETISK). */
   private beacons: { light: THREE.Points; period: number; phase: number }[] = [];
@@ -150,7 +154,10 @@ export class GlRenderer {
     this.scene.add(this.skyDome, this.sunDisc, this.stars);
 
     for (const rw of t.meta.airports[0].runways) this.scene.add(buildRunwayDecal(t, rw, map.anisotropy));
-    for (const mesh of buildAirportGround(t)) this.scene.add(mesh);
+    for (const mesh of buildAirportGround(t)) {
+      this.scene.add(mesh);
+      if (mesh.name === "apron") this.apronMat = (mesh as THREE.Mesh).material as THREE.MeshStandardMaterial;
+    }
     this.buildingCount = this.addBuildings();
     this.addFootprints();
     this.addChurchTowers();
@@ -160,6 +167,7 @@ export class GlRenderer {
     this.addTraffic();
     this.addBridges();
     this.runwayLights = this.pointLights(this.runwayLightPositions(), 3.2);
+    this.taxiLights = this.pointLights(taxiLightPositions(t), 2.6);
     this.lamps = this.pointLights(this.bridgeLampPositions(), 2.4);
     this.plane = this.buildPlane();
     this.shadow = new THREE.Mesh(
@@ -167,7 +175,7 @@ export class GlRenderer {
       new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }),
     );
     this.buildTower();
-    this.scene.add(this.runwayLights, this.lamps, this.plane, this.shadow, this.towerMesh);
+    this.scene.add(this.runwayLights, this.taxiLights, this.lamps, this.plane, this.shadow, this.towerMesh);
 
     new ResizeObserver(() => this.resize()).observe(canvas);
     this.resize();
@@ -768,6 +776,9 @@ export class GlRenderer {
     // byggene med form dekker mer av bakken enn boksene gjorde: svakere glød, så de står som mørke silhuetter mot lysene
     if (this.footprintMat) this.footprintMat.emissiveIntensity = sky.night * 0.03;
     (this.runwayLights.material as THREE.PointsMaterial).opacity = 0.45 + 0.55 * sky.night;
+    if (this.apronMat) this.apronMat.emissiveIntensity = sky.night * 0.05;
+    this.taxiLights.visible = sky.night > 0.05;
+    (this.taxiLights.material as THREE.PointsMaterial).opacity = Math.min(1, sky.night * 1.4);
     // Fyrlys: et kort blink per periode, tydeligst om natta, så vidt synlig i dagslys
     const now = performance.now() / 1000;
     for (const { light, period, phase } of this.beacons) {

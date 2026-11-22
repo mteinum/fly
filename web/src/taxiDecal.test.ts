@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resample, ribbon } from "./taxiDecal";
+import { resample, ribbon, taxiLightPositions } from "./taxiDecal";
 import { hasTiles, loadTestTerrain } from "./testTerrain";
 
 describe("bånd langs en taksebane", () => {
@@ -40,5 +40,16 @@ describe.skipIf(!hasTiles("kjevik10"))("bakkeanlegget på Kjevik", () => {
     };
     expect(aero.taxiways.some((tw) => tw.line.some(([x, y]) => toCentre(x, y) < 30))).toBe(true);
     for (const st of aero.stands) expect(t.inBounds(st.at[0], st.at[1])).toBe(true);
+  });
+
+  it.skipIf(!t.aeroways)("har blå kantlys langs taksebanene, men ikke på rullebanen", () => {
+    const lights = taxiLightPositions(t), rw = t.meta.airports[0].runways[0], [a, b] = rw.ends;
+    expect(lights.length).toBeGreaterThan(100);
+    for (const [x, , z, r, g, bl] of lights) {
+      expect([r, g, bl]).toEqual([40, 100, 255]);
+      const px = x / t.cell, py = z / t.cell, dx = b.x - a.x, dy = b.y - a.y, f = ((px - a.x) * dx + (py - a.y) * dy) / (dx * dx + dy * dy);
+      const cross = Math.hypot(px - a.x - f * dx, py - a.y - f * dy) * t.cell;
+      expect(f > 0 && f < 1 && cross < rw.widthM / 2).toBe(false);
+    }
   });
 });

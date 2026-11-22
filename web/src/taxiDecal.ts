@@ -103,6 +103,35 @@ function standNumber(t: Terrain, ref: string, x: number, z: number, heading: num
   return mesh;
 }
 
+/** Blå kantlys langs taksebanene, ett for hver 30. meter på hver side: [x, y, z, r, g, b] i meter.
+ *  SYNTETISK: plassert etter vanlig mønster, ikke etter flyplassens lysanlegg. Ingen lys inne på oppstillingsflatene
+ *  (der står flyene) eller på rullebanen (den har sine egne). */
+export function taxiLightPositions(t: Terrain): number[][] {
+  const aero = t.aeroways, out: number[][] = [];
+  if (!aero) return out;
+  const { cell } = t, runways = t.meta.airports[0].runways;
+  const onApron = (x: number, z: number): boolean => aero.aprons.some((ring) => {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const xi = ring[i][0] * cell, zi = ring[i][1] * cell, xj = ring[j][0] * cell, zj = ring[j][1] * cell;
+      if (zi > z !== zj > z && x < ((xj - xi) * (z - zi)) / (zj - zi) + xi) inside = !inside;
+    }
+    return inside;
+  });
+  const onRunway = (x: number, z: number): boolean => runways.some((rw) => {
+    const ax = rw.ends[0].x * cell, az = rw.ends[0].y * cell, dx = rw.ends[1].x * cell - ax, dz = rw.ends[1].y * cell - az, len = Math.hypot(dx, dz);
+    const along = ((x - ax) * dx + (z - az) * dz) / len, cross = Math.abs((x - ax) * dz - (z - az) * dx) / len;
+    return along > -5 && along < len + 5 && cross < rw.widthM / 2 + 4;
+  });
+  for (const tw of aero.taxiways) {
+    for (const [l, r] of ribbon(resample(tw.line.map(([x, y]): XZ => [x * cell, y * cell]), 30), tw.width + 2)) for (const [x, z] of [l, r]) {
+      if (onApron(x, z) || onRunway(x, z)) continue;
+      out.push([x, Math.max(0, t.heightAt(x / cell, z / cell)) + 0.6, z, 40, 100, 255]);
+    }
+  }
+  return out;
+}
+
 /** Ruta til standen under taksing: en grønn stripe langs taksebanene (som «follow the greens» på store flyplasser)
  *  og en lysende søyle på standen, så den ses på avstand. SYNTETISK: hjelpemidler for spilleren. */
 export function buildTaxiRoute(t: Terrain, route: [number, number][], stand: [number, number]): THREE.Object3D[] {
@@ -144,6 +173,10 @@ export function buildAirportGround(t: Terrain): THREE.Object3D[] {
   }
   // innkjøringslinjene ble lagt til etter at flatene ble bygget: bygg dem på nytt
   out[0] = apron.mesh(0x55575b, -1);
+  // Oppstillingsflatene er flombelyst om natta: rendereren skrur opp gløden når det mørkner. SYNTETISK.
+  out[0].name = "apron";
+  ((out[0] as THREE.Mesh).material as THREE.MeshStandardMaterial).emissive = new THREE.Color(0xfff0d0);
+  ((out[0] as THREE.Mesh).material as THREE.MeshStandardMaterial).emissiveIntensity = 0;
   out[2] = paint.mesh(0xd9b61c, -3);
   return out;
 }
