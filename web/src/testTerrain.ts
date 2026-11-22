@@ -24,6 +24,7 @@ export function loadTestTerrain(area = "kjevik"): Terrain {
   }
   if (meta.aeroways && existsSync(DATA + meta.aeroways.file)) terrain.aeroways = JSON.parse(readFileSync(DATA + meta.aeroways.file, "utf-8"));
   if (meta.names && existsSync(DATA + meta.names.file)) terrain.names = parseNames(JSON.parse(readFileSync(DATA + meta.names.file, "utf-8")));
+  if (meta.rails && existsSync(DATA + meta.rails.file)) terrain.setRails(JSON.parse(readFileSync(DATA + meta.rails.file, "utf-8")));
   return terrain;
 }
 

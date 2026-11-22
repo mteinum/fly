@@ -497,3 +497,15 @@ navngitte figurer fra Dyreparken er brukt.
 - **Kontroll:** `deploy/test_transit.sh` tolker et lagret svar (tests/fixtures/entur_sample.json) mot en fasit med
   koordinater fra pyproj (`pipeline/tests/test_transit.py`).
 
+## T-bane, trikk og bybane fra OpenStreetMap (2026-11-22)
+
+- **Kilde:** OpenStreetMap via Overpass (ODbL): way med `railway=subway`, `tram` eller `light_rail`, og holdeplasser
+  (node med navn og `railway=station`, `tram_stop` eller `halt`). Hentes med `flypipe rails <utsnitt>` til
+  `data/osm/<utsnitt>.rail.json` (i git) og skrives til `rails.json` i flisene. Finnes for `kjeller10` (213 km spor,
+  162 holdeplasser) og `flesland10` (61 km, 39).
+- **Ekte:** hvor sporene ligger, hvor de går i tunnel, og hvor holdeplassene er og heter.
+- **Tolkning:** sidespor og verksteder (`service=*`) er utelatt. En holdeplass får slaget til nærmeste spor innen
+  60 m, og det blir én per navn og slag. I Oslo er trikkens forstadsbaner merket `light_rail`; de regnes som trikk.
+- **SYNTETISK:** fargene (oransje T-bane, blå trikk, grønn bybane: ett per slag, ikke linjenes egne farger) og
+  bredden på stripa (9 m). Tunnelstrekninger tegnes stiplet oppå bakken. Det kjører ingen vogner.
+

@@ -62,6 +62,7 @@ export interface TerrainMeta {
   names?: { file: string; count: number };
   /** Flyplassens bakkeanlegg (taksebaner, oppstillingsflater, stands), når det er hentet for utsnittet. */
   aeroways?: { file: string; source: string; taxiways: number; aprons: number; stands: number } | null;
+  rails?: { file: string; source: string; tracks: number; stops: number } | null;
   /** Satt for utsnittene spillet bruker: andre fly kan hentes fra /traffic/ (se traffic.ts). */
   traffic?: { source: string } | null;
   /** Satt når utsnittet har sjø: da finnes det skipstrafikk å hente fra /ais/ (se ships.ts). */
@@ -106,6 +107,13 @@ export interface Aeroways {
   holds: [number, number][];
 }
 
+/** rails.json: T-bane, trikk og bybane fra OpenStreetMap, i rutenettkoordinater [x, y]. */
+export type RailKind = "metro" | "tram" | "lightrail";
+export interface Rails {
+  tracks: { kind: RailKind; tunnel: boolean; line: [number, number][] }[];
+  stops: { kind: RailKind; name: string; at: [number, number] }[];
+}
+
 export class Terrain {
   readonly width: number;
   readonly height: number;
@@ -126,6 +134,17 @@ export class Terrain {
   /** Stedsnavn fra N50, viktigste først. */
   names: PlaceName[] = [];
   aeroways: Aeroways | null = null;
+  rails: Rails | null = null;
+
+  /** Ta i bruk sporene. Stasjonene på T-bane og bybane får navneskilt (trikkeholdeplassene er for mange til det). */
+  setRails(rails: Rails | null): void {
+    this.rails = rails;
+    for (const s of rails?.stops ?? []) {
+      if (s.kind === "tram") continue;
+      const z = this.isWater(s.at[0], s.at[1]) ? 0 : this.heightAt(s.at[0], s.at[1]);
+      this.names.push({ name: s.kind === "metro" ? `T ${s.name}` : s.name, x: s.at[0], y: s.at[1], z, size: 6.4, type: "banestasjon", group: "kollektiv" });
+    }
+  }
   private readonly waterCodes: Uint8Array;
 
   constructor(
@@ -214,7 +233,7 @@ export interface TerrainAssets {
 
 export async function loadTerrain(baseUrl: string): Promise<TerrainAssets> {
   const meta: TerrainMeta = await (await fetch(`${baseUrl}/metadata.json`)).json();
-  const [hgtBuf, colormap, lights, lcBuf, surfaceBuf, structures, names, footprints, aeroways] = await Promise.all([
+  const [hgtBuf, colormap, lights, lcBuf, surfaceBuf, structures, names, footprints, aeroways, rails] = await Promise.all([
     fetch(`${baseUrl}/${meta.heightmap.file}`).then((r) => r.arrayBuffer()),
     loadImage(`${baseUrl}/${meta.colormap.file}`),
     meta.lights ? loadImage(`${baseUrl}/${meta.lights.file}`) : null,
@@ -224,12 +243,14 @@ export async function loadTerrain(baseUrl: string): Promise<TerrainAssets> {
     meta.names ? fetch(`${baseUrl}/${meta.names.file}`).then((r) => r.json() as Promise<NameFile>) : null,
     meta.structures.footprints ? fetch(`${baseUrl}/${meta.structures.footprints.file}`).then((r) => r.arrayBuffer()) : null,
     meta.aeroways ? fetch(`${baseUrl}/${meta.aeroways.file}`).then((r) => r.json() as Promise<Aeroways>) : null,
+    meta.rails ? fetch(`${baseUrl}/${meta.rails.file}`).then((r) => r.json() as Promise<Rails>) : null,
   ]);
   // heightmap.f32 er little-endian, som alle plattformer nettlesere kjører på
   const terrain = new Terrain(meta, new Float32Array(hgtBuf), new Uint8Array(lcBuf), structures);
   if (names) terrain.names = parseNames(names);
   if (footprints) terrain.footprints = parseFootprints(footprints);
   terrain.aeroways = aeroways;
+  terrain.setRails(rails);
   return { terrain, colormap, lights, surface: new Uint8Array(surfaceBuf) };
 }
 

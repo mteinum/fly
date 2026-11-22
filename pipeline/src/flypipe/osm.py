@@ -154,6 +154,126 @@ MAX_AEROWAY_WIDTH_M = 60.0
 STAND_LANE_M = 20.0  # samme som STAND_LANE_M i web/src/physics.ts
 
 
+RAIL_KINDS = {"subway": "metro", "tram": "tram", "light_rail": "lightrail"}
+STOP_SNAP_M = 60.0  # en holdeplass hører til sporet den ligger nærmest, innen så langt
+
+
+def rail_path(area_id: str) -> Path:
+    return STORE / f"{area_id}.rail.json"
+
+
+def rails_from_elements(elements: list[dict], grid: GridSpec) -> dict:
+    """T-bane, trikk og bybane fra Overpass-elementer: spor (linjer) og holdeplasser (punkt), i UTM 33.
+
+    Spor: way med railway=subway/tram/light_rail. Sidespor og verksteder (service=*) tas ikke med. Et spor som går
+    ut av utsnittet deles, så bare bitene innenfor blir med. `tunnel` er sann der OpenStreetMap sier tunnel.
+    Holdeplasser: node med navn og railway=station/tram_stop/halt. Slaget (T-bane, trikk, bybane) er det samme som
+    nærmeste spor; holdeplasser lenger enn STOP_SNAP_M fra et spor (jernbanestasjoner) faller bort.
+    """
+    from shapely.geometry import LineString, Point
+    from shapely.strtree import STRtree
+
+    from .crs import wgs84_to_utm33
+
+    def utm(points: list[dict]) -> list[tuple[float, float]]:
+        east, north = wgs84_to_utm33([p["lon"] for p in points], [p["lat"] for p in points])
+        return [(round(float(e), 1), round(float(n), 1)) for e, n in zip(east, north)]
+
+    inside = lambda p: grid.west <= p[0] < grid.east and grid.south < p[1] <= grid.north  # noqa: E731
+    tracks: list[dict] = []
+    for el in sorted((e for e in elements if e["type"] == "way"), key=lambda e: e["id"]):
+        tags = el.get("tags", {})
+        kind = RAIL_KINDS.get(tags.get("railway", ""))
+        if kind is None or "service" in tags or len(el.get("geometry", [])) < 2:
+            continue
+        tunnel = tags.get("tunnel", "no") not in ("no", "") or tags.get("covered") == "yes"
+        run: list[tuple[float, float]] = []
+        for p in [*utm(el["geometry"]), None]:
+            if p is not None and inside(p):
+                if not run or run[-1] != p:
+                    run.append(p)
+                continue
+            if len(run) >= 2:
+                tracks.append({"id": el["id"], "kind": kind, "tunnel": tunnel, "line": [list(q) for q in run]})
+            run = []
+    # I Oslo er trikkens forstadsbaner (Lilleakerbanen, Ekebergbanen) merket light_rail. Der utsnittet også har
+    # trikk, regnes de som trikk; bybane blir det bare der det ikke finnes trikk (Bergen).
+    if any(t["kind"] == "tram" for t in tracks):
+        for t in tracks:
+            if t["kind"] == "lightrail":
+                t["kind"] = "tram"
+    stops: list[dict] = []
+    if tracks:
+        lines = [LineString(t["line"]) for t in tracks]
+        tree = STRtree(lines)
+        seen: set[tuple[str, str]] = set()
+        for el in sorted((e for e in elements if e["type"] == "node"), key=lambda e: e["id"]):
+            name = str(el.get("tags", {}).get("name", "")).strip()[:40]
+            if not name:
+                continue
+            (at,) = utm([el])
+            if not inside(at):
+                continue
+            i = int(tree.nearest(Point(at)))
+            if lines[i].distance(Point(at)) > STOP_SNAP_M:
+                continue
+            kind = tracks[i]["kind"]
+            if (kind, name) in seen:  # én per navn og slag: hver retning har sin egen node i OpenStreetMap
+                continue
+            seen.add((kind, name))
+            stops.append({"id": el["id"], "kind": kind, "name": name, "at": list(at)})
+    return {"tracks": tracks, "stops": stops}
+
+
+def fetch_rails(area_id: str, grid: GridSpec, raw_dir: Path) -> Path | None:
+    """Hent T-bane, trikk og bybane fra Overpass og skriv data/osm/<utsnitt>.rail.json (i git, ODbL).
+
+    Skriver ingen fil når utsnittet ikke har slike spor (de fleste flyplassene).
+    """
+    from .crs import utm33_to_wgs84
+
+    raw = raw_dir / "osm"
+    raw.mkdir(parents=True, exist_ok=True)
+    path = raw / f"{area_id}_rail.json"
+    if not path.exists():
+        corners = [utm33_to_wgs84(x, y) for x in (grid.west, grid.east) for y in (grid.south, grid.north)]
+        box = f"{min(c[1] for c in corners):.6f},{min(c[0] for c in corners):.6f},{max(c[1] for c in corners):.6f},{max(c[0] for c in corners):.6f}"
+        q = (f'[out:json][timeout:180];(way["railway"~"^(subway|tram|light_rail)$"]({box});'
+             f'node["railway"~"^(station|tram_stop|halt)$"]["name"]({box}););out geom;')
+        print(f"  Overpass: {path.name}")
+        for attempt, wait in enumerate((0, 20, 45, 90, 180, 300)):
+            time.sleep(wait)
+            r = requests.post(OVERPASS_URL, data={"data": q}, headers={"User-Agent": USER_AGENT}, timeout=300)
+            if r.status_code == 200:
+                break
+            print(f"  Overpass svarte {r.status_code}, forsøk {attempt + 1}")
+        else:
+            raise RuntimeError("Overpass API svarer ikke. Prøv igjen senere; bygget bruker fila som alt ligger i data/osm/.")
+        path.write_text(json.dumps(r.json()["elements"]), encoding="utf-8")
+    out = rails_from_elements(json.loads(path.read_text(encoding="utf-8")), grid)
+    if not out["tracks"]:
+        print("  ingen T-bane, trikk eller bybane i utsnittet")
+        return None
+    doc = {
+        "about": "T-bane, trikk og bybane fra OpenStreetMap: spor (kind metro/tram/lightrail, tunnel ja/nei) og holdeplasser. "
+                 "Koordinater er (øst, nord) i EPSG:25833. © OpenStreetMap contributors, ODbL 1.0.",
+        "fetched": time.strftime("%Y-%m-%d"),
+        **out,
+    }
+    STORE.mkdir(parents=True, exist_ok=True)
+    target = rail_path(area_id)
+    target.write_text(json.dumps(doc, ensure_ascii=False, separators=(",", ":")) + "\n", encoding="utf-8")
+    km = sum(math.dist(a, b) for t in out["tracks"] for a, b in zip(t["line"], t["line"][1:])) / 1000
+    print(f"  {len(out['tracks'])} spor ({km:.0f} km), {len(out['stops'])} holdeplasser -> {target.name} ({target.stat().st_size / 1e3:.0f} kB)")
+    return target
+
+
+def load_rails(area_id: str) -> dict | None:
+    """Skinnegående bytrafikk for utsnittet, eller None når utsnittet ikke har noen (`flypipe rails <utsnitt>`)."""
+    path = rail_path(area_id)
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else None
+
+
 def aeroway_path(area_id: str) -> Path:
     return STORE / f"{area_id}.aeroway.json"
 

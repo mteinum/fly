@@ -168,6 +168,7 @@ export class GlRenderer {
     this.addFootprints();
     this.addChurchTowers();
     this.addTunnels();
+    this.addRails();
     this.addLighthouses();
     this.addShips();
     this.addTransit();
@@ -577,6 +578,61 @@ export class GlRenderer {
 
   /** Veitunneler: stiplet linje oppå bakken og sjøen der tunnelen går under, slik et kart tegner dem.
    *  Hvor tunnelen går er ekte (N50). At den synes, er SYNTETISK: en tunnel ses ikke fra lufta. */
+  /** T-bane, trikk og bybane (OpenStreetMap) som fargede striper på bakken, stiplet der sporet går i tunnel.
+   *  Hvor sporene og holdeplassene ligger er ekte. Fargene er SYNTETISKE (ett per slag, ikke linjenes egne), og
+   *  stripa er bredere enn et spor. */
+  private addRails(): void {
+    const rails = this.t.rails;
+    if (!rails) return;
+    const { cell } = this.t, COLORS = { metro: 0xf08a1c, tram: 0x3f8fd6, lightrail: 0x2fa37a } as const;
+    const DASH = 30, GAP = 30, HALF = 4.5, LIFT = 2; // meter
+    for (const kind of ["metro", "tram", "lightrail"] as const) {
+      const pos: number[] = [], idx: number[] = [];
+      for (const track of rails.tracks) {
+        if (track.kind !== kind) continue;
+        let along = 0;
+        for (let i = 1; i < track.line.length; i++) {
+          const [ax, ay] = track.line[i - 1], [bx, by] = track.line[i];
+          const len = Math.hypot(bx - ax, by - ay) * cell;
+          if (len < 0.01) continue;
+          const ux = (bx - ax) / len, uy = (by - ay) / len, nx = -uy * cell * HALF, nz = ux * cell * HALF;
+          // korte biter (10 m), så stripa følger bakken; i tunnel bare annenhver bit
+          for (let d = 0; d < len; d += 10) {
+            const d1 = Math.min(d + 10, len);
+            if (track.tunnel && (along + (d + d1) / 2) % (DASH + GAP) > DASH) continue;
+            const base = pos.length / 3;
+            for (const dd of [d, d1]) {
+              const x = ax + ux * dd, y = ay + uy * dd, h = Math.max(0, this.t.heightAt(x, y)) + LIFT;
+              pos.push(x * cell - nx, h, y * cell - nz, x * cell + nx, h, y * cell + nz);
+            }
+            idx.push(base, base + 1, base + 2, base + 1, base + 3, base + 2);
+          }
+          along += len;
+        }
+      }
+      // holdeplassene: en lav, lys skive med en ring i slagets farge
+      const stops = rails.stops.filter((s) => s.kind === kind);
+      if (stops.length) {
+        const disc = new THREE.InstancedMesh(new THREE.CylinderGeometry(11, 11, 2.5, 16).translate(0, 1.25, 0), new THREE.MeshLambertMaterial({ color: COLORS[kind] }), stops.length);
+        const dot = new THREE.InstancedMesh(new THREE.CylinderGeometry(6.5, 6.5, 3.2, 16).translate(0, 1.6, 0), new THREE.MeshLambertMaterial({ color: 0xf4f4f0 }), stops.length);
+        const m = new THREE.Matrix4();
+        stops.forEach((s, i) => {
+          m.makeTranslation(s.at[0] * cell, Math.max(0, this.t.heightAt(s.at[0], s.at[1])) + LIFT, s.at[1] * cell);
+          disc.setMatrixAt(i, m); dot.setMatrixAt(i, m);
+        });
+        disc.frustumCulled = dot.frustumCulled = false;
+        this.scene.add(disc, dot);
+      }
+      if (!idx.length) continue;
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      geo.setIndex(idx);
+      geo.computeVertexNormals();
+      const mat = new THREE.MeshLambertMaterial({ color: COLORS[kind], emissive: COLORS[kind], emissiveIntensity: 0.25, side: THREE.DoubleSide, transparent: true, opacity: 0.9, depthWrite: false });
+      this.scene.add(new THREE.Mesh(geo, mat));
+    }
+  }
+
   private addTunnels(): void {
     const { cell } = this.t, pos: number[] = [], idx: number[] = [];
     const DASH = 40, GAP = 40, HALF = 7, LIFT = 1.5; // meter

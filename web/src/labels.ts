@@ -16,6 +16,7 @@ export interface PlaceName {
 /** Hvor langt unna (m) navnet vises. */
 export function visibleRange(n: PlaceName): number {
   if (n.type === "flyplass") return 18000;
+  if (n.type === "banestasjon") return 2500; // T-bane- og bybanestasjoner: bare på nært hold
   const bySize = n.size >= 10 ? 20000 : n.size >= 8.5 ? 11000 : n.size >= 7.2 ? 6500 : n.size >= 6.3 ? 3500 : 2000;
   // bruer er små på kartet, men gode kjennemerker fra lufta
   return n.type === "bru" ? Math.max(bySize, 7000) : bySize;
@@ -66,6 +67,7 @@ export function declutter<T extends Box>(boxes: T[], max: number): T[] {
 export function labelStyle(n: PlaceName): { color: string; italic: boolean } {
   if (n.type === "stand") return { color: "#7dff9a", italic: false }; // standen flyet takser til: samme grønne som ruta
   if (n.type === "fly") return { color: "#ffffff", italic: false }; // andre fly fra ADS-B
+  if (n.type === "banestasjon") return { color: "#ffcf8a", italic: false }; // T-bane og bybane (OpenStreetMap)
   if (n.type === "kollektiv") return { color: "#ffd9cf", italic: false }; // busser og tog fra Entur: linjenummeret
   if (n.type === "skip") return { color: "#fff3a6", italic: false }; // skip fra AIS: samme gule som på kartet, dempet
   if (n.type === "bru" || n.type === "flyplass") return { color: "#ffd27a", italic: false };

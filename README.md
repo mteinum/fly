@@ -178,6 +178,12 @@ Busser og tog som er ute akkurat nå kjører på kartet, med linjenummer når du
 åpne data (NLOD) via `web/public/transit/`. Ruter i Oslo og Bybanen i Bergen sender ikke posisjoner dit, så de mangler.
 I utviklingsmodus: `?apt=ENCN&transit=/dev/transit-test.json` viser et opptak.
 
+## T-bane, trikk og bybane
+
+Sporene til T-banen og trikken i Oslo (Kjeller-kartet) og Bybanen i Bergen er tegnet på bakken: oransje, blå og grønn
+stripe, stiplet der sporet går i tunnel, med en skive på hver holdeplass og navn på stasjonene. Dataene er fra
+OpenStreetMap og hentes med `uv run flypipe rails <utsnitt>`. Det kjører ingen vogner der: Entur har ikke posisjonene.
+
 ## Reprise
 
 Etter en krasj spilles de siste fem sekundene av på nytt, sett fra et fast punkt ved siden

@@ -19,7 +19,8 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     airports.py   OurAirports: flyplass + rullebaner; tårnposisjon fra N50-bygning type 411
     n50.py        N50 Kartdata: veier, bruer, bygninger -> feature-raster
     osm.py        fra OpenStreetMap, hentet for hånd til data/osm/ (i git, ODbL): bygningsomriss (`flypipe osm <utsnitt>`)
-                  og flyplassens bakkeanlegg med taksebaner, oppstillingsflater og stands (`flypipe aeroways <utsnitt>`)
+                  og flyplassens bakkeanlegg med taksebaner, oppstillingsflater og stands (`flypipe aeroways <utsnitt>`),
+                  og T-bane, trikk og bybane med holdeplasser (`flypipe rails <utsnitt>`, bare Oslo og Bergen har noe)
     footprints.py bygg med form: omriss (OSM) + type (Matrikkelen) + høyde (DOM) -> buildings.bin
     matrikkel.py  Matrikkelen: alle bygninger som punkt med type (10 m-flisene); høyde og farge er valgt etter type
     landcover.py  N50 Arealdekke -> palettindeks per celle
