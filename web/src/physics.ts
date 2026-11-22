@@ -33,6 +33,14 @@ export const PARK_DELAY = 6;
 const TAXI_THRUST = 1.6, TAXI_MAX_THR = 0.5; // m/s² ved full gass, og hvor langt gasshåndtakene går på bakken
 const TAXI_DRAG = 0.08, TAXI_DRAG_PER_SPEED = 0.015; // rullemotstand: 10 % gass gir ca. 10 kt, 20 % ca. 30 kt
 const TAXI_BRAKE = 3; // m/s² med fotbremsene helt inne
+/** Bremsene i ro (°C), og hvor fort de varmes og kjøles. SYNTETISK: valgt så en vanlig landing med MED gir
+ *  250-300 °C, som i flyet, og så de kjøles merkbart mens man takser inn. Varmen følger energien som bremses bort. */
+const BRAKE_COLD = 40, BRAKE_HEAT = 0.12, BRAKE_COOL_S = 600;
+/** Hold orden på hjulbremsene: hvor hardt de står på (`decel` i m/s², av 8 mulige), og temperaturen. */
+function brakes(P: Plane, decel: number, dt: number): void {
+  P.wheelBrake = clamp(decel / AUTOBRAKE_DECEL[3], 0, 1);
+  P.brakeTemp += BRAKE_HEAT * decel * P.spd * dt - ((P.brakeTemp - BRAKE_COLD) / BRAKE_COOL_S) * dt;
+}
 /** Full bremsing med fotbremsene under utrullingen (m/s²): det en A320 klarer på tørr bane. */
 export const MANUAL_BRAKE = 6;
 const TAXI_TURN = 0.45, TAXI_SIDE_ACCEL = 2.2; // rad/s i lav fart, og hvor krapt det går an å svinge i fart (m/s²)
@@ -175,6 +183,8 @@ function taxi(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: number, say: 
   if (!P.speedBrake) P.brake = Math.max(0, P.brake - dt / BRAKE_TIME); // bakkespoilerne legges inn igjen
   P.thr = clamp(P.thr + 0.4 * dt * (axis(K.KeyW) - axis(K.KeyS)), 0, TAXI_MAX_THR);
   const braking = Math.max(axis(K.Space), axis(K.ArrowDown));
+  brakes(P, P.spd > 0 ? TAXI_BRAKE * braking : 0, dt);
+  P.wheelBrake = braking * (TAXI_BRAKE / AUTOBRAKE_DECEL[3]); // pedaltrykket vises også når flyet står
   P.spd = Math.max(0, P.spd + (TAXI_THRUST * P.thr - TAXI_DRAG - TAXI_DRAG_PER_SPEED * P.spd - TAXI_BRAKE * braking) * dt);
   // nesehjulet: krappest i lav fart, og ingen sving når flyet står stille
   const steer = axis(K.ArrowRight) - axis(K.ArrowLeft);
@@ -229,7 +239,7 @@ export function startApproach(P: Plane, t: Terrain, end: RunwayEnd): void {
     y: end.y + Math.cos(hdg) * d,
     alt: glidePathAltitude(t, end, APPROACH_DIST_M), // på glidebanen som PFD viser
     hdg, spd: APPROACH_SPEED, pitch: -0.05, roll: 0, thr: 0,
-    gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, speedBrake: false, brake: 0, autobrake: P.autobrake, taxi: false, parked: false, stuck: false, still: 0, spoilersArmed: true, state: "fly", t: 0, touchdown: null, // autobremsen settes av den som starter innflygingen
+    gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, speedBrake: false, brake: 0, autobrake: P.autobrake, wheelBrake: 0, brakeTemp: BRAKE_COLD, taxi: false, parked: false, stuck: false, still: 0, spoilersArmed: true, state: "fly", t: 0, touchdown: null, // autobremsen settes av den som starter innflygingen
   } satisfies Plane);
   // gass som holder startfarten i flat flyging
   P.thr = throttleFor(P, APPROACH_SPEED);
@@ -271,7 +281,7 @@ export function moveFlaps(P: Plane, step: number, say: Say): void {
 export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: number, say: Say, wind: Wind = CALM): boolean {
   if (P.state !== "fly") {
     P.t -= dt;
-    if (P.state === "landed" && P.parked) return false;
+    if (P.state === "landed" && P.parked) { brakes(P, 0, dt); P.wheelBrake = 1; return false; } // parkeringsbremsen står på
     // Under ca. 30 kt kan piloten ta over og takse: gass (W), eller styring mens flyet ennå ruller
     if (P.state === "landed" && !P.taxi && t.aeroways && P.spd < TAXI_ENTRY && (axis(K.KeyW) > 0 || (P.spd > 0.5 && (axis(K.ArrowLeft) > 0 || axis(K.ArrowRight) > 0)))) {
       P.taxi = true; P.thr = 0;
@@ -286,7 +296,9 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
       // nesehjulet retter flyet inn etter banen (SYNTETISK: spillet har ikke sideror eller hjulstyring).
       if (P.spoilersArmed || P.speedBrake) P.brake = Math.min(1, P.brake + dt / BRAKE_TIME);
       // Mellomrom er fotbremsene: full bremsing under utrullingen, for å rekke en avkjøring autobremsen ville rullet forbi
-      P.spd = Math.max(0, P.spd - Math.max(AUTOBRAKE_DECEL[P.autobrake], MANUAL_BRAKE * axis(K.Space)) * dt);
+      const decel = Math.max(AUTOBRAKE_DECEL[P.autobrake], MANUAL_BRAKE * axis(K.Space));
+      brakes(P, decel, dt); // autobremsen holder flyet også når det har stanset, til piloten tar over
+      P.spd = Math.max(0, P.spd - decel * dt);
       const end = airport.runways.flatMap((rw) => rw.ends).find((e) => e.ident === P.touchdown?.runway);
       if (end) {
         const off = Math.atan2(Math.sin((end.headingGridDeg * Math.PI) / 180 - P.hdg), Math.cos((end.headingGridDeg * Math.PI) / 180 - P.hdg));
@@ -314,6 +326,7 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
   P.gear = clamp(P.gear + ((P.gearDown ? 1 : -1) * dt) / GEAR_TIME, 0, 1);
   P.flaps += clamp(P.flapCfg - P.flaps, -FLAP_RATE * dt, FLAP_RATE * dt);
   P.brake = clamp(P.brake + ((P.speedBrake ? 1 : -1) * dt) / BRAKE_TIME, 0, 1);
+  brakes(P, 0, dt); // i lufta: bremsene er av og kjøles
   // mer motstand gir også raskere fartsendring
   const response = 0.35 * (1 + 0.075 * P.flaps + 0.2 * P.gear + 0.3 * P.brake);
   P.spd += (targetSpeed(P, P.thr) - P.spd) * response * dt - G * Math.sin(P.pitch) * dt;

@@ -512,6 +512,15 @@ Det er Voxel Space som trenger et unntak.
   /punkt (sirkler på 5 km) i stedet for ett kall per sted, og lagres i data/ssr_points.json etter hver sirkel.
   Første fulle kjøring stoppet på et tidsavbrudd fra tjenesten; oppslaget prøver nå igjen også ved tidsavbrudd.
 
+**50. Spilløkka kunne gå baklengs i tid**
+- `runLoop` regnet tidssteget som bildets tidsstempel minus `performance.now()` fra oppstarten, begrenset oppad men
+  ikke nedad. Tidsstempelet til et bilde kan ligge før `performance.now()`, og da ble steget negativt: klokka gikk
+  bakover, understellet og luftbremsene beveget seg av seg selv, og farten økte under bremsing.
+- Sett flere ganger i skjermbilder fra hodeløs Chrome (klokka 11:59:58 ved start kl. 12:00, «SPD BRK» uten at noen
+  hadde rørt spaken), og først avfeid som noe ved skjermbildeverktøyet. I hodeløs Chrome med virtuell tid er utslaget
+  stort; i en vanlig nettleser høyst noen millisekunder på første bilde.
+- Rettet: tidssteget er aldri negativt.
+
 ### Åpne spørsmål / ikke kontrollert
 
 - OurAirports er ikke sjekket mot gjeldende AIP Norge, bare mot DTM og

@@ -392,7 +392,9 @@ export const isTyping = (e: Event): boolean => e.target instanceof HTMLInputElem
 export function runLoop(frame: (dt: number) => void): void {
   let last = performance.now();
   const tick = (now: number) => {
-    const dt = Math.min(0.05, (now - last) / 1000);
+    // Aldri bakover: tidsstempelet til første bilde kan ligge før performance.now() over, og negativ tid ville kjørt
+    // klokka, understellet og bremsene baklengs
+    const dt = Math.max(0, Math.min(0.05, (now - last) / 1000));
     last = now;
     frame(dt);
     requestAnimationFrame(tick);

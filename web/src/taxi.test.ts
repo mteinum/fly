@@ -98,6 +98,24 @@ describe.skipIf(!hasTiles("kjevik10"))("taksing på Kjevik", () => {
     expect(braked).toBeLessThan(auto * 0.6); // fotbremsene: ca. halve strekningen
   });
 
+  it("viser bremsene: varme etter landingen, trykk når piloten bremser, og fullt trykk når flyet er parkert", () => {
+    const P = landed(t);
+    expect(P.brakeTemp).toBeGreaterThan(150); // autobremsen har bremset flyet ned fra 125 kt
+    expect(P.brakeTemp).toBeLessThan(450);
+    expect(P.wheelBrake).toBeCloseTo(3 / 8, 6); // står stille: autobremsen (MED) holder flyet
+    run(P, t, { KeyW: true }, 1);
+    run(P, t, {}, 6);
+    expect(P.wheelBrake).toBe(0);
+    run(P, t, { Space: true }, 0.2);
+    expect(P.wheelBrake).toBeGreaterThan(0.3);
+    run(P, t, { Space: true }, 6);
+    const hot = P.brakeTemp;
+    park(P, quiet);
+    run(P, t, {}, 60);
+    expect(P.wheelBrake).toBe(1);
+    expect(P.brakeTemp).toBeLessThan(hot); // kjøles mens flyet står
+  });
+
   it("nekter å sette parkeringsbremsen i fart", () => {
     const P = landed(t);
     run(P, t, { KeyW: true }, 6);

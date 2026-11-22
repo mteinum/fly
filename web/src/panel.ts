@@ -586,6 +586,7 @@ function ewd(g: G2D, x: number, y: number, size: number, d: Data, body: number):
     line(g, 3, MY + 2.7, 11.8, MY + 2.7, 0.3, GREEN);
     text(g, "AUTO BRK", 68, MY, MF, GREEN, "left", MONO); text(g, AUTOBRAKE_NAMES[P.autobrake], 68, MY + MS, MF, GREEN, "left", MONO);
     if (P.brake > 0.05) text(g, P.state === "landed" ? "GND SPLRS" : "SPEED BRK", 68, MY + 2 * MS, MF, GREEN, "left", MONO); // som på flyet: grønn melding når de er ute
+    if (P.parked) text(g, "PARK BRK", 68, MY + 3 * MS, MF, GREEN, "left", MONO); // parkeringsbremsen er satt
     memo.forEach(([done, todo, ok], i) => text(g, ok ? done : todo, 14.5, MY + i * MS, MF, ok ? GREEN : CYAN, "left", MONO));
   }
   g.restore();
@@ -594,7 +595,8 @@ function ewd(g: G2D, x: number, y: number, size: number, d: Data, body: number):
 /* ---------- SD: systemdisplay (nedre ECAM) ---------- */
 
 /** WHEEL-siden: luftbremsene, understellet og bremsene.
- *  Ekte: luftbremser (spoiler 2-4 på hver vinge, som på flyet) og understellets stilling. SYNTETISK: bremsetemperaturene. */
+ *  Ekte: luftbremser (spoiler 2-4 på hver vinge, som på flyet) og understellets stilling. SYNTETISK: bremsetemperaturene,
+ *  som følger bremsingen (se physics.ts) men ikke er målt eller regnet fra flyets bremser. */
 function sdWheel(g: G2D, P: Plane): void {
   text(g, "WHEEL", 4, 6, 5, WHITE, "left"); line(g, 4, 9.6, 21.5, 9.6, 0.4, WHITE);
   // luftbremser: grønn strek når de ligger inne, pil opp når de er ute
@@ -620,7 +622,9 @@ function sdWheel(g: G2D, P: Plane): void {
   }
   // bremser: temperatur per hjul over en bue, hjulnummer under
   [14, 30, 70, 86].forEach((wx, i) => {
-    text(g, "45", wx, 56, 5, GREEN, "center", SANS, 600);
+    // bremsetemperaturen (se physics.ts), litt ulik fra hjul til hjul. Gul over 300 °C, som i flyet.
+    const temp = Math.round((P.brakeTemp * [1, 0.96, 1.03, 0.98][i]) / 5) * 5;
+    text(g, String(temp), wx, 56, 5, temp > 300 ? AMBER : GREEN, "center", SANS, 600);
     g.strokeStyle = WHITE; g.lineWidth = 0.5; g.beginPath(); g.arc(wx, 68, 6, Math.PI * 1.2, Math.PI * 1.8); g.stroke();
     text(g, String(i + 1), wx, 67.6, 3.8, WHITE);
   });
@@ -792,7 +796,8 @@ function glareLights(g: G2D, x0: number, dir: number, d: Data): void {
 
 /** Understellspanel: grønn trekant = nede og låst, rød UNLK = i bevegelse, mørkt = oppe.
  *  AUTO BRK: «ON» lyser blått på den stillingen som er valgt (kan klikkes), og «DECEL» grønt mens flyet bremser
- *  etter landing. SYNTETISK: bremsetrykket (akkumulatoren full, ingen bremsing). A/SKID kan ikke betjenes. */
+ *  etter landing. Viserne for bremsetrykk følger bremsene (autobrems, fotbremser, parkeringsbrems); skalaen er
+ *  SYNTETISK, og akkumulatoren står alltid full. A/SKID kan ikke betjenes. */
 function gearPanel(g: G2D, x: number, y: number, P: Plane, body: number): void {
   const label = ink(body);
   plate(g, x, y, 22, DU, body, 86, 100, 114);
@@ -822,7 +827,8 @@ function gearPanel(g: G2D, x: number, y: number, P: Plane, body: number): void {
   g.strokeStyle = GREEN; g.lineWidth = 0.5; g.beginPath(); g.arc(cx, cy, 4.2, -Math.PI * 0.72, -Math.PI * 0.28); g.stroke();
   for (const s of [-1, 1]) { g.strokeStyle = WHITE; g.lineWidth = 0.3; g.beginPath(); g.arc(cx + s * 2.2, cy + 1.6, 2.1, s > 0 ? -0.5 : Math.PI * 0.5, s > 0 ? Math.PI * 0.5 : Math.PI + 0.5); g.stroke(); }
   line(g, cx, cy - 0.6, cx + 1.3, cy - 4, 0.45, WHITE);
-  for (const s of [-1, 1]) line(g, cx + s * 2.2, cy + 1.6, cx + s * 2.2, cy + 3.6, 0.45, WHITE);
+  // bremsetrykket: viserne peker ned når bremsene er av, og svinger utover og opp jo hardere de står på
+  for (const s of [-1, 1]) { const a = P.wheelBrake * 2.3; line(g, cx + s * 2.2, cy + 1.6, cx + s * (2.2 + Math.sin(a) * 2), cy + 1.6 + Math.cos(a) * 2, 0.45, WHITE); }
   text(g, "ACCU", cx, cy - 1.9, 1.1, WHITE); text(g, "BRAKES", cx, cy + 0.2, 1.1, WHITE);
   // spake med hjulformet knott, og piler for retningen
   const lx = x + 14.6, ly = P.gearDown ? y + 40.4 : y + 28.6;

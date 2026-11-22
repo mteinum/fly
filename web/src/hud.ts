@@ -115,6 +115,8 @@ export function drawHud(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImag
     `${airport.icao} ${dist.toFixed(1)} km  HDG ${pad3(t.trueHeadingDeg(P.hdg))}`,
     `FLAPS ${FLAP_NAMES[P.flapCfg]}  GEAR ${P.gear >= 1 ? "DOWN" : P.gear <= 0 ? "UP" : "..."}${P.brake > 0.05 ? "  SPD BRK" : ""}  ${formatOslo(game.time)} LT`,
   ];
+  // På bakken: en linje om bremsene, så det synes at mellomrom og Enter virker
+  if (P.state === "landed") lines.push(P.parked ? "PARKING BRAKE SET" : `${P.taxi ? "TAXI" : "ROLLOUT"}  BRAKES ${P.wheelBrake > 0.02 ? `${Math.round(P.wheelBrake * 100)}%` : "OFF"}`);
   g.save();
   g.font = `7px ${FONT}`; g.textAlign = "left";
   g.fillStyle = "rgba(0,0,0,.45)"; g.fillRect(3, TOP + 3, 138, 6 + lines.length * 9);
