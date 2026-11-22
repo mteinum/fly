@@ -6,6 +6,7 @@ import { type FlightLog, FlightLogger } from "./flightlog";
 import { type Keys, moveFlaps, park, setAutobrake, softStick, TAXI_ENTRY, startApproach, toggleGear, toggleSpeedBrake, update, type Wind, windFrom } from "./physics";
 import { Recorder, REPLAY_HOLD } from "./replay";
 import { newPlane, type Plane } from "./plane";
+import { clock, type Sight, sightsFrom, visitSights } from "./sights";
 import { type SkyState, skyState } from "./sky";
 import { sunPosition } from "./sun";
 import { buildTaxiGraph, chooseStand, lastExitM, planTaxi, type TaxiGraph, type TaxiPlan } from "./taxiRoute";
@@ -98,6 +99,9 @@ export interface Game {
   wind: { fromTrueDeg: number; kt: number; gustKt: number | null; vector: Wind; source: "none" | "url" | "metar"; metar: string | null };
   /** Navigasjonsdisplayet: rekkevidden i NM (Z blar 10, 20, 40) og om terrenget tegnes (X). */
   nd: { rangeNm: number; terrain: boolean };
+  /** Sightseeing: signalbyggene i utsnittet som kan finnes ved å fly over dem (tom liste der det er for få), hvor
+   *  mange som er funnet på denne turen, og tiden da det siste ble funnet (s fra start), eller null. */
+  sights: { list: Sight[]; found: number; doneS: number | null };
   /** Punktet spilleren har trykket på i oversiktskartet (rutenett), eller null. Flyet svinger dit av seg selv;
    *  høyde og fart styrer piloten fortsatt. Slippes når flyet er framme, eller når piloten svinger selv. */
   directTo: { x: number; y: number } | null;
@@ -264,6 +268,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     stand = null; taxiS = 0; replanIn = 0; toldRoute = false; sawParked = false;
     game.autopilot = approach.autopilot = false;
     game.directTo = null;
+    for (const s of game.sights.list) s.found = false;
+    game.sights.found = 0; game.sights.doneS = null;
     startApproach(P, terrain, ends[endIdx]);
     const tour = tourIdx >= 0 ? tours[tourIdx] : null;
     if (tour) Object.assign(P, { x: tour.x, y: tour.y, alt: tour.altitudeM, hdg: ((tour.headingTrueDeg - terrain.meta.gridConvergenceDeg) * Math.PI) / 180, pitch: 0 });
@@ -307,6 +313,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     wind,
     apTarget: null,
     directTo: null,
+    sights: { list: sightsFrom(terrain.names), found: 0, doneS: null },
     flyTo(x, y) {
       if (P.state !== "fly" || game.replay) return;
       if (game.autopilot) setAutopilot(false);
@@ -358,6 +365,14 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
       if (wasFlying) approach.elapsedS += dt; // stoppeklokka på panelet: står når flyet har landet
       const again = update(P, terrain, airport, controls(dt), dt, say, wind.vector);
       taxiStep(dt);
+      if (wasFlying && P.state === "fly") {
+        const sights = game.sights;
+        for (const s of visitSights(sights.list, P.x, P.y, P.alt, terrain.cell)) {
+          sights.found++;
+          if (sights.found < sights.list.length) say(`Found ${s.name} (${sights.found} of ${sights.list.length})`, 3.5);
+          else { sights.doneS = approach.elapsedS; say(`Found ${s.name}: all ${sights.found} sights in ${clock(sights.doneS)}. Now land!`, 7); }
+        }
+      }
       if (wasFlying) logger.step(P, dt, game.autopilot);
       if (wasFlying && P.state !== "fly") game.flightLog = logger.finish(P, msg.text, P.touchdown && gradeLanding(P.touchdown), game.autopilot) ?? game.flightLog;
       if (P.state !== "fly") game.autopilot = false;

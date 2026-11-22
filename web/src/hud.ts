@@ -22,6 +22,12 @@ export function drawMap(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImag
     g.lineTo(x + rw.ends[1].x * k, y + rw.ends[1].y * k);
     g.stroke();
   }
+  // Sightseeing: stedene som gjenstår som gule ruter, de som er funnet som grønne
+  g.strokeStyle = "rgba(0,0,0,.75)"; g.lineWidth = 0.25;
+  for (const s of game.sights.list) {
+    g.fillStyle = s.found ? "#3ddc6a" : "#ffb000";
+    g.beginPath(); g.rect(x + s.x * k - 0.9, y + s.y * k - 0.9, 1.8, 1.8); g.fill(); g.stroke();
+  }
   // Skip (fra AIS): en liten gul kile i fartsretningen når skipet går, en prikk når det ligger stille
   g.fillStyle = "#ffe14d"; g.strokeStyle = "rgba(0,0,0,.7)"; g.lineWidth = 0.25;
   for (const s of game.ships) {
@@ -133,6 +139,7 @@ export function drawHud(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImag
     `${airport.icao} ${dist.toFixed(1)} km  HDG ${pad3(t.trueHeadingDeg(P.hdg))}`,
     `FLAPS ${FLAP_NAMES[P.flapCfg]}  GEAR ${P.gear >= 1 ? "DOWN" : P.gear <= 0 ? "UP" : "..."}${P.brake > 0.05 ? "  SPD BRK" : ""}  ${formatOslo(game.time)} LT`,
   ];
+  if (game.sights.list.length) lines.push(`SIGHTS ${game.sights.found}/${game.sights.list.length}`);
   // På bakken: en linje om bremsene, så det synes at mellomrom og Enter virker
   if (P.state === "landed") lines.push(P.parked ? "PARKING BRAKE SET" : `${P.taxi ? "TAXI" : "ROLLOUT"}  BRAKES ${P.wheelBrake > 0.02 ? `${Math.round(P.wheelBrake * 100)}%` : "OFF"}`);
   g.save();

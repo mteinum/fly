@@ -49,6 +49,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     traffic.ts     andre fly fra ADS-B: UTM -> rutenett, bevegelse og høyde mellom oppdateringer
     transit.ts     busser og tog fra Entur: UTM -> rutenett, og jevn gliding mellom to meldinger
     ships.ts       skip fra AIS: UTM -> rutenett, bevegelse mellom meldinger, jevne oppdateringer
+    sights.ts      sightseeing: signalbyggene (stedsnavn av typen «landemerke») finnes ved å fly over dem; teller, kart og diplom
     flightlog.ts   flylogg per innflyging (UTM 33, sann kurs); L laster ned, utviklingsserveren lagrer i data/flights/
     replay.ts      opptak av de siste 5 s og reprise utenfra etter krasj
     sun.ts         solas posisjon fra tid og sted

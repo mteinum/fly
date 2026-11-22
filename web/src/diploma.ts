@@ -1,6 +1,7 @@
 /* Diplom etter landing: karakter, et bilde som kan deles, og knappene for å dele det.
  * Diplomet er en spillpremie, ikke et sertifikat. Karakteren regnes fra det flymodellen målte
  * i landingsøyeblikket; grensene er valgt for spillets skyld, ikke hentet fra flyoperative krav. */
+import { sightsLine } from "./sights";
 import type { Touchdown } from "./plane";
 
 export interface Grade {
@@ -38,6 +39,8 @@ export interface DiplomaData {
   taxi?: string | null;
   /** Takset helt fram: standen og tiden fra landing til parkering (s). Står på selve diplomet og i delingslenka. */
   taxiDone?: { stand: string; seconds: number } | null;
+  /** Sightseeing på turen: hvor mange signalbygg som ble funnet, og tiden da alle var funnet (s). Står på diplomet. */
+  sights?: { found: number; total: number; seconds: number | null } | null;
 }
 
 const W = 1200, H = 630;
@@ -92,7 +95,8 @@ export function drawDiploma(canvas: HTMLCanvasElement, d: DiplomaData, photo: Ca
   const starW = 62, x0 = W / 2 - starW * 2;
   for (let i = 0; i < 5; i++) { g.fillStyle = i < d.grade.stars ? "#ffd04a" : "rgba(255,255,255,.22)"; g.fillText("★", x0 + i * starW, 338); }
   text(d.grade.title, 396, `600 34px ${SERIF}`, "#f0d48a");
-  if (d.taxiDone) text(taxiLine(d), 432, `italic 22px ${SERIF}`, "#d6dbe6");
+  const extra = [taxiLine(d), sightsLine(d.sights)].filter(Boolean).join(" · ");
+  if (extra) text(extra, 432, `italic ${extra.length > 60 ? 18 : 22}px ${SERIF}`, "#d6dbe6");
 
   // målinger
   const td = d.touchdown, where = td.pastThresholdM >= 0 ? `${Math.round(td.pastThresholdM)} m past threshold` : `${Math.round(-td.pastThresholdM)} m before threshold`;

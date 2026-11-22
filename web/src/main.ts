@@ -505,7 +505,7 @@ const MAX_TRANSIT_LABELS = 8;
       game.msg.t = 1;
     } else if (landed && game.P.parked && game.P.touchdown && !diploma.open && !diplomaShown && !clean && landingPhoto && game.parkedS >= (game.parkedShort ? PARKED_SHORT_WAIT_S : 0)) {
       // Parkert et stykke fra standen: diplomet venter litt, så piloten rekker å slippe bremsen og kjøre helt fram
-      diploma.show({ airportName: chosen.name, icao: chosen.icao, touchdown: game.P.touchdown, taxi: game.taxiResult, taxiDone: game.taxiDone }, landingPhoto, () => { diploma.hide(); game.restart(); });
+      diploma.show({ airportName: chosen.name, icao: chosen.icao, touchdown: game.P.touchdown, taxi: game.taxiResult, taxiDone: game.taxiDone, sights: game.sights.list.length ? { found: game.sights.found, total: game.sights.list.length, seconds: game.sights.doneS } : null }, landingPhoto, () => { diploma.hide(); game.restart(); });
       diplomaShown = true;
     }
     // Parkeringsbremsen er sluppet igjen (Enter): diplomet legges bort, og kommer tilbake når flyet parkeres på nytt
