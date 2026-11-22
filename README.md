@@ -95,6 +95,13 @@ Når hjulene tar bakken går bakkespoilerne ut av seg selv, og autobremsen brems
 MED (Mehamn). Ruller flyet av enden på banen i fart, er det en utforkjøring. MAX er sterkere enn flyet klarer;
 uten det kunne ingen landet på Mehamns 880 m.
 
+## Taksing
+
+Når flyet har rullet ned til ca. 30 knop kan du ta over og takse: `W` gir gass (og starter taksingen), `S` tar den av,
+piltastene styrer nesehjulet, mellomrom eller pil ned bremser, og `Enter` setter parkeringsbremsen når flyet står.
+Hold deg på asfalten: i lav fart kjører flyet seg fast i gresset, i fart er det en ulykke. Gjør du ingenting,
+kommer diplomet seks sekunder etter at flyet har stanset, som før.
+
 ## Flight director
 
 De to grønne strekene på PFD viser stillingen autopiloten ville holdt akkurat nå. Fly så de krysser midt i

@@ -28,6 +28,10 @@ export interface Plane {
   speedBrake: boolean; // luftbremsespaken
   brake: number; // luftbremsenes stilling: 0 = inne, 1 = helt ute
   autobrake: number; // autobremsen: 1 = LO, 2 = MED, 3 = MAX. Virker etter landing
+  taxi: boolean; // piloten har tatt over på bakken og takser selv (etter landing)
+  parked: boolean; // flyet står stille for godt: parkert, stående etter landing, eller kjørt fast
+  stuck: boolean; // kjørt av asfalten og satt fast under taksing
+  still: number; // s flyet har stått stille etter utrullingen uten at piloten har begynt å takse
   spoilersArmed: boolean; // bakkespoilerne er armert (luftbremsespaken trukket opp): da går de ut ved landing
   state: PlaneState;
   t: number; // s igjen i ikke-flygende tilstand
@@ -37,5 +41,5 @@ export interface Plane {
 /** Nytt fly i landingsoppsett: understell nede, full klaff. */
 export const newPlane = (): Plane => ({
   x: 0, y: 0, alt: 0, hdg: 0, spd: 0, pitch: 0, roll: 0, thr: 0,
-  gearDown: true, gear: 1, flapCfg: 4, flaps: 4, speedBrake: false, brake: 0, autobrake: 2, spoilersArmed: true, state: "fly", t: 0, touchdown: null,
+  gearDown: true, gear: 1, flapCfg: 4, flaps: 4, speedBrake: false, brake: 0, autobrake: 2, taxi: false, parked: false, stuck: false, still: 0, spoilersArmed: true, state: "fly", t: 0, touchdown: null,
 });

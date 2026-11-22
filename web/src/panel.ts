@@ -808,7 +808,7 @@ function gearPanel(g: G2D, x: number, y: number, P: Plane, body: number): void {
     const armed = P.autobrake === i + 1, cx = x + 4.4 + i * 6.5;
     key(g, x + 1.5 + i * 6.5, y + 16.6, 5.8, 5.6, "", body);
     text(g, s, cx, y + 17.8, 1.5, ink(body, 0.9));
-    text(g, "DECEL", cx, y + 19.6, 1.2, armed && P.state === "landed" && P.spd > 0 ? GREEN : "#1d4a26");
+    text(g, "DECEL", cx, y + 19.6, 1.2, armed && P.state === "landed" && !P.taxi && P.spd > 0 ? GREEN : "#1d4a26");
     text(g, "ON", cx, y + 21.1, 1.3, armed ? CYAN : "#27456b");
   });
   // vippebryter for A/SKID og nesehjulstyring

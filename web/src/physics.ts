@@ -25,6 +25,20 @@ export const AUTOBRAKE_NAMES = ["", "LO", "MED", "MAX"];
 export const AUTOBRAKE_DECEL = [0, 1.7, 3, 8];
 /** Ruller flyet av banen fortere enn dette (m/s), er det en utforkjøring. */
 const OVERRUN_SPEED = 5;
+// Taksing. SYNTETISK: tallene er valgt så flyet kjennes tungt, men lar seg kjøre med tastatur.
+/** Under denne farten (m/s, ca. 30 kt) kan piloten ta over etter landing og takse selv. */
+export const TAXI_ENTRY = 15;
+/** Så lenge står flyet stille etter utrullingen før det regnes som parkert, hvis piloten ikke begynner å takse (s). */
+export const PARK_DELAY = 6;
+const TAXI_THRUST = 1.6, TAXI_MAX_THR = 0.5; // m/s² ved full gass, og hvor langt gasshåndtakene går på bakken
+const TAXI_DRAG = 0.08, TAXI_DRAG_PER_SPEED = 0.015; // rullemotstand: 10 % gass gir ca. 10 kt, 20 % ca. 30 kt
+const TAXI_BRAKE = 3; // m/s² med fotbremsene helt inne
+const TAXI_TURN = 0.45, TAXI_SIDE_ACCEL = 2.2; // rad/s i lav fart, og hvor krapt det går an å svinge i fart (m/s²)
+/** Forlater flyet asfalten fortere enn dette (m/s, ca. 23 kt), er det en ulykke. Saktere: det kjører seg fast. */
+const TAXI_CRASH_SPEED = 12;
+// m utenfor kanten flyet tåler. Romslig: kryssene er kartlagt som linjer uten de avrundede hjørnene asfalten har,
+// så den som skjærer en sving er i virkeligheten fortsatt på asfalt.
+const PAVEMENT_MARGIN = 8;
 const ROLLOUT_STEER = 0.08; // rad/s: så fort nesehjulet retter flyet inn etter banen under utrullingen
 /** Største stampefart med full stikke (rad/s), ca. 11°/s. Var 34°/s, som var altfor kvikt å håndfly. */
 export const PITCH_RATE = 0.2;
@@ -118,6 +132,66 @@ export function onRunway(t: Terrain, airport: Airport, x: number, y: number): bo
   });
 }
 
+/** Står punktet på asfalt: en rullebane, en taksebane eller en oppstillingsflate (aeroways.json, OpenStreetMap)?
+ *  Litt slakk utenfor kantene, og 60 m forbi baneendene (snuplassene er ikke alltid kartlagt). */
+export function onPavement(t: Terrain, airport: Airport, x: number, y: number): boolean {
+  for (const rw of airport.runways) {
+    const { along, cross } = runwayOffset(t, rw, x, y);
+    const len = Math.hypot(rw.ends[1].x - rw.ends[0].x, rw.ends[1].y - rw.ends[0].y) * t.cell;
+    if (along >= -60 && along <= len + 60 && Math.abs(cross) <= rw.widthM / 2 + PAVEMENT_MARGIN) return true;
+  }
+  const aero = t.aeroways;
+  if (!aero) return false;
+  for (const tw of aero.taxiways) {
+    const reach = (tw.width / 2 + PAVEMENT_MARGIN) / t.cell;
+    for (let i = 1; i < tw.line.length; i++) {
+      const [ax, ay] = tw.line[i - 1], [bx, by] = tw.line[i], dx = bx - ax, dy = by - ay;
+      const f = clamp(((x - ax) * dx + (y - ay) * dy) / (dx * dx + dy * dy || 1), 0, 1);
+      if (Math.hypot(x - ax - f * dx, y - ay - f * dy) <= reach) return true;
+    }
+  }
+  for (const ring of aero.aprons) {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i], [xj, yj] = ring[j];
+      if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    if (inside) return true;
+  }
+  return false;
+}
+
+/** Ett steg med taksing: piloten styrer nesehjulet med piltastene, gir gass med W og S og bremser med mellomrom
+ *  eller pil ned. Forlater flyet asfalten, kjører det seg fast (eller krasjer, i fart). */
+function taxi(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: number, say: Say): void {
+  if (!P.speedBrake) P.brake = Math.max(0, P.brake - dt / BRAKE_TIME); // bakkespoilerne legges inn igjen
+  P.thr = clamp(P.thr + 0.4 * dt * (axis(K.KeyW) - axis(K.KeyS)), 0, TAXI_MAX_THR);
+  const braking = Math.max(axis(K.Space), axis(K.ArrowDown));
+  P.spd = Math.max(0, P.spd + (TAXI_THRUST * P.thr - TAXI_DRAG - TAXI_DRAG_PER_SPEED * P.spd - TAXI_BRAKE * braking) * dt);
+  // nesehjulet: krappest i lav fart, og ingen sving når flyet står stille
+  const steer = axis(K.ArrowRight) - axis(K.ArrowLeft);
+  P.hdg += steer * Math.min(TAXI_TURN, P.spd / 9, TAXI_SIDE_ACCEL / Math.max(P.spd, 1)) * dt;
+  P.x += (Math.sin(P.hdg) * P.spd * dt) / t.cell;
+  P.y -= (Math.cos(P.hdg) * P.spd * dt) / t.cell;
+  P.alt = Math.max(0, t.heightAt(P.x, P.y)) + 1; // følger bakken
+  if (onPavement(t, airport, P.x, P.y)) return;
+  if (P.spd > TAXI_CRASH_SPEED) {
+    P.state = "crash"; P.t = 3;
+    say("Left the taxiway at speed!", 3);
+  } else {
+    P.spd = 0; P.thr = 0; P.parked = true; P.stuck = true;
+    say("Stuck in the grass. Stay on the asphalt and follow the yellow line.", 6);
+  }
+}
+
+/** Sett parkeringsbremsen: flyet må stå (nesten) stille. Da er turen over. */
+export function park(P: Plane, say: Say): void {
+  if (P.state !== "landed" || P.parked) return;
+  if (P.spd > 1.5) { say("Stop before setting the parking brake", 2); return; }
+  P.spd = 0; P.thr = 0; P.parked = true;
+  say("Parking brake set", 2);
+}
+
 /** Mål landingen: hvilken bane, hvor på banen, hvor fort og hvor hardt. */
 function measureTouchdown(t: Terrain, airport: Airport, P: Plane, vs: number): Touchdown | null {
   for (const rw of airport.runways) {
@@ -147,7 +221,7 @@ export function startApproach(P: Plane, t: Terrain, end: RunwayEnd): void {
     y: end.y + Math.cos(hdg) * d,
     alt: glidePathAltitude(t, end, APPROACH_DIST_M), // på glidebanen som PFD viser
     hdg, spd: APPROACH_SPEED, pitch: -0.05, roll: 0, thr: 0,
-    gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, speedBrake: false, brake: 0, autobrake: P.autobrake, spoilersArmed: true, state: "fly", t: 0, touchdown: null, // autobremsen settes av den som starter innflygingen
+    gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, speedBrake: false, brake: 0, autobrake: P.autobrake, taxi: false, parked: false, stuck: false, still: 0, spoilersArmed: true, state: "fly", t: 0, touchdown: null, // autobremsen settes av den som starter innflygingen
   } satisfies Plane);
   // gass som holder startfarten i flat flyging
   P.thr = throttleFor(P, APPROACH_SPEED);
@@ -189,6 +263,16 @@ export function moveFlaps(P: Plane, step: number, say: Say): void {
 export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: number, say: Say, wind: Wind = CALM): boolean {
   if (P.state !== "fly") {
     P.t -= dt;
+    if (P.state === "landed" && P.parked) return false;
+    // Under ca. 30 kt kan piloten ta over og takse: gass (W), eller styring mens flyet ennå ruller
+    if (P.state === "landed" && !P.taxi && t.aeroways && P.spd < TAXI_ENTRY && (axis(K.KeyW) > 0 || (P.spd > 0.5 && (axis(K.ArrowLeft) > 0 || axis(K.ArrowRight) > 0)))) {
+      P.taxi = true; P.thr = 0;
+      say("Taxi: ← → steer · W / S thrust · Space brake · Enter parks", 7);
+    }
+    if (P.state === "landed" && P.taxi) {
+      taxi(P, t, airport, K, dt, say);
+      return false;
+    }
     if (P.state === "landed") {
       // Utrulling: bakkespoilerne går ut av seg selv når de er armert, autobremsen holder nedbremsingen den er satt til, og
       // nesehjulet retter flyet inn etter banen (SYNTETISK: spillet har ikke sideror eller hjulstyring).
@@ -206,6 +290,8 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
         say("Runway overrun! Land earlier or use more autobrake (3 = MAX).", 3.5);
         return false;
       }
+      // Stående: uten bakkeanlegg å takse på er turen over. Ellers får piloten noen sekunder på å begynne å takse.
+      if (P.spd === 0) { P.still += dt; if (!t.aeroways || P.still >= PARK_DELAY) P.parked = true; }
     }
     // etter landing blir flyet stående til piloten selv ber om ny innflyging (diplomet vises imens)
     return P.state !== "landed" && P.t <= 0;

@@ -182,7 +182,7 @@ export class GameAudio {
     const set = (name: string, value: number) => this.loops.get(name)?.gain.gain.setTargetAtTime(value, now, 0.12);
 
     const flying = P.state === "fly" || P.state === "landed";
-    const power = P.state === "landed" ? 0.05 : P.thr;
+    const power = P.state === "landed" ? Math.max(0.05, P.thr) : P.thr; // tomgang under utrullingen, gass under taksing
     const engine = this.loops.get("engine");
     if (engine) {
       engine.source.playbackRate.setTargetAtTime(0.75 + power * 0.7, now, 0.3);

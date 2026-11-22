@@ -178,6 +178,7 @@ export function overheadHit(lx: number, ly: number): PanelControl | null {
 // Det som virker på midtkonsollen
 const THR = { x: 160, top: 82, bottom: 138 }, SPD = { x: 86, top: 162, bottom: 190 }, FLAP = { x: 232, top: 160, bottom: 190 };
 const ECAM = { x: 128.6, y: 39, w: 10, h: 7.4, step: 10.8 }, TCAS_KNOB = { x: 262, y: 139 };
+const PARK = { x: 140, y: 190 };
 const ECAM_KEYS = [["ENG", "BLEED", "PRESS", "ELEC", "HYD", "FUEL"], ["APU", "COND", "DOOR", "WHEEL", "F/CTL", "ALL"]];
 
 /** Gasstillingen (0-1) for en høyde på skjermen langs sporet på midtkonsollen. */
@@ -291,7 +292,8 @@ export function drawPedestal(g: G2D, game: Game, t: Terrain): void {
   toggle(g, 138, 166, "MASTER 1", body, true); toggle(g, 182, 166, "MASTER 2", body, true);
   selector(g, 160, 165, "MODE", "NORM", body, 0, 3); text(g, "CRANK", 152.6, 160.4, 1.1, ink(body, 0.8)); text(g, "IGN START", 169.4, 160.4, 1.1, ink(body, 0.8));
   box(g, 124, 180, 72, 17, "", body);
-  text(g, "PARK BRK", 140, 183.4, 1.4, white); knob(g, 140, 190, 3.4, body, -1.2); text(g, "OFF", 132.6, 190, 1.2, ink(body, 0.8)); text(g, "ON", 147.6, 190, 1.2, ink(body, 0.8));
+  // Parkeringsbremsen: kan settes når flyet står stille etter landing. Da er turen over.
+  text(g, "PARK BRK", 140, 183.4, 1.4, white); knob(g, PARK.x, PARK.y, 3.4, body, P.parked ? 1.2 : -1.2); text(g, "OFF", 132.6, 190, 1.2, ink(body, 0.8)); text(g, "ON", 147.6, 190, 1.2, ink(body, 0.8));
   text(g, "RUD TRIM", 176, 183.4, 1.4, white); lcd(g, 163, 187, 11, 5, "0.0", GREEN); knob(g, 184, 190, 3, body, 0);
 
   // luftbremsen til venstre: håndtaket armerer bakkespoilerne når det er trukket opp (hvitt bånd), sporet slår luftbremsen ut
@@ -328,6 +330,7 @@ export function pedestalHit(lx: number, ly: number): PanelControl | null {
     if ((name === "ENG" || name === "WHEEL") && lx >= x && lx <= x + ECAM.w && ly >= y && ly <= y + ECAM.h) return { kind: "sdPage", page: name === "ENG" ? "eng" : "wheel" };
   }
   if (Math.hypot(lx - TCAS_KNOB.x, ly - TCAS_KNOB.y) <= 4.4) return { kind: "tcasMode" };
+  if (Math.hypot(lx - PARK.x, ly - PARK.y) <= 4.6) return { kind: "parkBrake" };
   if (Math.abs(lx - THR.x) <= 11 && ly >= THR.top - 5 && ly <= THR.bottom + 5) return { kind: "thrust", thr: pedestalThrustAt(ly) };
   if (Math.abs(lx - SPD.x) <= 8 && ly >= SPD.top - 6 && ly <= SPD.bottom + 4) {
     // øverst i sporet, der håndtaket står når luftbremsen er inne: armering. Lenger ned: luftbremsen ut eller inn.

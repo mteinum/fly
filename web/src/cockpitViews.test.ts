@@ -27,6 +27,7 @@ describe("trykk på midtkonsollen", () => {
     expect(pedestalHit(232, 160)).toEqual({ kind: "flaps", cfg: 0 });
     expect(pedestalHit(240, 190)).toEqual({ kind: "flaps", cfg: 4 });
     expect(pedestalHit(262, 139)).toEqual({ kind: "tcasMode" });
+    expect(pedestalHit(140, 190)).toEqual({ kind: "parkBrake" });
   });
 
   it("armerer bakkespoilerne øverst i luftbremsens spor, og slår luftbremsen ut lenger ned", () => {

@@ -360,12 +360,13 @@ async function main(): Promise<void> {
       landingPhoto.height = glCanvas.height;
       landingPhoto.getContext("2d")!.drawImage(glCanvas, 0, 0);
     }
-    if (landed && game.P.spd === 0 && game.P.touchdown && game.approach.autopilot) {
+    if (landed && game.P.parked && game.P.touchdown && game.approach.autopilot) {
       // Autopiloten får karakter, men ikke diplom: det er for den som fløy selv
       const grade = gradeLanding(game.P.touchdown);
-      game.msg.text = `Autopilot: ${"★".repeat(grade.stars)}${"☆".repeat(5 - grade.stars)} ${grade.title}. Press R and beat it.`;
+      // Kjørte piloten seg fast under taksingen etterpå, skal den beskjeden stå: ellers ser flyet bare ut til å ha stanset
+      game.msg.text = `${game.P.stuck ? "Stuck in the grass. " : ""}Autopilot: ${"★".repeat(grade.stars)}${"☆".repeat(5 - grade.stars)} ${grade.title}. Press R and beat it.`;
       game.msg.t = 1;
-    } else if (landed && game.P.spd === 0 && game.P.touchdown && !diploma.open && !clean && landingPhoto) {
+    } else if (landed && game.P.parked && game.P.touchdown && !diploma.open && !clean && landingPhoto) {
       diploma.show({ airportName: chosen.name, icao: chosen.icao, touchdown: game.P.touchdown }, landingPhoto, () => { diploma.hide(); game.restart(); });
       landingPhoto = null;
     }

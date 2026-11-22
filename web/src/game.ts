@@ -3,7 +3,7 @@ import { autobrakeFor, autopilot } from "./autopilot";
 import { startTime } from "./clock";
 import { gradeLanding } from "./diploma";
 import { type FlightLog, FlightLogger } from "./flightlog";
-import { type Keys, moveFlaps, setAutobrake, softStick, startApproach, toggleGear, toggleSpeedBrake, update, type Wind, windFrom } from "./physics";
+import { type Keys, moveFlaps, park, setAutobrake, softStick, startApproach, toggleGear, toggleSpeedBrake, update, type Wind, windFrom } from "./physics";
 import { Recorder, REPLAY_HOLD } from "./replay";
 import { newPlane, type Plane } from "./plane";
 import { type SkyState, skyState } from "./sky";
@@ -29,7 +29,7 @@ export type PanelControl =
   | { kind: "ndRange" } | { kind: "ndTerrain" } | { kind: "flightPathVector" }
   /** På overheadpanelet og midtkonsollen: setebeltebryteren, TERR på GPWS-panelet, TCAS-velgeren, armering av
    *  bakkespoilerne, og siden SD skal vise (samme tast en gang til gir automatisk valg igjen). */
-  | { kind: "seatBelts" } | { kind: "gpwsTerr" } | { kind: "tcasMode" } | { kind: "spoilersArm" } | { kind: "sdPage"; page: "eng" | "wheel" }
+  | { kind: "parkBrake" } | { kind: "seatBelts" } | { kind: "gpwsTerr" } | { kind: "tcasMode" } | { kind: "spoilersArm" } | { kind: "sdPage"; page: "eng" | "wheel" }
   /** Autobremsen: 1 = LO, 2 = MED, 3 = MAX. */
   | { kind: "autobrake"; level: number }
   /** Klaffspaken settes i stilling 0-4. */
@@ -217,6 +217,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
       else if (c.kind === "ndRange") nextRange();
       else if (c.kind === "ndTerrain") toggleTerrain();
       else if (c.kind === "flightPathVector") toggleBird();
+      else if (c.kind === "parkBrake") park(P, say);
       else if (c.kind === "seatBelts") { game.sys.seatBelts = !game.sys.seatBelts; say(`Seat belt signs ${game.sys.seatBelts ? "on" : "off"}`, 1.5); }
       else if (c.kind === "gpwsTerr") { game.sys.gpwsTerr = !game.sys.gpwsTerr; say(`Terrain warning ${game.sys.gpwsTerr ? "on" : "off"}`, 1.5); }
       else if (c.kind === "tcasMode") { game.sys.tcasStandby = !game.sys.tcasStandby; say(`TCAS ${game.sys.tcasStandby ? "standby" : "TA"}`, 1.5); }
@@ -272,6 +273,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     if (e.code === "KeyA") setAutopilot(!game.autopilot);
     if (e.code === "KeyD") toggleFlightDirector();
     if (e.code === "Digit1" || e.code === "Digit2" || e.code === "Digit3") setAutobrake(P, Number(e.code.slice(5)), say);
+    if (e.code === "Enter") park(P, say);
     if (e.code === "KeyU") lookTo("up");
     if (e.code === "KeyJ") lookTo("down");
     if (e.code === "KeyP") toggleBird();
@@ -290,6 +292,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     for (const ev of ["pointerup", "pointerleave", "pointercancel"]) b.addEventListener(ev, () => { K[k] = false; });
   });
   document.getElementById("tCam")!.onclick = toggleCam;
+  document.getElementById("tPark")!.onclick = () => park(P, say);
   document.getElementById("tAuto")!.onclick = () => setAutopilot(!game.autopilot);
   document.getElementById("tGear")!.onclick = () => toggleGear(P, say);
   document.getElementById("tBrake")!.onclick = () => toggleSpeedBrake(P, say);
