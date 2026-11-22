@@ -55,6 +55,12 @@ PFD viser en magenta rombe for glidebanen (til høyre for horisonten) og en for 
 senterlinja og på 3° glidebane. ND viser forlenget senterlinje med et merke per nautiske
 mil. Veiledningen er regnet fra banegeometrien, ikke fra flyplassens faktiske anlegg.
 
+## Terrengvarsel
+
+I cockpit varsler flyet når det er på vei i terrenget: «terrain ahead» og gul tekst på ND når det er under
+45 sekunder til, «pull up» og rødt når det haster. Terrenget det gjelder er helfarget på ND. Varselet regnes fra
+høydekartet og flyets bane akkurat nå (`web/src/gpws.ts`); reglene er forenklet og gjelder ikke bygninger og bruer.
+
 ## Autopilot
 
 `A` lar flyet lande selv: det følger senterlinja og glidebanen, setter ut understell og

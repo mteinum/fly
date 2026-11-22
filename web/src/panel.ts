@@ -11,7 +11,8 @@
  *
  * Ekte verdier: fart, høyde, stigning, kurs, stilling, radiohøyde, avstand og peiling til flyplassen,
  * terrenget på ND (fra høydekartet), andre fly på ND (ADS-B, se traffic.ts), klokke, fartstrend,
- * klaffer, understell og luftbremser med varsler og landingsmemo, og bakken på høydebåndet.
+ * klaffer, understell og luftbremser med varsler og landingsmemo, bakken på høydebåndet, og terrenget
+ * som terrengvarselet (gpws.ts) reagerer på.
  * Syntetisk: motorverdiene (regnet fra gasshåndtaket, med et etterslep som er valgt, ikke målt), skyvegrensen,
  * memolinjene SIGNS/CABIN/SPLRS, drivstoffmengde, QNH, bremsetrykk, bremsetemperatur, vekt og lufttemperatur på SD, ALT-vinduet på FCU (høyden innflygingen
  * startet i, ikke en klarert høyde), og fartsmerkene VLS og alfa-vern (faste forhold til steilefarten).
@@ -21,6 +22,7 @@ import { osloTime } from "./clock";
 import type { Game } from "./game";
 import { FLAP_NAMES, speedLimit, stallSpeed, verticalSpeed, warnings } from "./physics";
 import type { Plane } from "./plane";
+import { CAUTION_S, onApproachPath, requiredClearance, terrainAlert, type TerrainAlert, WARNING_S } from "./gpws";
 import { guidance, type Guidance } from "./guidance";
 import { H, OX, PANEL_TOP, TOP, W } from "./screen";
 import type { Terrain } from "./terrain";
@@ -129,6 +131,8 @@ interface Data {
   eng: number;
   /** Høyeste tillatte fart i neste klaffstilling (kt), eller null med full klaff. */
   nextFlapKt: number | null;
+  /** Terrengvarselet som gjelder nå (se gpws.ts). */
+  gpws: TerrainAlert | null;
 }
 
 /** Åpner en skjerm: ramme, svart flate, og koordinater 0-100 klippet til skjermen. */
@@ -333,12 +337,20 @@ function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body:
   // Tett rødt: mer enn 2000 fot over flyet. Tett gult: 1000-2000 over. Spredt gult: fra 500 fot under (250 med
   // understellet nede) til 1000 over. Tett grønt: ned til 1000 under. Spredt grønt: 1000-2000 under.
   // Lavere terreng vises ikke. Sjøen er spredte blå prikker. Prikkene står fast på skjermen; terrenget flytter seg under.
-  const STEP = 1.6, altM = P.alt, near = P.gear >= 1 ? -250 : -500;
+  const STEP = 1.6, altM = P.alt, vs = verticalSpeed(P), near = P.gear >= 1 ? -250 : -500;
   for (let sy = 18, row = 0; sy < AY + 6; sy += STEP, row++) for (let sx = 0, col = 0; sx < 100; sx += STEP, col++) {
     const rx = sx + STEP / 2 - AX, fy = AY - (sy + STEP / 2);
     if (rx * rx + fy * fy > R * R) continue;
     const [gx, gy] = toGrid(rx, fy);
     if (!t.inBounds(gx, gy)) continue;
+    // Terrengvarsel: terrenget foran som flyets bane går for nær, er helfarget. Gult først, rødt når det haster.
+    if (d.gpws && fy > 0 && Math.abs(rx) < 4 + 0.12 * fy) {
+      const s = (fy * unit * t.cell) / P.spd, ground = Math.max(0, t.heightAt(gx, gy));
+      if (s <= CAUTION_S && altM + vs * s < ground + requiredClearance(t, game.airport, gx, gy) && !onApproachPath(t, game.airport, gx, gy, altM + vs * s)) {
+        g.fillStyle = s <= WARNING_S ? "#ff2a2a" : "#ffb300"; g.fillRect(sx, sy, STEP, STEP);
+        continue;
+      }
+    }
     let c: string, dense = true;
     if (t.isWater(gx, gy)) { c = "#157a9c"; dense = false; }
     else {
@@ -418,6 +430,7 @@ function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body:
   text(g, `${pad(d.arpBearing, 3)}°`, 78, 9.6, 4.4, GREEN, "right");
   text(g, d.arpNm.toFixed(1), 93, 9.6, 4.4, GREEN, "right"); text(g, "NM", 98, 9.8, 3.2, CYAN, "right");
   text(g, "TERR", 98, 96, 3.6, CYAN, "right");
+  if (d.gpws) text(g, "TERR AHEAD", 98, 90.6, 4.4, d.gpws.level === "warning" ? RED : AMBER, "right", SANS, 700);
   g.restore();
 }
 
@@ -740,12 +753,13 @@ function lowerPanel(g: G2D, x: number, body: number): void {
 }
 
 /** Sidepanel utenfor PFD: lysstyrkeknapper og høyttaler. Ses bare når vinduet er bredere enn 16:10. */
-function sidePanel(g: G2D, x: number, dir: number, body: number): void {
+function sidePanel(g: G2D, x: number, dir: number, body: number, pullUp: boolean): void {
   const at = (o: number): number => x + dir * o, left = dir > 0 ? x : x - 34;
   plate(g, left, ROW - 1.6, 34, DU + 3.2, body);
   for (const [o, s] of [[12, "PFD"], [24, "ND"]] as const) { knob(g, at(o), ROW + 12, 2.6, body, -0.8); text(g, s, at(o), ROW + 6.6, 1.8, ink(body)); }
   knob(g, at(12), ROW + 30, 2.6, body, 0.9); text(g, "LOUD SPEAKER", at(15), ROW + 24.4, 1.6, ink(body));
-  key(g, at(24) - 3, ROW + 27.4, 6, 5.2, "GPWS", body, false, 1.4);
+  // lyser rødt ved rødt terrengvarsel
+  lamp(g, at(24) - 3.4, ROW + 27.2, 6.8, 5.6, "PULL UP\nGPWS", RED, pullUp, 1.3);
   // høyttaler: hullet plate
   const cx = at(17), cy = ROW + DU + 16;
   g.fillStyle = shade(24, 27, 32, Math.max(body, 0.4)); g.beginPath(); g.arc(cx, cy, 8.4, 0, 7); g.fill();
@@ -792,6 +806,7 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
     trendKt: anim.trend,
     eng: anim.eng,
     // klaffgrensen alene: som speedLimit for neste stilling, med understellet oppe
+    gpws: terrainAlert(P, t, game.airport),
     nextFlapKt: P.flapCfg < 4 ? speedLimit({ ...P, flapCfg: P.flapCfg + 1, flaps: P.flapCfg + 1, gear: 0, gearDown: false }) * KT : null,
   };
   const target = game.airport.runways.find((rw) => rw.ends.some((e) => e.ident === game.approach.ident));
@@ -826,7 +841,8 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
   plate(g, 6, ROW - 1.6, 102, DU + 3.2, body);
   plate(g, 109, ROW - 1.6, 102, DU + 3.2, body);
   plate(g, 212, ROW - 1.6, 102, DU + 3.2, body);
-  sidePanel(g, 5, -1, body); sidePanel(g, 315, 1, body);
+  const pullUp = d.gpws?.level === "warning";
+  sidePanel(g, 5, -1, body, pullUp); sidePanel(g, 315, 1, body, pullUp);
   lowerPanel(g, 7, body); lowerPanel(g, 213, body);
   plate(g, 109, ROW + DU + 3.2, 102, H - ROW - DU - 2.2, body);
   // Spakene fra midtkonsollen står på hver side av nedre ECAM-skjerm. I flyet sitter de lenger bak, utenfor bildet.

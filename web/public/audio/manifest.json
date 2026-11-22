@@ -151,6 +151,18 @@
       "voice": "Daniel",
       "text": "Stall! Stall!"
     },
+    "terrain_ahead": {
+      "file": "terrain_ahead.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Terrain ahead."
+    },
+    "pull_up": {
+      "file": "pull_up.mp3",
+      "kind": "speech",
+      "voice": "Daniel",
+      "text": "Terrain ahead. Pull up!"
+    },
     "go_around": {
       "file": "go_around.mp3",
       "kind": "speech",

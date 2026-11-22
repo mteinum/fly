@@ -6,13 +6,14 @@
  * tastetrykk eller klikk.
  */
 import type { Camera, Game } from "./game";
+import { terrainAlert } from "./gpws";
 import { warnings } from "./physics";
 import type { Airport, Terrain } from "./terrain";
 import { towerView } from "./tower";
 
 const FT = 3.28084;
 const LOOPS = ["engine", "wind", "tower_room"] as const;
-const ONE_SHOTS = ["gear", "flaps", "speedbrake", "touchdown", "crash", "splash", "warning", "radio", "retard", "too_low_gear", "stall", "go_around"];
+const ONE_SHOTS = ["gear", "flaps", "speedbrake", "touchdown", "crash", "splash", "warning", "radio", "retard", "too_low_gear", "stall", "go_around", "terrain_ahead", "pull_up"];
 /** Radiohøyder (fot) flyet roper ut på vei ned. */
 export const CALLOUTS = [1000, 500, 400, 300, 200, 100, 50, 40, 30, 20, 10];
 
@@ -35,7 +36,7 @@ export class GameAudio {
   private ready = false;
   /** Når hver talekanal er ledig igjen (AudioContext-tid), så utrop ikke snakker i munnen på hverandre. */
   private busy = { callout: 0, tower: 0 };
-  private repeatAt = { stall: 0, gear: 0, warning: 0 };
+  private repeatAt = { stall: 0, gear: 0, warning: 0, terrain: 0 };
   private prev = { ra: Infinity, state: "", gearDown: true, flapCfg: -1, speedBrake: false, approach: -1 };
   private pending: { at: number; run: () => void }[] = [];
   private warnedGear = -1;
@@ -195,10 +196,14 @@ export class GameAudio {
     if (P.state === "fly") {
       const w = warnings(P, ra);
       if (inside) {
+        const terrain = terrainAlert(P, t, this.airport);
         const call = altitudeCallout(prev.ra, ra);
         if (call !== null) this.say("callout", `alt_${call}`, 0.9, { force: call <= 50 });
         if (prev.ra > 15 && ra <= 15 && P.thr > 0.05) this.later(0.5, () => this.say("callout", "retard", 0.9, { force: true }));
         if (w.stall && now > this.repeatAt.stall) { this.say("callout", "stall", 1, { force: true }); this.repeatAt.stall = now + 1.9; }
+        // terrengvarsel: «pull up» når det haster, ellers «terrain ahead». Steiling går foran, understell kommer etter.
+        else if (terrain?.level === "warning" && now > this.repeatAt.terrain) { this.say("callout", "pull_up", 1, { force: true }); this.repeatAt.terrain = now + 2.8; }
+        else if (terrain && now > this.repeatAt.terrain) { this.say("callout", "terrain_ahead", 0.95); this.repeatAt.terrain = now + 4.5; }
         else if (w.gearNotDown && ra < 500 && now > this.repeatAt.gear) { this.say("callout", "too_low_gear", 1); this.repeatAt.gear = now + 3; }
         if (w.overspeed && now > this.repeatAt.warning) { this.play("warning", 0.3); this.repeatAt.warning = now + 2.4; }
       }
