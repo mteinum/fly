@@ -62,6 +62,17 @@ export function autobrakeFor(rw: Runway, end: RunwayEnd, lastExitM: number | nul
   return past(2) && !past(3) ? 3 : 2;
 }
 
+/** Styr mot et punkt i rutenettet (trykket ut i kartet): krengingen som svinger flyet dit, som utslag til høyre
+ *  (-1 til 1), og avstanden dit i meter. Ligger punktet bak flyet og innenfor svingsirkelen, flyr den rett fram til
+ *  det er plass til å svinge inn: ellers ville flyet gått i ring rundt punktet uten å nå det. */
+export function steerTo(P: Plane, x: number, y: number, cell: number): { right: number; distanceM: number } {
+  const dx = x - P.x, dy = y - P.y, distanceM = Math.hypot(dx, dy) * cell;
+  const error = wrap(Math.atan2(dx, -dy) - P.hdg); // rutenettkurs: 0 = nord (-y), med klokka
+  const turnRadiusM = (P.spd * P.spd) / (9.81 * Math.tan(MAX_BANK));
+  if (Math.abs(error) > Math.PI / 2 && distanceM < 2.2 * turnRadiusM) return { right: 0, distanceM };
+  return { right: clamp(error * 2, -MAX_BANK, MAX_BANK) / 0.75, distanceM };
+}
+
 /** Autopiloten kan ikke lande herfra. `unable` er grunnen, slik den vises for piloten. */
 export interface AutopilotUnable { unable: string }
 

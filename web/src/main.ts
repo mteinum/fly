@@ -3,7 +3,7 @@ import { createDiplomaUi, gradeLanding } from "./diploma";
 import { type FlightLog, flightLogName } from "./flightlog";
 import { createGame, isTyping, runLoop, type Weather } from "./game";
 import { GlRenderer } from "./glRenderer";
-import { drawCornerMap, drawHud, drawMessage } from "./hud";
+import { cornerMapPoint, drawCornerMap, drawHud, drawMessage } from "./hud";
 import { candidates, declutter, inSight, labelStyle, type PlaceName } from "./labels";
 import { drawOverhead, drawPedestal, overheadHit, pedestalHit, pedestalThrustAt } from "./cockpitViews";
 import { drawPanel, panelHit, thrustAt } from "./panel";
@@ -93,8 +93,16 @@ async function main(): Promise<void> {
     if (game.cam === "tower") return towerHit(lx, ly);
     return game.look === "up" ? overheadHit(lx, ly) : game.look === "down" ? pedestalHit(lx, ly) : panelHit(lx, ly);
   };
+  // Et trykk i oversiktskartet (utvendig kamera og cockpit) setter kursen dit
+  const mapPointAt = (e: PointerEvent): [number, number] | null => {
+    if (game.replay || photoFrame || (game.cam !== "external" && !(game.cam === "cockpit" && game.look === "forward"))) return null;
+    const r = overlay.getBoundingClientRect();
+    return cornerMapPoint(((e.clientX - r.left) / r.width) * W, logicalY(e), terrain, game, game.cam === "cockpit" ? 16 : 4);
+  };
   let draggingThrust = false;
   overlay.addEventListener("pointerdown", (e) => {
+    const at = mapPointAt(e);
+    if (at) { game.flyTo(at[0], at[1]); return; }
     const c = controlAt(e);
     if (!c) return;
     game.control(c);
@@ -103,7 +111,7 @@ async function main(): Promise<void> {
   });
   overlay.addEventListener("pointermove", (e) => {
     if (draggingThrust) game.control({ kind: "thrust", thr: (game.look === "down" ? pedestalThrustAt : thrustAt)(logicalY(e)) });
-    else overlay.style.cursor = controlAt(e) ? "pointer" : "";
+    else overlay.style.cursor = mapPointAt(e) ? "crosshair" : controlAt(e) ? "pointer" : "";
   });
   for (const ev of ["pointerup", "pointercancel"]) overlay.addEventListener(ev, () => { draggingThrust = false; });
   // Musehjulet i tårnet: kikkerten inn og ut, ett trinn per rykk

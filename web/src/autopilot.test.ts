@@ -1,6 +1,6 @@
 /* Autopiloten skal lande på alle baner spillet har, fra innflygingens startpunkt og fra skjeve utgangspunkt. */
 import { describe, expect, it } from "vitest";
-import { autobrakeFor, autopilot } from "./autopilot";
+import { autobrakeFor, autopilot, steerTo } from "./autopilot";
 import { gradeLanding } from "./diploma";
 import { glidePathAltitude } from "./guidance";
 import { CALM, moveFlaps, startApproach, toggleGear, update, type Wind, windFrom } from "./physics";
@@ -182,5 +182,50 @@ describe("autopilot", () => {
     expect(autopilot(P, t, rw, end)).toMatchObject({ gearDown: false, flapCfg: 2 });
     fly(t, rw, end, P, 1 / 60);
     expect(P).toMatchObject({ gear: 1, flaps: 4 });
+  });
+});
+
+describe("styring mot et punkt i kartet", () => {
+  const plane = (hdg: number) => Object.assign(newPlane(), { x: 100, y: 100, hdg, spd: 80 });
+  it("svinger korteste vei mot punktet, og flyr rett når det ligger rett fram", () => {
+    // kurs nord (-y). Punkt i øst: høyre. Punkt i vest: venstre. Punkt rett nord: ingen krenging.
+    expect(steerTo(plane(0), 900, 100, 10).right).toBeGreaterThan(0.3);
+    expect(steerTo(plane(0), -700, 100, 10).right).toBeLessThan(-0.3);
+    expect(steerTo(plane(0), 100, -500, 10).right).toBeCloseTo(0, 6);
+    expect(steerTo(plane(0), 100, -500, 10).distanceM).toBeCloseTo(6000, 6);
+    // kurs sør (+y): et punkt i øst ligger nå til venstre
+    expect(steerTo(plane(Math.PI), 900, 200, 10).right).toBeLessThan(-0.3);
+  });
+  it("flyr rett fram når punktet ligger bak og innenfor svingsirkelen, og når fram fra alle kanter", () => {
+    expect(steerTo(plane(0), 150, 160, 10).right).toBe(0);
+    // fly med konstant fart og en enkel koordinert sving: punktet skal nås uansett hvor det ligger
+    for (const [tx, ty] of [[150, 160], [100, 400], [-300, 100], [130, 100], [900, -900]]) {
+      const P = plane(0);
+      let reached = false;
+      for (let i = 0; i < 6000 && !reached; i++) {
+        const s = steerTo(P, tx, ty, 10);
+        reached = s.distanceM < 400;
+        P.hdg += ((9.81 * Math.tan(s.right * 0.75)) / P.spd) * 0.1;
+        P.x += (Math.sin(P.hdg) * P.spd * 0.1) / 10; P.y -= (Math.cos(P.hdg) * P.spd * 0.1) / 10;
+      }
+      expect(reached, `${tx},${ty}`).toBe(true);
+    }
+  });
+  it("med den ekte flymodellen: flyet svinger til punktet og kommer fram, med høyden i behold", () => {
+    const t = loadTestTerrain(), airport = t.meta.airports[0], end = airport.runways[0].ends[0];
+    const P = newPlane();
+    startApproach(P, t, end);
+    Object.assign(P, { alt: 1500, pitch: 0 });
+    // et punkt 6 km bak og til siden for flyet: nesten helomvending
+    const tx = P.x - (Math.sin(P.hdg) * 6000 + Math.cos(P.hdg) * 2000) / t.cell, ty = P.y + (Math.cos(P.hdg) * 6000 - Math.sin(P.hdg) * 2000) / t.cell;
+    let s = steerTo(P, tx, ty, t.cell), seconds = 0;
+    for (; seconds < 300 && s.distanceM >= 400 && P.state === "fly"; seconds += 1 / 30) {
+      update(P, t, airport, { ArrowRight: Math.max(0, s.right), ArrowLeft: Math.max(0, -s.right) }, 1 / 30, () => {});
+      s = steerTo(P, tx, ty, t.cell);
+    }
+    expect(P.state).toBe("fly");
+    expect(s.distanceM).toBeLessThan(400);
+    expect(seconds).toBeLessThan(200);
+    expect(Math.abs(P.alt - 1500)).toBeLessThan(60);
   });
 });

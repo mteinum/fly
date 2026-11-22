@@ -1,5 +1,5 @@
 /* Spilltilstand, klokke og inndata. */
-import { autobrakeFor, autopilot } from "./autopilot";
+import { autobrakeFor, autopilot, steerTo } from "./autopilot";
 import { startTime } from "./clock";
 import { gradeLanding } from "./diploma";
 import { type FlightLog, FlightLogger } from "./flightlog";
@@ -98,6 +98,11 @@ export interface Game {
   wind: { fromTrueDeg: number; kt: number; gustKt: number | null; vector: Wind; source: "none" | "url" | "metar"; metar: string | null };
   /** Navigasjonsdisplayet: rekkevidden i NM (Z blar 10, 20, 40) og om terrenget tegnes (X). */
   nd: { rangeNm: number; terrain: boolean };
+  /** Punktet spilleren har trykket på i oversiktskartet (rutenett), eller null. Flyet svinger dit av seg selv;
+   *  høyde og fart styrer piloten fortsatt. Slippes når flyet er framme, eller når piloten svinger selv. */
+  directTo: { x: number; y: number } | null;
+  /** Sett kursen mot et punkt i rutenettet (trykk i oversiktskartet). */
+  flyTo(x: number, y: number): void;
   /** Autopiloten flyr (A slår den av og på). `approach.autopilot` husker om den har vært brukt på denne innflygingen. */
   autopilot: boolean;
   /** Ett steg: klokke, fysikk, meldinger og ny innflyging når det trengs. */
@@ -118,6 +123,7 @@ export interface Game {
 }
 
 const TIME_STEP_MS = 30 * 60 * 1000;
+const DIRECT_REACHED_M = 400; // så nær punktet i kartet regnes flyet som framme
 /** Rekkeviddene ND kan stå på (NM). Flyet har også 80, 160 og 320, men kartutsnittet er bare 14 NM bredt. */
 export const ND_RANGES = [10, 20, 40];
 
@@ -161,6 +167,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
   const setAutopilot = (on: boolean, why = "") => {
     if (on && P.state !== "fly") return;
     game.autopilot = on;
+    if (on) game.directTo = null;
     if (on) approach.autopilot = true;
     say(on ? "Autopilot on" : `Autopilot off${why}`, 2.5);
   };
@@ -183,6 +190,13 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     if (game.flightDirector && P.state === "fly") {
       const want = autopilot(P, terrain, runwayOf(ends[endIdx]), ends[endIdx], wind.vector);
       if (!("unable" in want)) game.fd = { pitch: want.pitch, bank: want.bank };
+    }
+    if (game.directTo && P.state !== "fly") game.directTo = null;
+    if (game.directTo) {
+      const to = steerTo(P, game.directTo.x, game.directTo.y, terrain.cell);
+      if (K.ArrowLeft || K.ArrowRight) { game.directTo = null; say("Map heading cancelled", 2); }
+      else if (to.distanceM < DIRECT_REACHED_M) { game.directTo = null; say("Reached the point on the map", 2.5); }
+      else return { ...manual, ArrowRight: Math.max(0, to.right), ArrowLeft: Math.max(0, -to.right) };
     }
     if (!game.autopilot || P.state !== "fly") return manual;
     if (MANUAL.some((k) => K[k])) { setAutopilot(false); return manual; }
@@ -249,6 +263,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     game.parkedS = 0; game.parkedShort = false;
     stand = null; taxiS = 0; replanIn = 0; toldRoute = false; sawParked = false;
     game.autopilot = approach.autopilot = false;
+    game.directTo = null;
     startApproach(P, terrain, ends[endIdx]);
     const tour = tourIdx >= 0 ? tours[tourIdx] : null;
     if (tour) Object.assign(P, { x: tour.x, y: tour.y, alt: tour.altitudeM, hdg: ((tour.headingTrueDeg - terrain.meta.gridConvergenceDeg) * Math.PI) / 180, pitch: 0 });
@@ -291,6 +306,13 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     sys: { seatBelts: true, gpwsTerr: true, tcasStandby: false, sdPage: "auto" },
     wind,
     apTarget: null,
+    directTo: null,
+    flyTo(x, y) {
+      if (P.state !== "fly" || game.replay) return;
+      if (game.autopilot) setAutopilot(false);
+      game.directTo = { x: Math.min(terrain.width, Math.max(0, x)), y: Math.min(terrain.height, Math.max(0, y)) };
+      say("Turning to the point on the map", 2.5);
+    },
     ships: [],
     traffic: [],
     flightLog: null,
@@ -411,6 +433,9 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     P.hdg = ((pos[3] - terrain.meta.gridConvergenceDeg) * Math.PI) / 180;
     P.pitch = 0;
   }
+  // ?to=øst,nord (UTM 33, m): sett kursen mot dette punktet, som et trykk i kartet (til feilsøking)
+  const to = params.get("to")?.split(",").map(Number);
+  if (to?.length === 2 && to.every(Number.isFinite)) game.flyTo(...terrain.utmToGrid(to[0], to[1]));
   // ?taxi: hopp over flygingen og start på rullebanen etter landing, i taksefart (til å øve på taksing). Uten
   // landing blir det ikke noe diplom.
   if (params.has("taxi")) {

@@ -43,6 +43,14 @@ export function drawMap(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImag
     g.fill(); g.stroke();
     g.restore();
   }
+  // Punktet spilleren har trykket på: stiplet linje fra flyet og et kryss
+  if (game.directTo) {
+    const tx = x + game.directTo.x * k, ty = y + game.directTo.y * k;
+    g.strokeStyle = "#ff4a3d"; g.lineWidth = 0.5;
+    g.setLineDash([1.5, 1.2]); g.beginPath(); g.moveTo(x + P.x * k, y + P.y * k); g.lineTo(tx, ty); g.stroke(); g.setLineDash([]);
+    g.strokeStyle = "#fff"; g.lineWidth = 0.7;
+    g.beginPath(); g.moveTo(tx - 1.6, ty - 1.6); g.lineTo(tx + 1.6, ty + 1.6); g.moveTo(tx + 1.6, ty - 1.6); g.lineTo(tx - 1.6, ty + 1.6); g.stroke();
+  }
   g.translate(x + P.x * k, y + P.y * k);
   g.rotate(P.hdg); // kartet er rutenett-nord opp, så rutenettkursen brukes direkte
   g.fillStyle = "#ff4a3d"; g.strokeStyle = "#fff"; g.lineWidth = 0.4;
@@ -85,9 +93,19 @@ function drawGroundMap(g: CanvasRenderingContext2D, t: Terrain, game: Game, x: n
   g.restore();
 }
 
+const CORNER_MAP = 52;
+
+/** Punktet i rutenettet under (lx, ly) i oversiktskartet, eller null utenfor det. Logiske enheter fra venstre
+ *  vinduskant; `inset` som i drawCornerMap. Under taksing viser hjørnet flyplasskartet, og da er det ingenting å treffe. */
+export function cornerMapPoint(lx: number, ly: number, t: Terrain, game: Game, inset: number): [number, number] | null {
+  if (game.P.state !== "fly") return null;
+  const u = (lx - (W - CORNER_MAP - inset)) / CORNER_MAP, v = (ly - (TOP + 4)) / CORNER_MAP;
+  return u >= 0 && u <= 1 && v >= 0 && v <= 1 ? [u * t.width, v * t.height] : null;
+}
+
 /** Oversiktskartet oppe i høyre hjørne. `inset` er avstanden fra høyre kant (i cockpit står vindusstolpen der). */
 export function drawCornerMap(g: CanvasRenderingContext2D, t: Terrain, map: CanvasImageSource, game: Game, inset: number): void {
-  const m = 52, mx = W - m - inset, my = TOP + 4;
+  const m = CORNER_MAP, mx = W - m - inset, my = TOP + 4;
   g.save();
   g.fillStyle = "#000"; g.fillRect(mx - 1, my - 1, m + 2, m + 2);
   if (game.taxiPlan && game.P.state === "landed") drawGroundMap(g, t, game, mx, my, m);
