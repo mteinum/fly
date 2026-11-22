@@ -451,6 +451,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
   document.querySelectorAll<HTMLButtonElement>("#touch button[data-k]").forEach((b) => {
     const k = b.dataset.k!;
     b.addEventListener("pointerdown", (e) => { e.preventDefault(); K[k] = true; });
+    // iOS merker teksten på knappen ved langt trykk hvis ikke selve berøringen stoppes (pointerdown er ikke nok)
+    b.addEventListener("touchstart", (e) => e.preventDefault(), { passive: false });
     for (const ev of ["pointerup", "pointerleave", "pointercancel"]) b.addEventListener(ev, () => { K[k] = false; });
   });
   document.getElementById("tCam")!.onclick = toggleCam;
