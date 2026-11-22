@@ -534,6 +534,14 @@ Det er Voxel Space som trenger et unntak.
 - Rettet: baneendene for ENKJ hentes fra OpenStreetMap, og Kartverkets API bekrefter «Rullebane» i tre punkter.
   De andre flyplassene har hatt den kontrollen fra før; den må gjøres før en ny flyplass regnes som ferdig.
 
+**53. Stedsnavnene rykket én piksel om gangen**
+- Navnene tegnes med `fillText` på et lerret som bare er skalert. Chrome runder da tekstens loddrette plass til hele
+  piksler, mens terrenget i WebGL glir jevnt. Navnene så ut til å hoppe opp og ned.
+- Meldt av bruker med skjermopptak («skiltene hopper litt opp/ned»). Målt i opptaket: teksten flyttet seg i steg
+  på 1,0 piksel. Stillbilder, som alt det visuelle er kontrollert med, kan ikke vise dette.
+- Rettet: en dreining på 0,0004 rad om bildets midtpunkt mens navnene tegnes. Prøvd i hodeløs Chrome: teksten
+  flytter seg da i kvarte piksler.
+
 ### Åpne spørsmål / ikke kontrollert
 
 - OurAirports er ikke sjekket mot gjeldende AIP Norge, bare mot DTM og

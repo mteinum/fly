@@ -13,6 +13,8 @@ import { type AisShip, Fleet, position, shipColor, shipKind } from "./ships";
 import { tcasLevel } from "./tcas";
 import { loadTerrain } from "./terrain";
 import { towerView } from "./tower";
+import { osloTime } from "./clock";
+import { composeSnapshot, deliverSnapshot, snapshotInfo } from "./snapshot";
 import { drawTower, towerHit } from "./towerPanel";
 import { type AdsbAircraft, aircraftSize, locate, Traffic } from "./traffic";
 
@@ -330,6 +332,10 @@ async function main(): Promise<void> {
       boxes.push({ x: px - w / 2 - 2, y: py - 6 - size, w: w + 4, h: size + 3, place, px, py, font }); // luft rundt, så det blir færre navn
     }
     g.save();
+    // Chrome legger tekst på hele piksler loddrett så lenge lerretet bare er skalert. Da rykker navnene én piksel om
+    // gangen mens terrenget glir jevnt under dem. En umerkelig liten dreining om bildets midtpunkt (under én piksel
+    // ute i kanten) slår av den avrundingen, så navnene følger terrenget.
+    g.translate(W / 2, (TOP + H) / 2); g.rotate(0.0004); g.translate(-W / 2, -(TOP + H) / 2);
     g.textAlign = "center"; g.textBaseline = "alphabetic"; g.lineJoin = "round";
     // Dempet: liten, halvgjennomsiktig skrift med tynn skygge. Navnene skal kunne leses, ikke ta over bildet.
     g.globalAlpha = 0.63;
@@ -350,7 +356,16 @@ async function main(): Promise<void> {
     g.restore();
   };
 
-  runLoop((dt) => {
+  // Bilde til deling (K eller Photo-knappen). Tas i samme ramme som 3D-bildet tegnes, ellers er WebGL-lerretet tomt.
+  // I den ramma tegnes ikke skjermtekst, hjørnekart og meldinger: bildet skal vise utsikten, ikke måleverdiene.
+  let photoWanted = false, photoFrame = false;
+  const wantPhoto = () => { photoWanted = true; };
+  window.addEventListener("keydown", (e) => { if (e.code === "KeyK" && !e.repeat && !isTyping(e)) wantPhoto(); });
+  document.getElementById("tPhoto")!.onclick = wantPhoto;
+  if (import.meta.env.DEV && new URLSearchParams(location.search).has("photo")) setTimeout(wantPhoto, 1500);
+  const message = (y: number) => { if (!photoFrame) drawMessage(g, game, y); };
+
+  const frame = (dt: number): void => {
     game.step(dt);
     const shipNow = performance.now() / 1000;
     const ships = fleet.list.map((s) => {
@@ -377,6 +392,8 @@ async function main(): Promise<void> {
     game.traffic = others;
     showInfo();
     audio.update(game, terrain);
+    const today = osloTime(game.time);
+    renderer.figureState = { on: game.figures, wind: game.wind.vector, month: today.month, day: today.day };
     if (game.replay) renderer.render(game.replay.plane, "replay", game.env, game.replay.spectator);
     else { renderer.towerZoom = game.towerZoom; renderer.render(game.P, game.cam, game.env); }
     if (game.flightLog !== savedLog) {
@@ -429,19 +446,38 @@ async function main(): Promise<void> {
     }
     if (game.cam === "tower") {
       drawTower(g, terrain, map, game, towerView(terrain, game.P, game.towerZoom));
-      drawMessage(g, game, TOP + 20);
+      message(TOP + 20);
     } else if (game.cam === "cockpit" && game.look !== "forward") {
       // blikket er løftet eller senket: panelet fyller vinduet, og piloten ser ikke ut
       if (game.look === "up") drawOverhead(g, game); else drawPedestal(g, game, terrain);
-      drawMessage(g, game, TOP + 20);
+      message(TOP + 20);
     } else if (game.cam === "cockpit") {
       drawPanel(g, terrain, game);
       // Et ekte fly har ikke dette kartet, men uten det er det vanskelig å finne flyplassen
-      drawCornerMap(g, terrain, map, game, 16);
-      drawMessage(g, game, TOP + 20);
-    } else {
+      if (!photoFrame) drawCornerMap(g, terrain, map, game, 16);
+      message(TOP + 20);
+    } else if (!photoFrame) {
       drawHud(g, terrain, map, game);
     }
+  };
+  runLoop((dt) => {
+    photoFrame = photoWanted;
+    photoWanted = false;
+    frame(dt);
+    if (!photoFrame) return;
+    photoFrame = false;
+    const info = snapshotInfo(terrain, chosen, game.replay ? game.replay.plane : game.P, game.time);
+    const photo = composeSnapshot(clean ? [glCanvas] : [glCanvas, overlay], glCanvas.width, glCanvas.height, info);
+    if (import.meta.env.DEV && new URLSearchParams(location.search).has("photo")) {
+      // ?photo i utviklingsmodus: ta bildet av seg selv og vis det over siden, så det kan kontrolleres i et skjermbilde
+      photo.style.cssText = "position:fixed;inset:0;width:100%;height:100%;z-index:99";
+      document.body.append(photo);
+      return;
+    }
+    void deliverSnapshot(photo, info).then(
+      (how) => { if (how === "downloaded") { game.msg.text = "Photo saved to your downloads"; game.msg.t = 2.5; } },
+      () => { game.msg.text = "Could not make the photo"; game.msg.t = 2.5; },
+    );
   });
 }
 

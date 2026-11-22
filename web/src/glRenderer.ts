@@ -19,6 +19,7 @@ import type { RGB } from "./sky";
 import { CHURCH_TOWER_HALF_WIDTH, LIGHTHOUSE_RADIUS } from "./physics";
 import { buildingMesh } from "./footprints";
 import { BUILDING, type Terrain, type TerrainAssets } from "./terrain";
+import { Figures } from "./figureModels";
 import { SCOPE, towerFov, towerView } from "./tower";
 import { H as SCREEN_H, horizonShift, OX, PANEL_TOP, TOP, TOWER_SILL } from "./screen";
 
@@ -177,6 +178,8 @@ export class GlRenderer {
       new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.3, depthWrite: false }),
     );
     this.buildTower();
+    this.figures = new Figures(t);
+    this.scene.add(this.figures.group);
     this.scene.add(this.runwayLights, this.taxiLights, this.lamps, this.plane, this.shadow, this.towerMesh);
 
     new ResizeObserver(() => this.resize()).observe(canvas);
@@ -397,6 +400,9 @@ export class GlRenderer {
     this.scene.add(this.trafficBodies, this.trafficWings, this.trafficFins, this.trafficLights);
   }
 
+  /** Morofigurene (figures.ts): av/på, vinden de driver med (m/s i rutenettet) og datoen i norsk tid. Settes av main.ts. */
+  figureState = { on: true, wind: { east: 0, north: 0 }, month: 1, day: 1 };
+  private figures: Figures;
   /** Kikkertens forstørrelse i tårnkameraet (1 = uten). Settes av main.ts før hvert bilde. */
   towerZoom = 1;
   private taxiRoute: THREE.Object3D[] = [];
@@ -882,6 +888,7 @@ export class GlRenderer {
       this.camera.rotation.set(P.pitch, -P.hdg, -P.roll);
     }
     this.applyEnvironment(env);
+    this.figures.update(this.figureState.on, { now: performance.now() / 1000, plane: this.plane.position, night: env.sky.night, ...this.figureState }, this.camera.position);
     this.groundDetail.setTime(performance.now() / 1000);
     this.updateLod();
     this.renderer.render(this.scene, this.camera);

@@ -88,6 +88,8 @@ export interface Game {
   taxiDone: { stand: string; seconds: number } | null;
   /** Kikkerten i tårnkameraet: forstørrelsen (1, 2, 4 eller 8). Pluss og minus, musehjulet eller et trykk på kikkerten. */
   towerZoom: number;
+  /** Morofigurene (figures.ts) vises. L slår dem av og på. */
+  figures: boolean;
   /** Fartsvektoren («fuglen») på PFD: viser hvor flyet er på vei over bakken. P slår den av og på. */
   flightPathVector: boolean;
   /** Vinden: hvor den kommer fra (sann retning i grader) og middelvinden i knop, og det samme som fart i rutenettet.
@@ -277,6 +279,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     fd: null,
     nd: { rangeNm: ND_RANGES[0], terrain: true },
     flightPathVector: false,
+    figures: params.get("fun") !== "0", // ?fun=0: start uten morofigurene
     towerZoom: TOWER_ZOOMS.includes(Number(params.get("zoom"))) ? Number(params.get("zoom")) : 1, // ?zoom=4: start med kikkerten
     taxiPlan: null,
     taxiResult: null,
@@ -369,6 +372,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     if (e.code === "KeyD") toggleFlightDirector();
     if (e.code === "Digit1" || e.code === "Digit2" || e.code === "Digit3") setAutobrake(P, Number(e.code.slice(5)), say);
     if (e.code === "Enter") park(P, say);
+    if (e.code === "KeyL" && !e.repeat) { game.figures = !game.figures; say(game.figures ? "Fun figures on" : "Fun figures off", 1.5); }
     if (e.code === "Equal" || e.code === "NumpadAdd" || e.code === "BracketRight") zoomTower(1);
     if (e.code === "Minus" || e.code === "NumpadSubtract" || e.code === "Slash") zoomTower(-1);
     if (e.code === "KeyU") lookTo("up");
