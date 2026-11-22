@@ -117,7 +117,7 @@ function grille(g: G2D, x: number, y: number, w: number, h: number, body: number
 /** Flydata i de enhetene skjermene bruker. */
 interface Data {
   kt: number; altFt: number; vsFpm: number; pitch: number; roll: number; hdg: number; raFt: number;
-  thr: number; arpNm: number; arpBearing: number;
+  thr: number;
   stallKt: number; limitKt: number; plane: Plane;
   /** Kurs- og glidebaneavvik mot banen det flys mot, eller null utenfor dekning. */
   ils: Guidance | null; runway: string;
@@ -398,17 +398,22 @@ function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body:
   // Innflygingen tegnet som en flygeplan: grønn linje langs forlenget senterlinje, 10 NM ut fra baneenden,
   // med et merke per NM. SYNTETISK: veipunktene CF og FF (8 og 4 NM ute) er satt her for at bildet skal ligne;
   // de finnes ikke i noen prosedyre for flyplassen.
+  // Neste veipunkt (TO) er det første som ligger foran flyet: CF, FF eller baneenden. Det tegnes hvitt.
   const end = game.airport.runways.flatMap((rw) => rw.ends).find((e) => e.ident === game.approach.ident);
+  let to: { name: string; x: number; y: number } | null = null;
   if (end) {
     const h = (end.headingGridDeg * Math.PI) / 180, nm = NM / t.cell;
+    const before = ((end.x - P.x) * Math.sin(h) - (end.y - P.y) * Math.cos(h)) / nm, toNm = before > 8 ? 8 : before > 4 ? 4 : 0; // NM før baneenden
+    to = { name: toNm ? `${toNm === 8 ? "CF" : "FF"}${end.ident}` : game.airport.icao + end.ident, x: end.x - Math.sin(h) * toNm * nm, y: end.y + Math.cos(h) * toNm * nm };
     const out = (d: number, side = 0): [number, number] => toScreen(end.x - Math.sin(h) * d * nm + Math.cos(h) * side * nm, end.y + Math.cos(h) * d * nm + Math.sin(h) * side * nm);
     line(g, ...out(0), ...out(10), 0.6, GREEN);
     for (let d = 1; d <= 10; d++) line(g, ...out(d, -0.1), ...out(d, 0.1), 0.4, GREEN);
     for (const [dist, name] of [[8, "CF"], [4, "FF"]] as const) {
       const [wx, wy] = out(dist);
-      g.fillStyle = "#020304"; g.strokeStyle = GREEN; g.lineWidth = 0.5;
+      const c = dist === toNm ? WHITE : GREEN;
+      g.fillStyle = "#020304"; g.strokeStyle = c; g.lineWidth = 0.5;
       g.beginPath(); g.moveTo(wx, wy - 2); g.lineTo(wx + 2, wy); g.lineTo(wx, wy + 2); g.lineTo(wx - 2, wy); g.closePath(); g.fill(); g.stroke();
-      text(g, name + end.ident, wx + 3, wy - 2.4, 3.6, GREEN, "left");
+      text(g, name + end.ident, wx + 3, wy - 2.4, 3.6, c, "left");
     }
   }
 
@@ -451,9 +456,17 @@ function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body:
   text(g, "GS", 2, 4, 3.8, WHITE, "left"); text(g, String(Math.round(d.kt)), 9, 4, 4.6, GREEN, "left");
   text(g, "TAS", 19, 4, 3.8, WHITE, "left"); text(g, String(Math.round(d.kt)), 28, 4, 4.6, GREEN, "left");
   text(g, "---°/---", 2, 9.6, 4, GREEN, "left"); // vind: flymodellen har ingen
-  text(g, game.airport.icao, 98, 4, 4.4, WHITE, "right");
-  text(g, `${pad(d.arpBearing, 3)}°`, 78, 9.6, 4.4, GREEN, "right");
-  text(g, d.arpNm.toFixed(1), 93, 9.6, 4.4, GREEN, "right"); text(g, "NM", 98, 9.8, 3.2, CYAN, "right");
+  // Oppe til høyre, som i flyet: neste veipunkt, sann peiling og avstand dit, og når flyet er der (UTC) med farten nå.
+  if (to) {
+    const distM = Math.hypot(to.x - P.x, to.y - P.y) * t.cell, eta = new Date(game.time + (distM / Math.max(P.spd, 30)) * 1000);
+    // peiling i rutenettet + meridiankonvergens = sann peiling
+    const bearing = (((Math.atan2(to.x - P.x, -(to.y - P.y)) * DEG + t.meta.gridConvergenceDeg) % 360) + 360) % 360;
+    g.fillStyle = "rgba(0,0,0,.6)"; g.fillRect(78, 13, 22, 5.4);
+    text(g, to.name, 98, 4, 4.4, WHITE, "right");
+    text(g, `${pad(bearing, 3)}°`, 78, 9.6, 4.4, GREEN, "right");
+    text(g, (distM / NM).toFixed(1), 93, 9.6, 4.4, GREEN, "right"); text(g, "NM", 98, 9.8, 3.2, CYAN, "right");
+    text(g, `${pad(eta.getUTCHours(), 2)}:${pad(eta.getUTCMinutes(), 2)}`, 98, 15.2, 4.2, GREEN, "right");
+  }
   if (showTerrain) text(g, "TERR", 98, 96, 3.6, CYAN, "right");
   if (d.gpws) text(g, "TERR AHEAD", 98, 90.6, 4.4, d.gpws.level === "warning" ? RED : AMBER, "right", SANS, 700);
   g.restore();
@@ -647,7 +660,8 @@ function standby(g: G2D, x: number, y: number, size: number, d: Data, body: numb
   g.restore();
 }
 
-/** Klokke: CHR-vinduet er tomt (ingen stoppeklokke), UTC, og norsk tid der flyet har medgått tid (ET). */
+/** Klokke: CHR er stoppeklokka, som viser tiden siden innflygingen startet (minutter og sekunder) og står når
+ *  flyet har landet. Under står UTC, og norsk tid der flyet har medgått tid (ET). */
 function clock(g: G2D, x: number, y: number, game: Game, body: number): void {
   const utc = new Date(game.time), lt = osloTime(game.time);
   g.fillStyle = shade(30, 33, 38, Math.max(body, 0.45)); g.beginPath(); g.roundRect(x, y, 22, 22, 1.2); g.fill();
@@ -658,7 +672,8 @@ function clock(g: G2D, x: number, y: number, game: Game, body: number): void {
     text(g, big, x + (small ? 13.6 : 16.8), wy + h / 2 + 0.2, h * 0.74, GREEN, "right", MONO, 600);
     if (small) text(g, small, x + 17, wy + h / 2 + 0.5, h * 0.46, GREEN, "right", MONO, 600);
   };
-  win(y + 2.2, 3.4, "CHR", "", "");
+  const chr = Math.floor(game.approach.elapsedS);
+  win(y + 2.2, 3.4, "CHR", `${pad(Math.floor(chr / 60), 2)}:${pad(chr % 60, 2)}`, "");
   win(y + 7.8, 5, "UTC", `${pad(utc.getUTCHours(), 2)}:${pad(utc.getUTCMinutes(), 2)}`, pad(utc.getUTCSeconds(), 2));
   win(y + 15.2, 5, "LOCAL", `${pad(lt.hour, 2)}:${pad(lt.minute, 2)}`, "");
   for (const [kx, ky] of [[2.2, 4], [19.8, 4], [2.2, 17.6], [19.8, 17.6]]) knob(g, x + kx, y + ky, 1.3, body);
@@ -858,7 +873,7 @@ const SPOOL_S = 1.6; // SYNTETISK: tidskonstant for motorenes turtall etter gass
 export function drawPanel(g: G2D, t: Terrain, game: Game): void {
   night = game.env.sky.night;
   // Om natta er panelet opplyst av flomlyset under blendingsskjermen, så det blir ikke helt mørkt
-  const P = game.P, body = 1 - 0.6 * night, arp = game.airport.arp;
+  const P = game.P, body = 1 - 0.6 * night;
   const end = game.airport.runways.flatMap((rw) => rw.ends).find((e) => e.ident === game.approach.ident);
   const kt = P.spd * KT, now = performance.now() / 1000, dt = clamp(now - anim.at, 0, 0.5);
   if (anim.eng < 0 || P.state !== "fly") { anim.trend = 0; anim.eng = P.thr; }
@@ -883,9 +898,6 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
     plane: P,
     ils: null, runway: game.approach.ident,
     warnings: [],
-    arpNm: (Math.hypot(arp.x - P.x, arp.y - P.y) * t.cell) / NM,
-    // peiling i rutenettet + meridiankonvergens = sann peiling
-    arpBearing: (((Math.atan2(arp.x - P.x, -(arp.y - P.y)) * DEG + t.meta.gridConvergenceDeg) % 360) + 360) % 360,
     ap: game.apTarget,
     courseDeg: end ? end.headingTrueDeg : 0,
     selAltFt: game.approach.platformFt,

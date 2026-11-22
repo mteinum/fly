@@ -52,8 +52,8 @@ export interface Game {
   /** Spillklokka, UTC i ms. Går i sanntid; Q/E stiller den en halvtime bakover/framover. */
   time: number;
   env: Environment;
-  /** Gjeldende innflyging: løpenummer (øker for hver ny) og banen det flys mot. */
-  approach: { count: number; ident: string; autopilot: boolean; platformFt: number };
+  /** Gjeldende innflyging: løpenummer (øker for hver ny), banen det flys mot, og tiden flyet har vært i lufta (s). */
+  approach: { count: number; ident: string; autopilot: boolean; platformFt: number; elapsedS: number };
   /** Det autopiloten flyr etter nå (fart i kt, sann kurs i grader), eller null når den er av. Vises på FCU. */
   apTarget: { speedKt: number; courseTrueDeg: number } | null;
   /** Flight director (D slår den av og på): stillingen autopiloten ville holdt nå, vist som to grønne streker på PFD
@@ -97,7 +97,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   const held: Record<string, number> = {}; // hvor lenge piltastene har vært holdt, som utslag 0-1
   const msg: Message = { text: "", t: 0 };
   const say = (text: string, t = 3) => { msg.text = text; msg.t = t; };
-  const approach = { count: 0, ident: ends[endIdx].ident, autopilot: false, platformFt: 0 };
+  const approach = { count: 0, ident: ends[endIdx].ident, autopilot: false, platformFt: 0, elapsedS: 0 };
   // Tar piloten i stikka eller gassen, slipper autopiloten (som i flyet)
   const MANUAL = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "KeyW", "KeyS"];
   const setAutopilot = (on: boolean, why = "") => {
@@ -139,6 +139,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     startApproach(P, terrain, ends[endIdx]);
     logger.start(P, runwayOf(ends[endIdx]), ends[endIdx], new Date());
     approach.count++;
+    approach.elapsedS = 0;
     approach.ident = ends[endIdx].ident;
     approach.platformFt = Math.round((P.alt * 3.28084) / 100) * 100; // høyden innflygingen starter i, til FCU
     say(`Approach ${airport.icao} runway ${ends[endIdx].ident}`, 3);
@@ -194,6 +195,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
       }
       if (msg.t > 0) msg.t -= dt;
       const wasFlying = P.state === "fly";
+      if (wasFlying) approach.elapsedS += dt; // stoppeklokka på panelet: står når flyet har landet
       const again = update(P, terrain, airport, controls(dt), dt, say);
       if (wasFlying) logger.step(P, dt, game.autopilot);
       if (wasFlying && P.state !== "fly") game.flightLog = logger.finish(P, msg.text, P.touchdown && gradeLanding(P.touchdown), game.autopilot) ?? game.flightLog;
