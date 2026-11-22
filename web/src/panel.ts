@@ -21,7 +21,7 @@
  */
 import { osloTime } from "./clock";
 import type { Game, PanelControl } from "./game";
-import { FLAP_NAMES, speedLimit, stallSpeed, verticalSpeed, warnings } from "./physics";
+import { AUTOBRAKE_NAMES, FLAP_NAMES, speedLimit, stallSpeed, verticalSpeed, warnings } from "./physics";
 import type { Plane } from "./plane";
 import { CAUTION_S, onApproachPath, requiredClearance, terrainAlert, type TerrainAlert, WARNING_S } from "./gpws";
 import { guidance, type Guidance } from "./guidance";
@@ -546,7 +546,8 @@ function ewd(g: G2D, x: number, y: number, size: number, d: Data, body: number):
     ];
     text(g, "LDG", 3, MY, MF, GREEN, "left", MONO);
     line(g, 3, MY + 2.7, 11.8, MY + 2.7, 0.3, GREEN);
-    if (P.brake > 0.05) text(g, "SPEED BRK", 68, MY, MF, GREEN, "left", MONO); // som på flyet: grønn melding når de er ute
+    text(g, "AUTO BRK", 68, MY, MF, GREEN, "left", MONO); text(g, AUTOBRAKE_NAMES[P.autobrake], 68, MY + MS, MF, GREEN, "left", MONO);
+    if (P.brake > 0.05) text(g, P.state === "landed" ? "GND SPLRS" : "SPEED BRK", 68, MY + 2 * MS, MF, GREEN, "left", MONO); // som på flyet: grønn melding når de er ute
     memo.forEach(([done, todo, ok], i) => text(g, ok ? done : todo, 14.5, MY + i * MS, MF, ok ? GREEN : CYAN, "left", MONO));
   }
   g.restore();
@@ -560,7 +561,7 @@ function sdWheel(g: G2D, P: Plane): void {
   text(g, "WHEEL", 4, 6, 5, WHITE, "left"); line(g, 4, 9.6, 21.5, 9.6, 0.4, WHITE);
   // luftbremser: grønn strek når de ligger inne, pil opp når de er ute
   for (const s of [-1, 1]) for (let i = 1; i <= 5; i++) {
-    const sx = 50 + s * (6 + i * 7.6), sy = 21 - i * 0.7, out = P.brake > 0.05 && i >= 2 && i <= 4;
+    const sx = 50 + s * (6 + i * 7.6), sy = 21 - i * 0.7, out = P.brake > 0.05 && (P.state === "landed" || (i >= 2 && i <= 4)); // i lufta 2-4, på bakken alle fem
     line(g, sx - 2.4, sy, sx + 2.4, sy, 0.7, GREEN);
     if (out) {
       line(g, sx, sy, sx, sy - 4, 0.7, GREEN);
@@ -586,6 +587,7 @@ function sdWheel(g: G2D, P: Plane): void {
     text(g, String(i + 1), wx, 67.6, 3.8, WHITE);
   });
   text(g, "°C", 50, 56, 3.6, CYAN); text(g, "REL", 22, 73.6, 3.2, WHITE); text(g, "REL", 78, 73.6, 3.2, WHITE);
+  text(g, "AUTO BRK", 50, 64, 3.4, GREEN); text(g, AUTOBRAKE_NAMES[P.autobrake], 50, 69, 3.8, GREEN);
 }
 
 /** CRUISE-siden: motorene øverst, kabinen nederst.
@@ -735,7 +737,8 @@ function glareLights(g: G2D, x0: number, dir: number, d: Data): void {
 }
 
 /** Understellspanel: grønn trekant = nede og låst, rød UNLK = i bevegelse, mørkt = oppe.
- *  SYNTETISK: bremsetrykket (akkumulatoren full, ingen bremsing). AUTO BRK og A/SKID kan ikke betjenes. */
+ *  AUTO BRK: «ON» lyser blått på den stillingen som er valgt (kan klikkes), og «DECEL» grønt mens flyet bremser
+ *  etter landing. SYNTETISK: bremsetrykket (akkumulatoren full, ingen bremsing). A/SKID kan ikke betjenes. */
 function gearPanel(g: G2D, x: number, y: number, P: Plane, body: number): void {
   const label = ink(body);
   plate(g, x, y, 22, DU, body, 86, 100, 114);
@@ -748,9 +751,11 @@ function gearPanel(g: G2D, x: number, y: number, P: Plane, body: number): void {
   }
   text(g, "AUTO BRK", x + 11, y + 14.8, 2, label);
   ["LO", "MED", "MAX"].forEach((s, i) => {
+    const armed = P.autobrake === i + 1, cx = x + 4.4 + i * 6.5;
     key(g, x + 1.5 + i * 6.5, y + 16.6, 5.8, 5.6, "", body);
-    text(g, s, x + 4.4 + i * 6.5, y + 15.9 + 2.6, 1.9, ink(body, 0.9));
-    text(g, "ON", x + 4.4 + i * 6.5, y + 20.8, 1.3, "#27456b");
+    text(g, s, cx, y + 17.8, 1.5, ink(body, 0.9));
+    text(g, "DECEL", cx, y + 19.6, 1.2, armed && P.state === "landed" && P.spd > 0 ? GREEN : "#1d4a26");
+    text(g, "ON", cx, y + 21.1, 1.3, armed ? CYAN : "#27456b");
   });
   // vippebryter for A/SKID og nesehjulstyring
   text(g, "A/SKID &", x + 6.4, y + 24.8, 1.5, label); text(g, "N/W STRG", x + 6.4, y + 26.5, 1.5, label);
@@ -857,6 +862,7 @@ export function panelHit(lx: number, ly: number): PanelControl | null {
   if (inside(EFIS_L + 7.6, GLARE_Y + 7, 4.4, 2.6) || inside(EFIS_R + EFIS_W - 12, GLARE_Y + 7, 4.4, 2.6)) return { kind: "flightDirector" };
   if (Math.hypot(lx - EFIS_L - 27.6, ly - GLARE_Y - 8.9) <= 3.2 || Math.hypot(lx - EFIS_R - EFIS_W + 27.6, ly - GLARE_Y - 8.9) <= 3.2) return { kind: "ndRange" };
   if (inside(TERR_L, TERR_Y, TERR_W, TERR_H) || inside(TERR_R, TERR_Y, TERR_W, TERR_H)) return { kind: "ndTerrain" };
+  for (let i = 0; i < 3; i++) if (inside(GEAR_X + 1.5 + i * 6.5, ROW + 16.6, 5.8, 5.6, 0.3)) return { kind: "autobrake", level: i + 1 };
   if (inside(GEAR_X + 12, ROW + 25, 9.6, 20, 0)) return { kind: "gear" };
   if (ly < LEVER_TOP || ly > H) return null;
   if (Math.abs(lx - SPD_X - 2.5) <= 7) return { kind: "speedBrake" };

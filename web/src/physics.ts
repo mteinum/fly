@@ -18,6 +18,14 @@ const GEAR_TIME = 8; // s fra oppe til nede
 const FLAP_RATE = 0.3; // klaffstillinger per sekund
 const BRAKE_TIME = 1.2; // s fra inne til helt ute
 const BRAKE_DRAG = 26; // m/s lavere toppfart med luftbremsene ute
+export const AUTOBRAKE_NAMES = ["", "LO", "MED", "MAX"];
+/** Nedbremsing (m/s²) etter landing for autobremsens tre stillinger. LO og MED er som på flyet.
+ *  SYNTETISK: MAX er sterkere enn flyet klarer (ca. 6 m/s² på tørr bane, og i flyet brukes MAX bare ved avbrutt
+ *  avgang). Mehamn er 880 m, kortere enn en A320 kan stanse på, og skal likevel kunne landes på i spillet. */
+export const AUTOBRAKE_DECEL = [0, 1.7, 3, 8];
+/** Ruller flyet av banen fortere enn dette (m/s), er det en utforkjøring. */
+const OVERRUN_SPEED = 5;
+const ROLLOUT_STEER = 0.08; // rad/s: så fort nesehjulet retter flyet inn etter banen under utrullingen
 /** Største stampefart med full stikke (rad/s), ca. 11°/s. Var 34°/s, som var altfor kvikt å håndfly. */
 export const PITCH_RATE = 0.2;
 const APPROACH_FLAPS = 2;
@@ -127,7 +135,7 @@ export function startApproach(P: Plane, t: Terrain, end: RunwayEnd): void {
     y: end.y + Math.cos(hdg) * d,
     alt: glidePathAltitude(t, end, APPROACH_DIST_M), // på glidebanen som PFD viser
     hdg, spd: APPROACH_SPEED, pitch: -0.05, roll: 0, thr: 0,
-    gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, speedBrake: false, brake: 0, state: "fly", t: 0, touchdown: null,
+    gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, speedBrake: false, brake: 0, autobrake: P.autobrake, state: "fly", t: 0, touchdown: null, // autobremsen settes av den som starter innflygingen
   } satisfies Plane);
   // gass som holder startfarten i flat flyging
   P.thr = throttleFor(P, APPROACH_SPEED);
@@ -138,6 +146,12 @@ export function toggleGear(P: Plane, say: Say): void {
   if (P.state !== "fly") return;
   P.gearDown = !P.gearDown;
   say(P.gearDown ? "Gear down" : "Gear up", 2);
+}
+
+/** Sett autobremsen: 1 = LO, 2 = MED, 3 = MAX. */
+export function setAutobrake(P: Plane, level: number, say: Say): void {
+  P.autobrake = clamp(Math.round(level), 1, 3);
+  say(`Autobrake ${AUTOBRAKE_NAMES[P.autobrake]}`, 1.5);
 }
 
 /** Luftbremsespaken. Virker bare i lufta, og ikke med full klaff (da er de sperret, som på A320). */
@@ -163,9 +177,22 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
   if (P.state !== "fly") {
     P.t -= dt;
     if (P.state === "landed") {
-      P.spd = Math.max(0, P.spd - 25 * dt);
+      // Utrulling: bakkespoilerne går ut av seg selv, autobremsen holder nedbremsingen den er satt til, og
+      // nesehjulet retter flyet inn etter banen (SYNTETISK: spillet har ikke sideror eller hjulstyring).
+      P.brake = Math.min(1, P.brake + dt / BRAKE_TIME);
+      P.spd = Math.max(0, P.spd - AUTOBRAKE_DECEL[P.autobrake] * dt);
+      const end = airport.runways.flatMap((rw) => rw.ends).find((e) => e.ident === P.touchdown?.runway);
+      if (end) {
+        const off = Math.atan2(Math.sin((end.headingGridDeg * Math.PI) / 180 - P.hdg), Math.cos((end.headingGridDeg * Math.PI) / 180 - P.hdg));
+        P.hdg += clamp(off, -ROLLOUT_STEER * dt, ROLLOUT_STEER * dt);
+      }
       P.x += (Math.sin(P.hdg) * P.spd * dt) / t.cell;
       P.y -= (Math.cos(P.hdg) * P.spd * dt) / t.cell;
+      if (P.spd > OVERRUN_SPEED && !onRunway(t, airport, P.x, P.y)) {
+        P.state = "crash"; P.t = 3;
+        say("Runway overrun! Land earlier or use more autobrake (3 = MAX).", 3.5);
+        return false;
+      }
     }
     // etter landing blir flyet stående til piloten selv ber om ny innflyging (diplomet vises imens)
     return P.state !== "landed" && P.t <= 0;

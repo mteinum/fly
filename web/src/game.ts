@@ -1,9 +1,9 @@
 /* Spilltilstand, klokke og inndata. */
-import { autopilot } from "./autopilot";
+import { autobrakeFor, autopilot } from "./autopilot";
 import { startTime } from "./clock";
 import { gradeLanding } from "./diploma";
 import { type FlightLog, FlightLogger } from "./flightlog";
-import { type Keys, moveFlaps, softStick, startApproach, toggleGear, toggleSpeedBrake, update } from "./physics";
+import { type Keys, moveFlaps, setAutobrake, softStick, startApproach, toggleGear, toggleSpeedBrake, update } from "./physics";
 import { Recorder, REPLAY_HOLD } from "./replay";
 import { newPlane, type Plane } from "./plane";
 import { type SkyState, skyState } from "./sky";
@@ -27,6 +27,8 @@ export type PanelControl =
   | { kind: "gear" } | { kind: "speedBrake" } | { kind: "autopilot" } | { kind: "flightDirector" }
   /** Rekkevidden på ND (neste trinn), og terrengbildet på ND av/på. */
   | { kind: "ndRange" } | { kind: "ndTerrain" }
+  /** Autobremsen: 1 = LO, 2 = MED, 3 = MAX. */
+  | { kind: "autobrake"; level: number }
   /** Klaffspaken settes i stilling 0-4. */
   | { kind: "flaps"; cfg: number }
   /** Gasshåndtakene settes i stilling 0-1. */
@@ -124,6 +126,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     if ("unable" in cmd) { setAutopilot(false, `: ${cmd.unable}`); return manual; }
     if (cmd.gearDown !== P.gearDown) toggleGear(P, say);
     if (cmd.flapCfg !== P.flapCfg) moveFlaps(P, Math.sign(cmd.flapCfg - P.flapCfg), say);
+    if (cmd.autobrake !== P.autobrake) setAutobrake(P, cmd.autobrake, say);
     game.apTarget = { speedKt: cmd.speedKt, courseTrueDeg: ends[endIdx].headingTrueDeg };
     return cmd.keys;
   };
@@ -137,6 +140,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     game.replay = null;
     game.autopilot = approach.autopilot = false;
     startApproach(P, terrain, ends[endIdx]);
+    P.autobrake = autobrakeFor(runwayOf(ends[endIdx]), ends[endIdx]); // MED, eller MAX på korte baner. Piloten kan endre den (1, 2, 3)
     logger.start(P, runwayOf(ends[endIdx]), ends[endIdx], new Date());
     approach.count++;
     approach.elapsedS = 0;
@@ -175,6 +179,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
       else if (c.kind === "flightDirector") toggleFlightDirector();
       else if (c.kind === "ndRange") nextRange();
       else if (c.kind === "ndTerrain") toggleTerrain();
+      else if (c.kind === "autobrake") setAutobrake(P, c.level, say);
       else if (c.kind === "flaps") for (let i = Math.abs(c.cfg - P.flapCfg), step = Math.sign(c.cfg - P.flapCfg); i > 0; i--) moveFlaps(P, step, say);
       else if (P.state === "fly") {
         // tar piloten i gasshåndtakene, slipper autopiloten, som når W eller S trykkes
@@ -221,6 +226,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     if (e.code === "KeyT") { endIdx = (endIdx + 1) % ends.length; reset(); }
     if (e.code === "KeyA") setAutopilot(!game.autopilot);
     if (e.code === "KeyD") toggleFlightDirector();
+    if (e.code === "Digit1" || e.code === "Digit2" || e.code === "Digit3") setAutobrake(P, Number(e.code.slice(5)), say);
     if (e.code === "KeyZ") nextRange();
     if (e.code === "KeyX") toggleTerrain();
     if (e.code === "KeyG") toggleGear(P, say);

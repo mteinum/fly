@@ -39,7 +39,7 @@ for fullskjerm.
 Taster: piltaster styrer, `W`/`S` gass, `G` understell, `F`/`V` klaff ut/inn,
 `C` bytter mellom utvendig kamera, cockpit og tårn, `R` ny innflyging, `T` bytt bane (03/21), `Q`/`E` stiller klokka en
 halvtime bakover/framover, `M` slår lyden av og på, `N` stedsnavnene, `D` flight director,
-`Z` rekkevidden på ND (10, 20, 40 NM), `X` terrenget på ND av og på. Lyden starter ved første tastetrykk.
+`1`/`2`/`3` autobrems LO/MED/MAX, `Z` rekkevidden på ND (10, 20, 40 NM), `X` terrenget på ND av og på. Lyden starter ved første tastetrykk.
 
 I cockpit kan understellsspaken, luftbremsen, gasshåndtakene (dra), klaffspaken og knappene AP1 og FD også
 betjenes med mus eller finger.
@@ -64,6 +64,13 @@ mil. Veiledningen er regnet fra banegeometrien, ikke fra flyplassens faktiske an
 I cockpit varsler flyet når det er på vei i terrenget: «terrain ahead» og gul tekst på ND når det er under
 45 sekunder til, «pull up» og rødt når det haster. Terrenget det gjelder er helfarget på ND. Varselet regnes fra
 høydekartet og flyets bane akkurat nå (`web/src/gpws.ts`); reglene er forenklet og gjelder ikke bygninger og bruer.
+
+## Etter landing
+
+Når hjulene tar bakken går bakkespoilerne ut av seg selv, og autobremsen bremser flyet: LO 1,7 m/s², MED 3 m/s²
+(ca. 700 m fra 126 kt) eller MAX 8 m/s². Hver innflyging starter med MED, eller MAX der banen er for kort for
+MED (Mehamn). Ruller flyet av enden på banen i fart, er det en utforkjøring. MAX er sterkere enn flyet klarer;
+uten det kunne ingen landet på Mehamns 880 m.
 
 ## Flight director
 

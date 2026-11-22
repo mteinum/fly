@@ -41,6 +41,34 @@ for (const area of AREAS) {
       expect(grade.stars).toBe(5);
     });
 
+    it.each(ends)("bane %s: stanser på banen etter landing, med autobremsen autopiloten valgte", (_, rw, end) => {
+      const P = newPlane();
+      startApproach(P, t, end);
+      fly(t, rw, end, P, 1 / 60);
+      const airport = t.meta.airports[0], cmd = autopilot(Object.assign(newPlane(), { ...P, state: "fly" }), t, rw, end);
+      if (!("unable" in cmd)) P.autobrake = cmd.autobrake;
+      const touchdownKt = P.spd * 1.943844;
+      let rolledM = 0;
+      for (let i = 0; i < 120 * 60 && P.state === "landed" && P.spd > 0; i++) { rolledM += P.spd / 60; update(P, t, airport, {}, 1 / 60, quiet); }
+      expect([P.state, P.spd], `autobrems ${P.autobrake}, ${Math.round(touchdownKt)} kt, rullet ${Math.round(rolledM)} m på en bane på ${Math.round(rw.lengthM)} m`).toEqual(["landed", 0]);
+    });
+
+    it.each(ends)("bane %s: MAX stanser på kortere strekning enn LO", (_, rw, end) => {
+      const roll = (level: number): [string, number] => {
+        const P = newPlane();
+        startApproach(P, t, end);
+        fly(t, rw, end, P, 1 / 60);
+        P.autobrake = level;
+        let m = 0;
+        for (let i = 0; i < 120 * 60 && P.state === "landed" && P.spd > 0; i++) { m += P.spd / 60; update(P, t, t.meta.airports[0], {}, 1 / 60, quiet); }
+        return [P.state, m];
+      };
+      const [loState, loM] = roll(1), [maxState, maxM] = roll(3);
+      expect(maxState).toBe("landed");
+      // med LO ruller flyet enten mye lenger, eller av enden på en kort bane
+      if (loState === "landed") expect(loM).toBeGreaterThan(maxM * 3); else expect(loState).toBe("crash");
+    });
+
     it.each(ends)("bane %s: lander også med lav bildefrekvens", (_, rw, end) => {
       const P = newPlane();
       startApproach(P, t, end);

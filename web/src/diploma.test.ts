@@ -77,7 +77,7 @@ describe("måling av landingen", () => {
   it("blir stående etter landing til piloten ber om ny innflyging", () => {
     const P = land(le, 0.3);
     let restart = false;
-    for (let i = 0; i < 1000; i++) restart = update(P, t, airport, {}, 0.02, () => {}) || restart;
+    for (let i = 0; i < 2000; i++) restart = update(P, t, airport, {}, 0.02, () => {}) || restart; // 40 s: MED bruker ca. 23 s fra 70 m/s
     expect([P.state, P.spd, restart]).toEqual(["landed", 0, false]);
   });
 

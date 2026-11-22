@@ -34,6 +34,12 @@ describe("trykk på instrumentpanelet", () => {
     expect(panelHit(263, 190)).toEqual({ kind: "ndTerrain" });
   });
 
+  it("treffer de tre autobremsknappene på understellspanelet", () => {
+    expect(panelHit(184 + 4.4, 124 + 19)).toEqual({ kind: "autobrake", level: 1 });
+    expect(panelHit(184 + 10.9, 124 + 19)).toEqual({ kind: "autobrake", level: 2 });
+    expect(panelHit(184 + 17.4, 124 + 19)).toEqual({ kind: "autobrake", level: 3 });
+  });
+
   it("reagerer ikke på skjermene, frontruta eller resten av panelet", () => {
     for (const [x, y] of [[33, 147], [83, 147], [160, 140], [160, 180], [160, 50], [30, 190], [290, 190], [106 + 53, 108.4 + 10]]) expect(panelHit(x, y)).toBeNull();
   });

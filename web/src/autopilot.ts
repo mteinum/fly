@@ -8,7 +8,7 @@
  * SYNTETISK: tallene er valgt for spillets flymodell, ikke hentet fra en ekte A320.
  */
 import { aimPoint, GLIDE_ANGLE_DEG } from "./guidance";
-import { type Keys, PITCH_RATE, stallSpeed, throttleFor } from "./physics";
+import { AUTOBRAKE_DECEL, type Keys, PITCH_RATE, stallSpeed, throttleFor } from "./physics";
 import type { Plane } from "./plane";
 import type { Runway, RunwayEnd, Terrain } from "./terrain";
 
@@ -46,6 +46,16 @@ export interface AutopilotCommand {
   /** Stillingen den vil ha flyet i nå (rad): nese opp og krenging mot høyre. Vises av flight director på PFD. */
   pitch: number;
   bank: number;
+  /** Autobremsen den vil ha (1 = LO, 2 = MED, 3 = MAX): MED der banen er lang nok, ellers MAX. */
+  autobrake: number;
+}
+
+/** Autobremsen som passer banen (2 = MED, 3 = MAX): MED der bremsestrekningen fra utflatingsfarten, pluss en
+ *  firedel, får plass på banen som er igjen 600 m inne (der hjulene tar bakken senest). Ellers MAX.
+ *  Brukes av autopiloten, og som utgangspunkt når en innflyging starter. */
+export function autobrakeFor(rw: Runway, end: RunwayEnd): number {
+  const medStopM = ((FLARE_KT / KT) ** 2 / (2 * AUTOBRAKE_DECEL[2])) * 1.25;
+  return rw.lengthM - end.displacedThresholdM - 600 > medStopM ? 2 : 3;
 }
 
 /** Autopiloten kan ikke lande herfra. `unable` er grunnen, slik den vises for piloten. */
@@ -95,5 +105,5 @@ export function autopilot(P: Plane, t: Terrain, rw: Runway, end: RunwayEnd): Aut
   push("ArrowRight", "ArrowLeft", bank / 0.75); // rorutslaget er krengingen flyet går mot
   push("ArrowDown", "ArrowUp", ((pitch - P.pitch) * 4) / PITCH_RATE); // pil ned = nese opp
   push("KeyW", "KeyS", ((thr - P.thr) * 2) / 0.4);
-  return { keys, gearDown: step.gear, flapCfg: step.flaps, speedKt: speed * KT, pitch, bank };
+  return { keys, gearDown: step.gear, flapCfg: step.flaps, speedKt: speed * KT, pitch, bank, autobrake: autobrakeFor(rw, end) };
 }
