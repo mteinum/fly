@@ -304,7 +304,7 @@ const MAX_TRANSIT_LABELS = 8;
       .filter(({ b, d }) => d < (b.mode === "rail" ? 4000 : 1500)).sort((p, q) => p.d - q.d);
     for (const { b } of nearBuses) {
       if (transitLabels >= MAX_TRANSIT_LABELS) break;
-      const z = Math.max(0, terrain.heightAt(b.x, b.y)) + b.heightM;
+      const z = b.z + b.heightM;
       const place: PlaceName = { name: b.line, x: b.x, y: b.y, z, size: 7, type: "kollektiv", group: "kollektiv" };
       const at = renderer.project(b.x * terrain.cell, z + 6, b.y * terrain.cell);
       if (!at || !inSight(terrain, cx, cy, ey, place)) continue;
@@ -411,7 +411,7 @@ const MAX_TRANSIT_LABELS = 8;
   // Kollektivtrafikk: ekte busser og tog fra Entur, hentet fra /transit/ på serveren hvert 20. sekund.
   // ?transit=adresse (kun utviklingsmodus): f.eks. /dev/transit-test.json. Uten svar er veiene tomme.
   const transit = new Transit(), transitUrl = import.meta.env.DEV ? (params.get("transit") ?? "https://fly.teinum.no/transit/") : `${import.meta.env.BASE_URL}transit/`;
-  let buses: { x: number; y: number; heading: number; lengthM: number; widthM: number; heightM: number; color: number; line: string; mode: TransitMode }[] = [];
+  let buses: { x: number; y: number; z: number; heading: number; lengthM: number; widthM: number; heightM: number; color: number; line: string; mode: TransitMode }[] = [];
   if (terrain.meta.traffic) {
     const poll = async () => {
       try {
@@ -429,7 +429,7 @@ const MAX_TRANSIT_LABELS = 8;
   const frame = (dt: number): void => {
     game.step(dt);
     const shipNow = performance.now() / 1000;
-    buses = transit.list.map((v) => { const [x, y] = vehiclePosition(v, shipNow); return { x, y, heading: v.heading, ...vehicleShape(v.mode), line: v.line, mode: v.mode }; });
+    buses = transit.list.map((v) => { const [x, y, z] = terrain.roadPlace(...vehiclePosition(v, shipNow)); return { x, y, z, heading: v.heading, ...vehicleShape(v.mode), line: v.line, mode: v.mode }; });
     renderer.setTransit(buses);
     const ships = fleet.list.map((s) => {
       const [x, y] = position(s, terrain, shipNow);

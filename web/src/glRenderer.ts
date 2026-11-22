@@ -468,7 +468,7 @@ export class GlRenderer {
     const pos = this.transitLights.geometry.getAttribute("position") as THREE.BufferAttribute;
     const n = Math.min(list.length, MAX_TRANSIT);
     for (let i = 0; i < n; i++) {
-      const v = list[i], X = v.x * cell, Z = v.y * cell, ground = Math.max(0, this.t.heightAt(v.x, v.y));
+      const v = list[i], [rx, ry, ground] = this.t.roadPlace(v.x, v.y), X = rx * cell, Z = ry * cell; // på brudekket der det er en bru
       q.setFromAxisAngle(up, -v.heading); // kassens lengde ligger langs z; kurs 0 = nord = -z
       m.compose(new THREE.Vector3(X, ground, Z), q, new THREE.Vector3(v.widthM, v.heightM, v.lengthM));
       this.transitBodies.setMatrixAt(i, m); this.transitBodies.setColorAt(i, c.setHex(v.color, THREE.SRGBColorSpace));

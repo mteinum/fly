@@ -129,6 +129,59 @@ function cannon(): Model {
   };
 }
 
+/** Hummerfiskeren ved Flekkerøy: en sjark, en fisker i gult oljehyre som holder opp en hummer, teiner og blåser. */
+function lobsterFisher(): Model {
+  const g = new THREE.Group(), boat = group(g), HULL = 0xf2f2ee, WOOD = 0x8a5a2e, YELLOW = 0xf2c21a, LOBSTER = 0xd8281e;
+  part(boat, box(7, 3, 20), HULL, 0, 0.8, 0);
+  part(boat, cone(3.5, 6, 4), HULL, 0, 0.8, -12.6, -Math.PI / 2, Math.PI / 4);
+  part(boat, box(7.2, 0.5, 20), 0x1f5fa8, 0, 2.3, 0); // blå ripe
+  part(boat, box(4.4, 3.6, 5), HULL, 0, 4.1, -4); // styrhuset
+  part(boat, box(4.5, 1.2, 4), 0x1c2733, 0, 4.8, -4.4);
+  part(boat, box(4.8, 0.4, 5.6), WOOD, 0, 6.1, -4);
+  // teinene: trekasser med nett, stablet akter
+  for (const [x, y, z] of [[-1.6, 3, 7], [1.6, 3, 7], [0, 4.6, 7]]) {
+    part(boat, box(2.8, 1.5, 3.6), WOOD, x, y, z);
+    part(boat, box(2.9, 1.1, 3.2), 0x2f6b3f, x, y, z);
+  }
+  const man = group(boat, 0, 2.4, 2);
+  for (const s of [-1, 1]) part(man, cyl(0.5, 0.5, 2.6), YELLOW, s * 0.6, 1.3, 0);
+  part(man, cyl(1, 1.2, 3), YELLOW, 0, 4, 0);
+  part(man, sph(0.8), SKIN, 0, 6.2, 0);
+  part(man, cyl(1.5, 1.5, 0.25, 12), YELLOW, 0, 6.8, 0.2); // sydvesten
+  part(man, sph(0.8), YELLOW, 0, 6.9, 0).scale.y = 0.6;
+  part(man, sph(0.55), WHITE, 0, 5.8, -0.6); // skjegget
+  part(man, cyl(0.4, 0.4, 2.6), YELLOW, -1.4, 4, 0, 0, 0, -0.3);
+  const arm = group(man, 1.2, 5, 0); // armen som holder hummeren opp
+  part(arm, cyl(0.4, 0.4, 3), YELLOW, 0, 1.5, 0);
+  const lobster = group(arm, 0, 3.6, 0);
+  part(lobster, sph(0.7), LOBSTER, 0, 0, 0).scale.set(1, 1.9, 1);
+  for (let k = 0; k < 3; k++) part(lobster, sph(0.5 - k * 0.08), LOBSTER, 0, -1.4 - k * 0.6, 0.1 * k); // halen
+  part(lobster, box(1.6, 0.25, 0.8), LOBSTER, 0, -3.1, 0.2);
+  const claws: THREE.Group[] = [];
+  for (const s of [-1, 1]) {
+    const claw = group(lobster, s * 0.5, 1, 0);
+    part(claw, cyl(0.18, 0.18, 1.4), LOBSTER, s * 0.5, 0.6, 0, 0, 0, s * -0.6);
+    part(claw, sph(0.55), LOBSTER, s * 1, 1.5, 0).scale.set(0.8, 1.5, 0.6);
+    part(lobster, cyl(0.05, 0.05, 2.2, 4), LOBSTER, s * 0.3, 2.3, 0, 0, 0, s * -0.25); // følehorn
+    claws.push(claw);
+  }
+  boat.scale.setScalar(4);
+  // blåsene som merker teinene, i en rekke bortover sjøen
+  const buoys: THREE.Mesh[] = [];
+  for (let i = 0; i < 5; i++) buoys.push(part(g, sph(5), i % 2 ? 0xf07818 : 0xd8281e, 90 + i * 55, 1, -40 + (i % 2) * 30));
+  return {
+    obj: g,
+    tick: (f) => {
+      boat.position.y = Math.sin(f.now * 0.9) * 1.2;
+      boat.rotation.z = Math.sin(f.now * 0.7) * 0.07;
+      boat.rotation.x = Math.sin(f.now * 0.5) * 0.03;
+      arm.rotation.z = Math.sin(f.now * 2) * 0.15;
+      claws.forEach((claw, i) => { claw.rotation.z = (i ? -1 : 1) * Math.max(0, Math.sin(f.now * 4 + i)) * 0.5; });
+      buoys.forEach((b, i) => { b.position.y = 1 + Math.sin(f.now * 1.3 + i * 1.7) * 1.5; });
+    },
+  };
+}
+
 /* ---------- Oslo ---------- */
 
 function crown(): Model {
@@ -557,7 +610,7 @@ function aurora(): { mesh: THREE.Mesh; uniforms: { time: { value: number }; stre
 
 function build(fig: PlacedFigure, t: Terrain): Model {
   const models: Record<FigureKind, () => Model> = {
-    chimp, pirateShip, cannon, crown, skiJumper: () => skiJumper(fig, t.cell), vikingShip, sinnataggen, dancer, umbrella, funicular: () => funicular(fig, t),
+    chimp, pirateShip, cannon, lobsterFisher, crown, skiJumper: () => skiJumper(fig, t.cell), vikingShip, sinnataggen, dancer, umbrella, funicular: () => funicular(fig, t),
     swords, oilPlatform, polarBear, maelstrom, santa, puffins, moose, balloon, whale, flags: () => flags(fig),
   };
   return models[fig.kind]();

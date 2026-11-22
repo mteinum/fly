@@ -48,4 +48,28 @@ describe.skipIf(!hasTiles("kjevik10"))("kollektivtrafikk", () => {
   it("tegner tog lengre enn busser", () => {
     expect(vehicleShape("rail").lengthM).toBeGreaterThan(vehicleShape("bus").lengthM * 3);
   });
+
+  it("setter en buss på Varoddbrua på brudekket, ikke i sjøen under", () => {
+    // Varoddbrua: punktet fra stedsnavnregisteret (tests/fixtures/reference_points.json)
+    const [vx, vy] = t.utmToGrid(91491.04, 6467882.7), near = (p: [number, number, number]) => Math.hypot(p[0] - vx, p[1] - vy);
+    const bridge = t.bridges.reduce((a, c) => (Math.min(...c.points.map(near)) < Math.min(...a.points.map(near)) ? c : a));
+    const mid = bridge.points.reduce((i, p, k) => (k > 0 && k < bridge.points.length - 1 && t.isWater(p[0], p[1]) && (i < 0 || p[2] > bridge.points[i][2]) ? k : i), -1);
+    const [x, y, deck] = bridge.points[mid];
+    expect(Math.min(...bridge.points.map(near)) * t.cell).toBeLessThan(100);
+    expect(deck).toBeGreaterThan(15);
+    expect(t.roadPlace(x, y)[2]).toBeCloseTo(deck, 1);
+    // GPS-en treffer ikke senterlinja: ti meter til siden er fortsatt på brua
+    const [nx, ny] = bridge.points[mid + 1], len = Math.hypot(nx - x, ny - y);
+    const side = (m: number): [number, number] => [x - ((ny - y) / len) * (m / t.cell), y + ((nx - x) / len) * (m / t.cell)];
+    expect(t.roadPlace(...side(10))).toEqual([...side(10), expect.closeTo(deck, 0)]);
+    // seksti meter til siden er i sjøen: bussen flyttes inn på brua
+    const [sx, sy, sz] = t.roadPlace(...side(60));
+    expect(Math.hypot(sx - x, sy - y) * t.cell).toBeLessThan(40); // Varoddbrua er to bruer side om side: den nærmeste
+    expect(Math.abs(sz - deck)).toBeLessThan(4);
+    // fire hundre meter unna er det ingen bru å flytte til: da står den der den er (en ferge)
+    expect(t.roadPlace(...side(400))).toEqual([...side(400), Math.max(0, t.heightAt(...side(400)))]);
+    // på land er det terrenget som gjelder
+    const [lx, ly] = t.utmToGrid(88128, 6466407);
+    expect(t.roadPlace(lx, ly)).toEqual([lx, ly, Math.max(0, t.heightAt(lx, ly))]);
+  });
 });

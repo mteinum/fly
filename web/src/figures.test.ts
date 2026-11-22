@@ -4,7 +4,7 @@ import { FIGURES, inSeason, placeFigures } from "./figures";
 import { hasTiles, loadTestTerrain } from "./testTerrain";
 
 const AREAS = ["kjevik10", "sola10", "flesland10", "gardermoen10", "bodo10", "mehamn10", "tromso10", "alesund10", "kjeller10"];
-const AT_SEA = ["pirateShip", "vikingShip", "oilPlatform", "maelstrom", "whale", "puffins"];
+const AT_SEA = ["lobsterFisher", "pirateShip", "vikingShip", "oilPlatform", "maelstrom", "whale", "puffins"];
 
 for (const area of AREAS) {
   describe.skipIf(!hasTiles(area))(`morofigurer, ${area}`, () => {

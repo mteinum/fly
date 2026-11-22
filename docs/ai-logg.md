@@ -542,6 +542,13 @@ Det er Voxel Space som trenger et unntak.
 - Rettet: en dreining på 0,0004 rad om bildets midtpunkt mens navnene tegnes. Prøvd i hodeløs Chrome: teksten
   flytter seg da i kvarte piksler.
 
+**54. Busser på bruer sto i sjøen**
+- Bussene ble satt på terrenget der de var. På en bru er terrenget sjøen under, så M4 over Varoddbrua kjørte på vannet
+  ved siden av brua. Jeg skrev det som et kjent forbehold i dokumentasjonen i stedet for å rette det.
+- Meldt av bruker med skjermbilde («buss i sjø»).
+- Rettet: kjøretøy står på brudekket der de er innen halve brubredden pluss 15 m fra en brus senterlinje, og et
+  kjøretøy som ellers ville stått i vannet flyttes inn på nærmeste bru innen 200 m (`Terrain.roadPlace`).
+
 ### Åpne spørsmål / ikke kontrollert
 
 - OurAirports er ikke sjekket mot gjeldende AIP Norge, bare mot DTM og

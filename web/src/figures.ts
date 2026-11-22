@@ -8,7 +8,7 @@ import type { Terrain } from "./terrain";
 
 export type FigureKind =
   | "chimp" | "pirateShip" | "cannon" | "crown" | "skiJumper" | "vikingShip" | "sinnataggen" | "dancer" | "umbrella" | "funicular"
-  | "swords" | "oilPlatform" | "polarBear" | "maelstrom" | "santa" | "puffins" | "moose" | "balloon" | "whale" | "flags";
+  | "lobsterFisher" | "swords" | "oilPlatform" | "polarBear" | "maelstrom" | "santa" | "puffins" | "moose" | "balloon" | "whale" | "flags";
 
 interface FigureSpec {
   kind: FigureKind;
@@ -30,6 +30,7 @@ export const FIGURES: Record<string, FigureSpec[]> = {
     { kind: "pirateShip", east: 97434, north: 6469764, snap: "water", where: "nærmeste åpne vann fra Kristiansand dyrepark" },
     { kind: "cannon", east: 88669, north: 6464919, where: "Odderøya, stedsnummer 850220" },
     { kind: "whale", east: 90000, north: 6462500, snap: "water", where: "sjøen sør for Odderøya, valgt for hånd" },
+    { kind: "lobsterFisher", east: 86869, north: 6457887, snap: "water", where: "nærmeste åpne vann fra Flekkerøya (N50 stedsnavn)" },
   ],
   ENKJ: [
     { kind: "crown", east: 261212, north: 6649891, where: "Det kongelige slott, stedsnummer 429090" },

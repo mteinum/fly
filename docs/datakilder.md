@@ -473,7 +473,7 @@ sjekket mot dokumentasjonen – ikke før.
 SYNTETISK: figurene i `web/src/figures.ts` og `figureModels.ts` er oppdiktet og sterkt forstørret (en sjimpanse på
 60 m). Stedene er ekte: koordinatene er fra Sentralt stedsnavnregister (`ws.geonorge.no/stedsnavn/v1/navn`) eller
 N50-stedsnavnene i flisene, og kilden står ved hver figur. Unntak, valgt for hånd: Operaen (omtrentlig posisjon),
-hvalene, oljeplattformen ved Sola (det står ingen der), elgen ved Gardermoen, ballongen og flaggrekka ved tårnet.
+hvalene, hummerfiskeren ved Flekkerøy (nærmeste åpne vann fra øya), oljeplattformen ved Sola (det står ingen der), elgen ved Gardermoen, ballongen og flaggrekka ved tårnet.
 Skip, hval og plattform flyttes til nærmeste åpne vann i arealdekket. Fløibanen går i rett linje mellom
 Vetrlidsallmenningen og Fløyen, ikke i banens trasé. Nordlyset (Tromsø, Bodø, Mehamn) vises hver mørk natt, uten
 sammenheng med faktisk nordlysaktivitet. Nissen vises i desember og flaggene 17. mai. Ingen logoer eller
@@ -493,7 +493,8 @@ navngitte figurer fra Dyreparken er brukt.
   gammel; bare posisjoner yngre enn 120 s tas med. Fart mangler nesten alltid og brukes ikke.
 - **Utelatt:** ferger (de kommer fra Kystverkets AIS).
 - **SYNTETISK:** form, farge og størrelse (busser 2,5 ganger for store), og bevegelsen mellom to meldinger (rett
-  linje). Tog i tunnel tegnes oppå bakken, og kjøretøy på bruer står på terrenget under brua.
+  linje). Tog i tunnel tegnes oppå bakken. Kjøretøy på en veibru står på brudekket (N50s bruer); på jernbanebruer, som ikke er
+  med i brudataene, står toget på terrenget under.
 - **Kontroll:** `deploy/test_transit.sh` tolker et lagret svar (tests/fixtures/entur_sample.json) mot en fasit med
   koordinater fra pyproj (`pipeline/tests/test_transit.py`).
 

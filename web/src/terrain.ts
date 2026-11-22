@@ -209,6 +209,33 @@ export class Terrain {
     return this.inBounds(x, y) ? (y | 0) * this.width + (x | 0) : -1;
   }
 
+  private bridgeBoxes: [number, number, number, number][] | null = null;
+
+  /** Der et kjøretøy står: [x, y, høyde]. På en bru (innen halve bredden pluss 15 m fra senterlinja) er høyden
+   *  brudekket. Et kjøretøy som ser ut til å stå i vannet, flyttes inn på nærmeste bru innen 200 m: posisjonen er
+   *  da unøyaktig, eller kjøretøyet er tegnet midt mellom to meldinger. Uten bru i nærheten står det der det er
+   *  (på en ferge). Bruene er senterlinjer med dekkhøyde (structures.json). */
+  roadPlace(x: number, y: number): [number, number, number] {
+    const ground = Math.max(0, this.heightAt(x, y)), wet = this.isWater(x, y);
+    // bruenes omsluttende bokser regnes én gang, så de fleste oppslag slipper å se på en eneste bru
+    this.bridgeBoxes ??= this.bridges.map((b) => [Math.min(...b.points.map((p) => p[0])), Math.min(...b.points.map((p) => p[1])), Math.max(...b.points.map((p) => p[0])), Math.max(...b.points.map((p) => p[1]))]);
+    let best: [number, number, number] = [x, y, ground], bestD = Infinity;
+    this.bridges.forEach((b, i) => {
+      const on = (b.width / 2 + 15) / this.cell, reach = wet ? Math.max(on, 200 / this.cell) : on, [x0, y0, x1, y1] = this.bridgeBoxes![i];
+      if (x < x0 - reach || x > x1 + reach || y < y0 - reach || y > y1 + reach) return;
+      for (let k = 1; k < b.points.length; k++) {
+        const [ax, ay, az] = b.points[k - 1], [bx, by, bz] = b.points[k], dx = bx - ax, dy = by - ay, len2 = dx * dx + dy * dy;
+        const u = len2 ? Math.min(1, Math.max(0, ((x - ax) * dx + (y - ay) * dy) / len2)) : 0;
+        const px = ax + dx * u, py = ay + dy * u, d = Math.hypot(x - px, y - py);
+        if (d > reach || d >= bestD) continue;
+        bestD = d;
+        const deck = Math.max(ground, az + (bz - az) * u);
+        best = d <= on ? [x, y, deck] : [px, py, Math.max(deck, Math.max(0, this.heightAt(px, py)))];
+      }
+    });
+    return best;
+  }
+
   /** Vann ifølge arealdekket (hav, innsjø, elv). Utenfor utsnittet er alt hav. */
   isWater(x: number, y: number): boolean {
     const i = this.cellIndex(x, y);
