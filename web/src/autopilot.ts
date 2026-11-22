@@ -8,7 +8,7 @@
  * SYNTETISK: tallene er valgt for spillets flymodell, ikke hentet fra en ekte A320.
  */
 import { aimPoint, GLIDE_ANGLE_DEG } from "./guidance";
-import { AUTOBRAKE_DECEL, type Keys, PITCH_RATE, stallSpeed, throttleFor } from "./physics";
+import { AUTOBRAKE_DECEL, CALM, groundVelocity, type Keys, PITCH_RATE, stallSpeed, throttleFor, type Wind } from "./physics";
 import type { Plane } from "./plane";
 import type { Runway, RunwayEnd, Terrain } from "./terrain";
 
@@ -61,8 +61,9 @@ export function autobrakeFor(rw: Runway, end: RunwayEnd): number {
 /** Autopiloten kan ikke lande herfra. `unable` er grunnen, slik den vises for piloten. */
 export interface AutopilotUnable { unable: string }
 
-/** Hva autopiloten vil gjøre nå for å lande fra baneenden `end`, eller hvorfor den ikke kan. */
-export function autopilot(P: Plane, t: Terrain, rw: Runway, end: RunwayEnd): AutopilotCommand | AutopilotUnable {
+/** Hva autopiloten vil gjøre nå for å lande fra baneenden `end`, eller hvorfor den ikke kan.
+ *  I vind styrer den etter kursen og farten over bakken, så flyet holder senterlinja med nesa opp mot vinden. */
+export function autopilot(P: Plane, t: Terrain, rw: Runway, end: RunwayEnd, wind: Wind = CALM): AutopilotCommand | AutopilotUnable {
   const h = end.headingGridDeg * RAD, cell = t.cell;
   const ex = (P.x - end.x) * cell, ey = (P.y - end.y) * cell;
   // langs landingsretningen (nord = -y), og til høyre for den: samme regnestykke som i guidance.ts
@@ -80,7 +81,10 @@ export function autopilot(P: Plane, t: Terrain, rw: Runway, end: RunwayEnd): Aut
   // kortere sikt nær banen, så de siste meterne hentes inn før terskelen i stedet for etter
   const lookahead = clamp(toThreshold * LOOKAHEAD_SHARE, LOOKAHEAD_MIN_M, LOOKAHEAD_M);
   const intercept = clamp(Math.atan2(right, lookahead), -MAX_INTERCEPT, MAX_INTERCEPT);
-  const bank = clamp(wrap(h - intercept - P.hdg) * 2, -MAX_BANK, MAX_BANK);
+  // uten vind er kursen over bakken den samme som nesa peker
+  const windy = wind.east !== 0 || wind.north !== 0, ground = groundVelocity(P, wind);
+  const track = windy ? ground.track : P.hdg, groundSpeed = windy ? ground.speed : P.spd;
+  const bank = clamp(wrap(h - intercept - track) * 2, -MAX_BANK, MAX_BANK);
 
   // Høyde: synkeraten som følger glidebanen, pluss en korreksjon som henter inn avviket
   const aim = aimPoint(t, end), toAim = aim.fromEndM - along;
@@ -91,7 +95,7 @@ export function autopilot(P: Plane, t: Terrain, rw: Runway, end: RunwayEnd): Aut
   // Gjelder ikke i utflatingen, der flyet er nede over banen.
   if (!flare && agl > FLARE_HEIGHT_M && (toAim <= 0 || (P.alt - aim.elevationM) / toAim > Math.tan(MAX_DESCENT_DEG * RAD))) return { unable: "too high to land, go around" };
   const pathAlt = aim.elevationM + Math.max(0, toAim) * Math.tan(GLIDE_ANGLE_DEG * RAD);
-  let sink = clamp(-P.spd * Math.sin(GLIDE_ANGLE_DEG * RAD) - 0.25 * (P.alt - pathAlt), -MAX_SINK, 3);
+  let sink = clamp(-groundSpeed * Math.sin(GLIDE_ANGLE_DEG * RAD) - 0.25 * (P.alt - pathAlt), -MAX_SINK, 3);
   // utflating: synkeraten avtar med høyden, til ca. 1 m/s i det hjulene tar bakken
   if (flare || toAim <= 0) sink = Math.max(sink, -(0.8 + 0.25 * Math.max(0, agl - 1.5)));
   const pitch = Math.asin(clamp(sink / P.spd, -0.3, 0.3));

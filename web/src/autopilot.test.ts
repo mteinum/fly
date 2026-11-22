@@ -1,9 +1,9 @@
 /* Autopiloten skal lande på alle baner spillet har, fra innflygingens startpunkt og fra skjeve utgangspunkt. */
 import { describe, expect, it } from "vitest";
-import { autopilot } from "./autopilot";
+import { autobrakeFor, autopilot } from "./autopilot";
 import { gradeLanding } from "./diploma";
 import { glidePathAltitude } from "./guidance";
-import { moveFlaps, startApproach, toggleGear, update } from "./physics";
+import { CALM, moveFlaps, startApproach, toggleGear, update, type Wind, windFrom } from "./physics";
 import { newPlane, type Plane } from "./plane";
 import type { Runway, RunwayEnd, Terrain } from "./terrain";
 import { hasTiles, loadTestTerrain } from "./testTerrain";
@@ -11,14 +11,15 @@ import { hasTiles, loadTestTerrain } from "./testTerrain";
 const quiet = () => {};
 
 /** Fly med autopilot til flyet står på bakken (eller i 5 minutter). Slik game.ts bruker den. */
-function fly(t: Terrain, rw: Runway, end: RunwayEnd, P: Plane, dt: number): Plane {
+function fly(t: Terrain, rw: Runway, end: RunwayEnd, P: Plane, dt: number, wind: Wind = CALM): Plane {
   const airport = t.meta.airports[0];
   for (let i = 0; i < 300 / dt && P.state === "fly"; i++) {
-    const cmd = autopilot(P, t, rw, end);
+    const cmd = autopilot(P, t, rw, end, wind);
     if ("unable" in cmd) break;
     if (cmd.gearDown !== P.gearDown) toggleGear(P, quiet);
     if (cmd.flapCfg !== P.flapCfg) moveFlaps(P, Math.sign(cmd.flapCfg - P.flapCfg), quiet);
-    update(P, t, airport, cmd.keys, dt, quiet);
+    P.autobrake = cmd.autobrake;
+    update(P, t, airport, cmd.keys, dt, quiet, wind);
   }
   return P;
 }
@@ -52,6 +53,22 @@ for (const area of AREAS) {
       for (let i = 0; i < 120 * 60 && P.state === "landed" && P.spd > 0; i++) { rolledM += P.spd / 60; update(P, t, airport, {}, 1 / 60, quiet); }
       expect([P.state, P.spd], `autobrems ${P.autobrake}, ${Math.round(touchdownKt)} kt, rullet ${Math.round(rolledM)} m på en bane på ${Math.round(rw.lengthM)} m`).toEqual(["landed", 0]);
     });
+
+    // 20 kt rett fra siden, og 15 kt skrått forfra og bakfra: autopiloten skal holde senterlinja med nesa mot vinden
+    for (const [name, offDeg, kt] of [["20 kt fra høyre", 90, 20], ["20 kt fra venstre", -90, 20], ["15 kt skrått forfra", 40, 15], ["10 kt skrått bakfra", 150, 10]] as const) {
+      it.each(ends)(`bane %s: lander og stanser på banen i vind, ${name}`, (_, rw, end) => {
+        const wind = windFrom(((end.headingGridDeg + offDeg) * Math.PI) / 180, kt / 1.943844), P = newPlane();
+        startApproach(P, t, end);
+        fly(t, rw, end, P, 1 / 60, wind);
+        expect(P.state).toBe("landed");
+        expect(P.touchdown!.runway).toBe(end.ident);
+        expect(P.touchdown!.crossM).toBeLessThan(8);
+        for (let i = 0; i < 120 * 60 && P.state === "landed" && P.spd > 0; i++) update(P, t, t.meta.airports[0], {}, 1 / 60, quiet, wind);
+        // Medvind på en bane som allerede krever MAX (Mehamn, 880 m): der rekker ikke flyet å stanse, som i virkeligheten
+        if (offDeg > 90 && autobrakeFor(rw, end) === 3) expect(["landed", "crash"]).toContain(P.state);
+        else expect([P.state, P.spd]).toEqual(["landed", 0]);
+      });
+    }
 
     it.each(ends)("bane %s: MAX stanser på kortere strekning enn LO", (_, rw, end) => {
       const roll = (level: number): [string, number] => {

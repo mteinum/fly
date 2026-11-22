@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { CALM, groundVelocity, windFrom } from "./physics";
 import { APPROACH_DIST_M, moveFlaps, onRunway, PITCH_RATE, runwayOffset, softStick, speedLimit, stallSpeed, startApproach, toggleGear, toggleSpeedBrake, update } from "./physics";
 import { newPlane } from "./plane";
 import { BRIDGE, BUILDING } from "./terrain";
@@ -304,5 +305,25 @@ describe("luftbremser og stampefart", () => {
     for (let i = 0; i < 60; i++) update(P, t, airport, { ArrowDown: 1 }, 1 / 60, quiet);
     expect((P.pitch * 180) / Math.PI).toBeCloseTo((PITCH_RATE * 180) / Math.PI, 0);
     expect((P.pitch * 180) / Math.PI).toBeLessThan(12);
+  });
+});
+
+describe("vind", () => {
+  const P = Object.assign(newPlane(), { hdg: 0, spd: 70, pitch: 0 });
+
+  it("flytter flyet over bakken med vinden, uten å endre farten gjennom lufta", () => {
+    // vind fra vest (270°) blåser flyet østover: nesa peker nord, kursen over bakken dreier mot øst
+    const west = groundVelocity(P, windFrom((270 * Math.PI) / 180, 10));
+    expect(west.east).toBeCloseTo(10, 6);
+    expect(west.north).toBeCloseTo(70, 6);
+    expect((west.track * 180) / Math.PI).toBeCloseTo(8.13, 1);
+    // motvind (fra nord) tar farten over bakken ned, medvind opp
+    expect(groundVelocity(P, windFrom(0, 10)).speed).toBeCloseTo(60, 6);
+    expect(groundVelocity(P, windFrom(Math.PI, 10)).speed).toBeCloseTo(80, 6);
+  });
+
+  it("er uten virkning når det er vindstille", () => {
+    const v = groundVelocity(P, CALM);
+    expect([v.east, v.north, v.speed, v.track]).toEqual([0, 70, 70, 0]);
   });
 });

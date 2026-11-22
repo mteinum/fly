@@ -47,7 +47,7 @@ betjenes med mus eller finger.
 Flyplass velges under «Hjelp» eller med `?apt=ENZV` (ICAO-kode). `T` blar gjennom alle
 baneender på flyplassen.
 
-URL-parametre: `?apt=ENGM`, `?cam=cockpit` eller `?cam=tower`, `?rwy=21`, `?cfg=full` (start med understell nede
+URL-parametre: `?apt=ENGM`, `?wind=240/15` (vind fra 240° sann retning, 15 kt; uten den er det vindstille), `?cam=cockpit` eller `?cam=tower`, `?rwy=21`, `?cfg=full` (start med understell nede
 og full klaff), `?time=22:00` og `?date=2026-06-21`
 (norsk tid; uten dem starter spillet kl. 13:00 i dag), og `?pos=øst,nord,høyde,kurs` (UTM 33,
 meter, sann kurs), f.eks. `?pos=91725,6468775,70,174` for Varoddbrua.
@@ -64,6 +64,14 @@ mil. Veiledningen er regnet fra banegeometrien, ikke fra flyplassens faktiske an
 I cockpit varsler flyet når det er på vei i terrenget: «terrain ahead» og gul tekst på ND når det er under
 45 sekunder til, «pull up» og rødt når det haster. Terrenget det gjelder er helfarget på ND. Varselet regnes fra
 høydekartet og flyets bane akkurat nå (`web/src/gpws.ts`); reglene er forenklet og gjelder ikke bygninger og bruer.
+
+## Vind
+
+Med `?wind=240/15` blåser det jevnt fra 240° (sann retning) med 15 knop over hele kartet. Flyet flytter seg da
+med lufta: nesa må peke opp mot vinden for å holde senterlinja, motvind gir lavere fart over bakken og kortere
+utrulling. ND viser vinden med pil, og fart over bakken (GS) ved siden av farten gjennom lufta (TAS). Den grønne
+romben på kursbåndet på PFD og på kompassbuen på ND viser kursen over bakken. Autopiloten og flight director
+regner med vinden. Flygelederen sier fortsatt «wind calm»: klareringene er innspilt på forhånd.
 
 ## Etter landing
 

@@ -3,7 +3,7 @@ import { autobrakeFor, autopilot } from "./autopilot";
 import { startTime } from "./clock";
 import { gradeLanding } from "./diploma";
 import { type FlightLog, FlightLogger } from "./flightlog";
-import { type Keys, moveFlaps, setAutobrake, softStick, startApproach, toggleGear, toggleSpeedBrake, update } from "./physics";
+import { type Keys, moveFlaps, setAutobrake, softStick, startApproach, toggleGear, toggleSpeedBrake, update, type Wind, windFrom } from "./physics";
 import { Recorder, REPLAY_HOLD } from "./replay";
 import { newPlane, type Plane } from "./plane";
 import { type SkyState, skyState } from "./sky";
@@ -62,6 +62,9 @@ export interface Game {
    *  som piloten kan fly etter. `fd` er null når den er av, eller når autopiloten ikke kunne landet herfra. */
   flightDirector: boolean;
   fd: { pitch: number; bank: number } | null;
+  /** Vinden: hvor den kommer fra (sann retning i grader) og farten i knop, og det samme som fart i rutenettet.
+   *  Vindstille hvis ikke `?wind=240/15` er gitt. Jevn over hele kartet og hele innflygingen. */
+  wind: { fromTrueDeg: number; kt: number; vector: Wind };
   /** Navigasjonsdisplayet: rekkevidden i NM (Z blar 10, 20, 40) og om terrenget tegnes (X). */
   nd: { rangeNm: number; terrain: boolean };
   /** Autopiloten flyr (A slår den av og på). `approach.autopilot` husker om den har vært brukt på denne innflygingen. */
@@ -117,12 +120,12 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     game.apTarget = null;
     game.fd = null;
     if (game.flightDirector && P.state === "fly") {
-      const want = autopilot(P, terrain, runwayOf(ends[endIdx]), ends[endIdx]);
+      const want = autopilot(P, terrain, runwayOf(ends[endIdx]), ends[endIdx], wind.vector);
       if (!("unable" in want)) game.fd = { pitch: want.pitch, bank: want.bank };
     }
     if (!game.autopilot || P.state !== "fly") return manual;
     if (MANUAL.some((k) => K[k])) { setAutopilot(false); return manual; }
-    const cmd = autopilot(P, terrain, runwayOf(ends[endIdx]), ends[endIdx]);
+    const cmd = autopilot(P, terrain, runwayOf(ends[endIdx]), ends[endIdx], wind.vector);
     if ("unable" in cmd) { setAutopilot(false, `: ${cmd.unable}`); return manual; }
     if (cmd.gearDown !== P.gearDown) toggleGear(P, say);
     if (cmd.flapCfg !== P.flapCfg) moveFlaps(P, Math.sign(cmd.flapCfg - P.flapCfg), say);
@@ -159,12 +162,18 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     };
   };
   const time = startTime(params, Date.now());
+  // Vind fra adressen: «retning/fart», sann retning den kommer fra og knop (høyst 50). Retninger fra kilder er sanne;
+  // rutenettet er dreid med meridiankonvergensen.
+  const windArg = /^(\d{1,3})\/(\d{1,2})$/.exec(params.get("wind") ?? ""), windKt = windArg ? Math.min(50, Number(windArg[2])) : 0;
+  const windDeg = windArg && windKt > 0 ? Number(windArg[1]) % 360 : 0;
+  const wind = { fromTrueDeg: windDeg, kt: windKt, vector: windFrom(((windDeg - terrain.meta.gridConvergenceDeg) * Math.PI) / 180, windKt / 1.943844) };
   const game: Game = {
     P, airport, msg, time, approach,
     autopilot: false,
     flightDirector: true,
     fd: null,
     nd: { rangeNm: ND_RANGES[0], terrain: true },
+    wind,
     apTarget: null,
     ships: [],
     traffic: [],
@@ -201,7 +210,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
       if (msg.t > 0) msg.t -= dt;
       const wasFlying = P.state === "fly";
       if (wasFlying) approach.elapsedS += dt; // stoppeklokka på panelet: står når flyet har landet
-      const again = update(P, terrain, airport, controls(dt), dt, say);
+      const again = update(P, terrain, airport, controls(dt), dt, say, wind.vector);
       if (wasFlying) logger.step(P, dt, game.autopilot);
       if (wasFlying && P.state !== "fly") game.flightLog = logger.finish(P, msg.text, P.touchdown && gradeLanding(P.touchdown), game.autopilot) ?? game.flightLog;
       if (P.state !== "fly") game.autopilot = false;

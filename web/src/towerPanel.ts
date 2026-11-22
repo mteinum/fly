@@ -153,7 +153,7 @@ export function drawTower(g: G2D, t: Terrain, map: CanvasImageSource, game: Game
   text(g, `${Math.round(P.alt * FT)} FT  ${Math.round(P.spd * KT)} KT`, SCOPE.x + SCOPE.w - 1.2, SCOPE.y + SCOPE.h - 2.6, 2.4, "#e8ffe8", "right", MONO, 600);
 
   // værpanel og klokke til høyre
-  display(g, 204, 146, 34, 10, "WIND", "000/00KT", body); // vindstille: flymodellen har ingen vind
+  display(g, 204, 146, 34, 10, "WIND", `${pad(game.wind.kt ? game.wind.fromTrueDeg || 360 : 0, 3)}/${pad(game.wind.kt, 2)}KT`, body); // vinden flymodellen bruker (se game.ts)
   display(g, 204, 160, 34, 10, "QNH", "1013", body);
   display(g, 204, 174, 34, 10, "UTC", `${pad(utc.getUTCHours(), 2)}:${pad(utc.getUTCMinutes(), 2)}:${pad(utc.getUTCSeconds(), 2)}`, body, "#7dffa0");
 

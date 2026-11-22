@@ -13,6 +13,7 @@
  * terrenget på ND (fra høydekartet), andre fly på ND (ADS-B, se traffic.ts; varsel etter tcas.ts), klokke, fartstrend,
  * klaffer, understell og luftbremser med varsler og landingsmemo, bakken på høydebåndet, og terrenget
  * som terrengvarselet (gpws.ts) reagerer på.
+ * Vinden er den flymodellen bruker (game.ts): vist på ND, og som kurs over bakken (grønn rombe) på PFD og ND.
  * Syntetisk: motorverdiene (regnet fra gasshåndtaket, med et etterslep som er valgt, ikke målt), skyvegrensen,
  * memolinjene SIGNS/CABIN/SPLRS, drivstoffmengde, QNH, bremsetrykk, bremsetemperatur, vekt og lufttemperatur på SD, ALT-vinduet på FCU (høyden innflygingen
  * startet i, ikke en klarert høyde), og fartsmerkene VLS og alfa-vern (faste forhold til steilefarten).
@@ -21,7 +22,7 @@
  */
 import { osloTime } from "./clock";
 import type { Game, PanelControl } from "./game";
-import { AUTOBRAKE_NAMES, FLAP_NAMES, speedLimit, stallSpeed, verticalSpeed, warnings } from "./physics";
+import { AUTOBRAKE_NAMES, FLAP_NAMES, groundVelocity, speedLimit, stallSpeed, verticalSpeed, warnings } from "./physics";
 import type { Plane } from "./plane";
 import { CAUTION_S, onApproachPath, requiredClearance, terrainAlert, type TerrainAlert, WARNING_S } from "./gpws";
 import { guidance, type Guidance } from "./guidance";
@@ -137,6 +138,8 @@ interface Data {
   fuelUsedKg: number;
   /** Høyeste tillatte fart i neste klaffstilling (kt), eller null med full klaff. */
   nextFlapKt: number | null;
+  /** Fart over bakken (kt) og sann kurs over bakken (grader). Uten vind er de lik farten og kursen flyet har. */
+  gsKt: number; trackDeg: number;
   /** Stillingen flight director ber om (rad), eller null når den er av eller ikke har noe å vise. */
   fd: Game["fd"];
   /** Terrengvarselet som gjelder nå (se gpws.ts). */
@@ -326,6 +329,9 @@ function pfd(g: G2D, x: number, y: number, d: Data, body: number): void {
   g.restore();
   line(g, 22, 88, 70, 88, 0.5, WHITE);
   line(g, 46, 83.5, 46, 89.5, 0.9, YELLOW);
+  // kursen over bakken: grønn rombe på båndet. Står under den gule streken når det ikke er vind fra siden.
+  const drift = wrap180(d.trackDeg - d.hdg), tx = 46 + clamp(drift, -20, 20) * hpx;
+  g.strokeStyle = GREEN; g.lineWidth = 0.5; g.beginPath(); g.moveTo(tx, 88.2); g.lineTo(tx + 1.3, 90); g.lineTo(tx, 91.8); g.lineTo(tx - 1.3, 90); g.closePath(); g.stroke();
   // banens kurs (ILS-kursen): magenta dolk på båndet, eller tallet i kanten når den er utenfor
   if (d.ils) {
     const rel = wrap180(d.courseDeg - d.hdg), cx = 46 + rel * hpx;
@@ -394,6 +400,9 @@ function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body:
     if (n % 10 === 0) text(g, String(n / 10), AX + Math.cos(a) * (R + 6.6), AY + Math.sin(a) * (R + 6.6), n % 30 === 0 ? 4.6 : 3.2, WHITE);
   }
   line(g, AX, AY - R - 4, AX, AY - R + 2, 0.9, YELLOW);
+  // kursen over bakken: grønn rombe på kompassbuen
+  { const a = ((wrap180(d.trackDeg - d.hdg) - 90) * Math.PI) / 180, tx = AX + Math.cos(a) * (R - 2), ty = AY + Math.sin(a) * (R - 2);
+    g.strokeStyle = GREEN; g.lineWidth = 0.5; g.beginPath(); g.moveTo(tx, ty - 1.8); g.lineTo(tx + 1.3, ty); g.lineTo(tx, ty + 1.8); g.lineTo(tx - 1.3, ty); g.closePath(); g.stroke(); }
 
   // Innflygingen tegnet som en flygeplan: grønn linje langs forlenget senterlinje, 10 NM ut fra baneenden,
   // med et merke per NM. SYNTETISK: veipunktene CF og FF (8 og 4 NM ute) er satt her for at bildet skal ligne;
@@ -453,9 +462,18 @@ function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body:
 
   // datafelt
   g.fillStyle = "rgba(0,0,0,.6)"; g.fillRect(0, 0, 100, 13);
-  text(g, "GS", 2, 4, 3.8, WHITE, "left"); text(g, String(Math.round(d.kt)), 9, 4, 4.6, GREEN, "left");
+  text(g, "GS", 2, 4, 3.8, WHITE, "left"); text(g, String(Math.round(d.gsKt)), 9, 4, 4.6, GREEN, "left");
   text(g, "TAS", 19, 4, 3.8, WHITE, "left"); text(g, String(Math.round(d.kt)), 28, 4, 4.6, GREEN, "left");
-  text(g, "---°/---", 2, 9.6, 4, GREEN, "left"); // vind: flymodellen har ingen
+  // Vinden: hvor den kommer fra (sann retning) og farten, og en pil som viser hvor den blåser i forhold til nesa.
+  // Streker når det er vindstille, som i flyet.
+  if (game.wind.kt < 2) text(g, "---°/---", 2, 9.6, 4, GREEN, "left");
+  else {
+    text(g, `${pad(game.wind.fromTrueDeg || 360, 3)}°/${Math.round(game.wind.kt)}`, 2, 9.6, 4, GREEN, "left");
+    const a = ((game.wind.fromTrueDeg + 180 - d.hdg - 90) * Math.PI) / 180, wx = 6, wy = 16.5, c = Math.cos(a), s = Math.sin(a);
+    g.fillStyle = "rgba(0,0,0,.6)"; g.fillRect(0, 13, 12, 7.4);
+    line(g, wx - c * 3, wy - s * 3, wx + c * 3, wy + s * 3, 0.6, GREEN);
+    line(g, wx + c * 3, wy + s * 3, wx + c * 1.2 - s * 1.2, wy + s * 1.2 + c * 1.2, 0.6, GREEN); line(g, wx + c * 3, wy + s * 3, wx + c * 1.2 + s * 1.2, wy + s * 1.2 - c * 1.2, 0.6, GREEN);
+  }
   // Oppe til høyre, som i flyet: neste veipunkt, sann peiling og avstand dit, og når flyet er der (UTC) med farten nå.
   if (to) {
     const distM = Math.hypot(to.x - P.x, to.y - P.y) * t.cell, eta = new Date(game.time + (distM / Math.max(P.spd, 30)) * 1000);
@@ -881,6 +899,7 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
   // Om natta er panelet opplyst av flomlyset under blendingsskjermen, så det blir ikke helt mørkt
   const P = game.P, body = 1 - 0.6 * night;
   const end = game.airport.runways.flatMap((rw) => rw.ends).find((e) => e.ident === game.approach.ident);
+  const ground = groundVelocity(P, game.wind.vector);
   const kt = P.spd * KT, now = performance.now() / 1000, dt = clamp(now - anim.at, 0, 0.5);
   if (anim.eng < 0 || P.state !== "fly") { anim.trend = 0; anim.eng = P.thr; }
   else if (dt > 0) {
@@ -911,8 +930,9 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
     eng: anim.eng,
     fuelUsedKg: anim.fuelKg,
     // klaffgrensen alene: som speedLimit for neste stilling, med understellet oppe
+    gsKt: P.state === "fly" ? ground.speed * KT : kt, trackDeg: P.state === "fly" ? t.trueHeadingDeg(ground.track) : t.trueHeadingDeg(P.hdg),
     fd: game.fd,
-    gpws: terrainAlert(P, t, game.airport),
+    gpws: terrainAlert(P, t, game.airport, game.wind.vector),
     nextFlapKt: P.flapCfg < 4 ? speedLimit({ ...P, flapCfg: P.flapCfg + 1, flaps: P.flapCfg + 1, gear: 0, gearDown: false }) * KT : null,
   };
   const target = game.airport.runways.find((rw) => rw.ends.some((e) => e.ident === game.approach.ident));

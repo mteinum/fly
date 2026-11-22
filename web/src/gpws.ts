@@ -12,7 +12,7 @@
  * Bygninger, bruer og tårn er ikke med: varselet gjelder terrenget, slik det gjør i flyet.
  */
 import { glidePathAltitude } from "./guidance";
-import { turnRate, verticalSpeed } from "./physics";
+import { CALM, turnRate, verticalSpeed, type Wind } from "./physics";
 import type { Plane } from "./plane";
 import type { Airport, Terrain } from "./terrain";
 
@@ -55,13 +55,13 @@ export function onApproachPath(t: Terrain, airport: Airport, x: number, y: numbe
 }
 
 /** Terrengvarselet som gjelder nå, eller null. `seconds` er tiden til banen går under klaringen. */
-export function terrainAlert(P: Plane, t: Terrain, airport: Airport): TerrainAlert | null {
+export function terrainAlert(P: Plane, t: Terrain, airport: Airport, wind: Wind = CALM): TerrainAlert | null {
   if (P.state !== "fly") return null;
   const vs = verticalSpeed(P), rate = turnRate(P);
   let x = P.x, y = P.y, hdg = P.hdg;
   for (let s = 1; s <= CAUTION_S; s++) {
     hdg += rate;
-    x += (Math.sin(hdg) * P.spd) / t.cell; y -= (Math.cos(hdg) * P.spd) / t.cell;
+    x += (Math.sin(hdg) * P.spd + wind.east) / t.cell; y -= (Math.cos(hdg) * P.spd + wind.north) / t.cell;
     if (!t.inBounds(x, y)) return null;
     const alt = P.alt + vs * s, ground = Math.max(0, t.heightAt(x, y));
     if (runwayDistance(t, airport, x, y) < FREE_M) {

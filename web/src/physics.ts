@@ -62,6 +62,18 @@ export const throttleFor = (P: Plane, speed: number): number => clamp((speed - 4
 const G = 9.81;
 const TURN_GAIN = 1.8; // svinger raskere enn en koordinert sving skulle tilsi (arv fra prototypen)
 
+/** Vinden som en fart i rutenettet (m/s): dit lufta flytter seg, mot øst og mot nord. Jevn over hele kartet. */
+export interface Wind { east: number; north: number }
+export const CALM: Wind = { east: 0, north: 0 };
+/** Vind som kommer FRA en rutenettretning (rad, 0 = rutenett-nord, med klokka) med farten `speed` (m/s). */
+export const windFrom = (fromGridRad: number, speed: number): Wind => ({ east: -Math.sin(fromGridRad) * speed, north: -Math.cos(fromGridRad) * speed });
+/** Flyets fart over bakken i rutenettet (m/s): mot øst og nord, farten, og kursen over bakken (rad, rutenettretning).
+ *  Flyet beveger seg gjennom lufta der nesa peker, og lufta flytter seg med vinden. */
+export function groundVelocity(P: Plane, wind: Wind = CALM): { east: number; north: number; speed: number; track: number } {
+  const air = P.spd * Math.cos(P.pitch), east = Math.sin(P.hdg) * air + wind.east, north = Math.cos(P.hdg) * air + wind.north;
+  return { east, north, speed: Math.hypot(east, north), track: Math.atan2(east, north) };
+}
+
 /** Svingrate i rad/s (positiv = mot høyre). */
 export const turnRate = (P: Plane): number => ((G * Math.tan(P.roll)) / P.spd) * TURN_GAIN;
 /** Stigerate i m/s. */
@@ -172,8 +184,9 @@ export function moveFlaps(P: Plane, step: number, say: Say): void {
   if (cfg >= FLAP_NAMES.length - 1 && P.speedBrake) { P.speedBrake = false; say("Flaps FULL, speed brakes in", 2.5); }
 }
 
-/** Ett fysikksteg. Returnerer true når flyet skal settes tilbake på innflyging. */
-export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: number, say: Say): boolean {
+/** Ett fysikksteg. Returnerer true når flyet skal settes tilbake på innflyging. `wind` flytter flyet over bakken
+ *  (fart og stigning er fortsatt i forhold til lufta); etter landing ruller flyet på hjulene og vinden virker ikke. */
+export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: number, say: Say, wind: Wind = CALM): boolean {
   if (P.state !== "fly") {
     P.t -= dt;
     if (P.state === "landed") {
@@ -213,8 +226,8 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
   P.spd = Math.max(20, P.spd);
   P.hdg += turnRate(P) * dt;
   const d = (P.spd * Math.cos(P.pitch) * dt) / t.cell;
-  P.x += Math.sin(P.hdg) * d;
-  P.y -= Math.cos(P.hdg) * d; // y øker mot sør, så nordover er minus
+  P.x += Math.sin(P.hdg) * d + (wind.east * dt) / t.cell;
+  P.y -= Math.cos(P.hdg) * d + (wind.north * dt) / t.cell; // y øker mot sør, så nordover er minus
   P.alt = Math.min(MAX_ALT, P.alt + P.spd * Math.sin(P.pitch) * dt);
 
   if (!t.inBounds(P.x, P.y)) {
@@ -261,6 +274,8 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
       say("Belly landing! The gear was not down.", 3);
     } else if (onRunway(t, airport, P.x, P.y) && vs > -4 && Math.abs(P.roll) < 0.2 && P.spd < MAX_LANDING_SPEED) {
       P.touchdown = measureTouchdown(t, airport, P, vs);
+      // I vind: utrullingen starter med farten og retningen flyet hadde over bakken (motvind gir kortere utrulling)
+      if (wind.east || wind.north) { const v = groundVelocity(P, wind); P.spd = v.speed; P.hdg = v.track; }
       P.state = "landed"; P.t = 5; P.alt = gh + 1; P.pitch = 0; P.roll = 0;
       say(`Landed! ${(P.spd * 1.944) | 0} kt, ${vs.toFixed(1)} m/s`, 5);
     } else {

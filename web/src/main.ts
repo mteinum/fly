@@ -6,7 +6,7 @@ import { GlRenderer } from "./glRenderer";
 import { drawCornerMap, drawHud, drawMessage } from "./hud";
 import { candidates, declutter, inSight, labelStyle, type PlaceName } from "./labels";
 import { drawPanel, panelHit, thrustAt } from "./panel";
-import { verticalSpeed } from "./physics";
+import { groundVelocity, verticalSpeed } from "./physics";
 import { H, OX, setScreen, TOP, W } from "./screen";
 import { type AisShip, Fleet, position, shipColor, shipKind } from "./ships";
 import { tcasLevel } from "./tcas";
@@ -318,7 +318,8 @@ async function main(): Promise<void> {
     });
     renderer.setShips(ships);
     game.ships = ships; // samme liste til oversiktskartet
-    const own = { x: game.P.x, y: game.P.y, alt: game.P.alt, course: game.P.hdg, speed: game.P.spd, climb: verticalSpeed(game.P) };
+    const ownGround = groundVelocity(game.P, game.wind.vector); // TCAS regner med kurs og fart over bakken
+    const own = { x: game.P.x, y: game.P.y, alt: game.P.alt, course: ownGround.track, speed: ownGround.speed, climb: verticalSpeed(game.P) };
     const others = traffic.list.map((a) => {
       const [x, y, alt] = locate(a, terrain, shipNow);
       // linje to på skiltet: flytype og høyde i fot (som i luftfarten), eller at flyet står på bakken

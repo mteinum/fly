@@ -198,7 +198,7 @@ export class GameAudio {
     if (P.state === "fly") {
       const w = warnings(P, ra);
       if (inside) {
-        const terrain = terrainAlert(P, t, this.airport);
+        const terrain = terrainAlert(P, t, this.airport, game.wind.vector);
         const call = altitudeCallout(prev.ra, ra);
         if (call !== null) this.say("callout", `alt_${call}`, 0.9, { force: call <= 50 });
         if (prev.ra > 15 && ra <= 15 && P.thr > 0.05) this.later(0.5, () => this.say("callout", "retard", 0.9, { force: true }));
