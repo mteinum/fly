@@ -38,7 +38,8 @@ for fullskjerm.
 
 Taster: piltaster styrer, `W`/`S` gass, `G` understell, `F`/`V` klaff ut/inn,
 `C` bytter mellom utvendig kamera, cockpit og tårn, `R` ny innflyging, `T` bytt bane (03/21), `Q`/`E` stiller klokka en
-halvtime bakover/framover, `M` slår lyden av og på, `N` stedsnavnene, `D` flight director. Lyden starter ved første tastetrykk.
+halvtime bakover/framover, `M` slår lyden av og på, `N` stedsnavnene, `D` flight director,
+`Z` rekkevidden på ND (10, 20, 40 NM), `X` terrenget på ND av og på. Lyden starter ved første tastetrykk.
 
 I cockpit kan understellsspaken, luftbremsen, gasshåndtakene (dra), klaffspaken og knappene AP1 og FD også
 betjenes med mus eller finger.

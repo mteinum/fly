@@ -25,6 +25,8 @@ export interface Replay {
 /** Noe på instrumentpanelet som kan betjenes med mus eller finger (se panelHit i panel.ts). */
 export type PanelControl =
   | { kind: "gear" } | { kind: "speedBrake" } | { kind: "autopilot" } | { kind: "flightDirector" }
+  /** Rekkevidden på ND (neste trinn), og terrengbildet på ND av/på. */
+  | { kind: "ndRange" } | { kind: "ndTerrain" }
   /** Klaffspaken settes i stilling 0-4. */
   | { kind: "flaps"; cfg: number }
   /** Gasshåndtakene settes i stilling 0-1. */
@@ -58,6 +60,8 @@ export interface Game {
    *  som piloten kan fly etter. `fd` er null når den er av, eller når autopiloten ikke kunne landet herfra. */
   flightDirector: boolean;
   fd: { pitch: number; bank: number } | null;
+  /** Navigasjonsdisplayet: rekkevidden i NM (Z blar 10, 20, 40) og om terrenget tegnes (X). */
+  nd: { rangeNm: number; terrain: boolean };
   /** Autopiloten flyr (A slår den av og på). `approach.autopilot` husker om den har vært brukt på denne innflygingen. */
   autopilot: boolean;
   /** Ett steg: klokke, fysikk, meldinger og ny innflyging når det trengs. */
@@ -78,6 +82,8 @@ export interface Game {
 }
 
 const TIME_STEP_MS = 30 * 60 * 1000;
+/** Rekkeviddene ND kan stå på (NM). Flyet har også 80, 160 og 320, men kartutsnittet er bare 14 NM bredt. */
+export const ND_RANGES = [10, 20, 40];
 
 export function createGame(terrain: Terrain, focus: HTMLElement): Game {
   const airport = terrain.meta.airports[0];
@@ -101,6 +107,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     say(on ? "Autopilot on" : `Autopilot off${why}`, 2.5);
   };
   const toggleFlightDirector = () => { game.flightDirector = !game.flightDirector; say(`Flight director ${game.flightDirector ? "on" : "off"}`, 2); };
+  const nextRange = () => { game.nd.rangeNm = ND_RANGES[(ND_RANGES.indexOf(game.nd.rangeNm) + 1) % ND_RANGES.length]; say(`ND range ${game.nd.rangeNm} NM`, 1.5); };
+  const toggleTerrain = () => { game.nd.terrain = !game.nd.terrain; say(`Terrain on ND ${game.nd.terrain ? "on" : "off"}`, 1.5); };
   /** Kontrollene dette steget: pilotens taster, eller autopilotens utslag når den flyr. */
   const controls = (dt: number): Keys => {
     const manual = softStick(held, K, dt);
@@ -151,6 +159,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     autopilot: false,
     flightDirector: true,
     fd: null,
+    nd: { rangeNm: ND_RANGES[0], terrain: true },
     apTarget: null,
     ships: [],
     traffic: [],
@@ -163,6 +172,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
       else if (c.kind === "speedBrake") toggleSpeedBrake(P, say);
       else if (c.kind === "autopilot") setAutopilot(!game.autopilot);
       else if (c.kind === "flightDirector") toggleFlightDirector();
+      else if (c.kind === "ndRange") nextRange();
+      else if (c.kind === "ndTerrain") toggleTerrain();
       else if (c.kind === "flaps") for (let i = Math.abs(c.cfg - P.flapCfg), step = Math.sign(c.cfg - P.flapCfg); i > 0; i--) moveFlaps(P, step, say);
       else if (P.state === "fly") {
         // tar piloten i gasshåndtakene, slipper autopiloten, som når W eller S trykkes
@@ -208,6 +219,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     if (e.code === "KeyT") { endIdx = (endIdx + 1) % ends.length; reset(); }
     if (e.code === "KeyA") setAutopilot(!game.autopilot);
     if (e.code === "KeyD") toggleFlightDirector();
+    if (e.code === "KeyZ") nextRange();
+    if (e.code === "KeyX") toggleTerrain();
     if (e.code === "KeyG") toggleGear(P, say);
     if (e.code === "KeyB") toggleSpeedBrake(P, say);
     if (e.code === "KeyF") moveFlaps(P, 1, say);

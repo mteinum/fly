@@ -27,7 +27,14 @@ describe("trykk på instrumentpanelet", () => {
     expect(panelHit(217 + 23.2, 108.4 + 8.3)).toEqual({ kind: "flightDirector" });
   });
 
+  it("treffer rekkeviddeknappen på EFIS-panelene og TERR ON ND under skjermene", () => {
+    expect(panelHit(70 + 27.6, 108.4 + 8.9)).toEqual({ kind: "ndRange" });
+    expect(panelHit(217 + 5.4, 108.4 + 8.9)).toEqual({ kind: "ndRange" });
+    expect(panelHit(57, 190)).toEqual({ kind: "ndTerrain" });
+    expect(panelHit(263, 190)).toEqual({ kind: "ndTerrain" });
+  });
+
   it("reagerer ikke på skjermene, frontruta eller resten av panelet", () => {
-    for (const [x, y] of [[33, 147], [83, 147], [160, 140], [160, 180], [160, 50], [50, 190], [270, 190], [106 + 53, 108.4 + 10]]) expect(panelHit(x, y)).toBeNull();
+    for (const [x, y] of [[33, 147], [83, 147], [160, 140], [160, 180], [160, 50], [30, 190], [290, 190], [106 + 53, 108.4 + 10]]) expect(panelHit(x, y)).toBeNull();
   });
 });

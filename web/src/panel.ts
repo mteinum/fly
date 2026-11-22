@@ -34,9 +34,9 @@ const MONO = "ui-monospace, Menlo, Consolas, monospace";
 const DU = 46; // skjermstørrelse i logiske enheter
 const ECAM = 35.5; // de to ECAM-skjermene i midten er mindre, så begge får plass over hverandre
 const ROW = 124;
-const ND_RANGE_NM = 10;
 // Hvor det som kan betjenes står (logiske enheter i det faste oppsettet). Brukes både av tegningen og av panelHit.
 const FCU_X = 106, GLARE_Y = 108.4, EFIS_L = 70, EFIS_R = 217, EFIS_W = 33;
+const TERR_L = 52.5, TERR_R = 258.5, TERR_Y = ROW + 46 + 17, TERR_W = 9, TERR_H = 5.6;
 const GEAR_X = 184, LEVER_TOP = ROW + 46 + 7, LEVER_BOTTOM = 200 - 2.5, SPD_X = 115.6, THR_X = 129.6, FLAP_X = 190;
 
 // Airbus-fargene på skjermene
@@ -339,8 +339,8 @@ function pfd(g: G2D, x: number, y: number, d: Data, body: number): void {
 
 function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body: number): void {
   beginDisplay(g, x, y, DU, body);
-  const AX = 50, AY = 84, R = 64; // flyets plass og radius for ytterste bue (= ND_RANGE_NM)
-  const P = game.P, sinH = Math.sin(P.hdg), cosH = Math.cos(P.hdg), unit = (ND_RANGE_NM * NM) / R / t.cell; // celler per skjermenhet
+  const AX = 50, AY = 84, R = 64; // flyets plass og radius for ytterste bue (= rekkevidden)
+  const P = game.P, sinH = Math.sin(P.hdg), cosH = Math.cos(P.hdg), range = game.nd.rangeNm, unit = (range * NM) / R / t.cell; // celler per skjermenhet
   // skjerm (til høyre, forover) -> rutenett. Kartet er rutenettkurs opp; forskjellen fra sann kurs er 6° og ses ikke her.
   const toGrid = (rx: number, fy: number): [number, number] => [P.x + (rx * cosH + fy * sinH) * unit, P.y - (-rx * sinH + fy * cosH) * unit];
   const toScreen = (gx: number, gy: number): [number, number] => {
@@ -353,7 +353,9 @@ function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body:
   // understellet nede) til 1000 over. Tett grønt: ned til 1000 under. Spredt grønt: 1000-2000 under.
   // Lavere terreng vises ikke. Sjøen er spredte blå prikker. Prikkene står fast på skjermen; terrenget flytter seg under.
   const STEP = 1.6, altM = P.alt, vs = verticalSpeed(P), near = P.gear >= 1 ? -250 : -500;
-  for (let sy = 18, row = 0; sy < AY + 6; sy += STEP, row++) for (let sx = 0, col = 0; sx < 100; sx += STEP, col++) {
+  // Terrenget kan slås av (X, eller TERR ON ND-knappen). Ved terrengvarsel kommer det fram av seg selv, som i flyet.
+  const showTerrain = game.nd.terrain || d.gpws !== null;
+  for (let sy = 18, row = 0; showTerrain && sy < AY + 6; sy += STEP, row++) for (let sx = 0, col = 0; sx < 100; sx += STEP, col++) {
     const rx = sx + STEP / 2 - AX, fy = AY - (sy + STEP / 2);
     if (rx * rx + fy * fy > R * R) continue;
     const [gx, gy] = toGrid(rx, fy);
@@ -381,7 +383,7 @@ function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body:
   g.setLineDash([2, 2]);
   for (const f of [0.25, 0.5, 0.75]) { g.strokeStyle = WHITE; g.lineWidth = 0.35; g.beginPath(); g.arc(AX, AY, R * f, Math.PI * 1.13, Math.PI * 1.87); g.stroke(); }
   g.setLineDash([]);
-  for (const s of [-1, 1]) text(g, String(ND_RANGE_NM / 2), AX + s * R * 0.5 * 0.86, AY - R * 0.5 * 0.42, 4, CYAN);
+  for (const s of [-1, 1]) text(g, String(range / 2), AX + s * R * 0.5 * 0.86, AY - R * 0.5 * 0.42, 4, CYAN);
   // kompassbue
   g.strokeStyle = WHITE; g.lineWidth = 0.6; g.beginPath(); g.arc(AX, AY, R, Math.PI * 1.13, Math.PI * 1.87); g.stroke();
   for (let h = Math.floor(d.hdg / 5) * 5 - 60; h <= d.hdg + 60; h += 5) {
@@ -452,7 +454,7 @@ function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body:
   text(g, game.airport.icao, 98, 4, 4.4, WHITE, "right");
   text(g, `${pad(d.arpBearing, 3)}°`, 78, 9.6, 4.4, GREEN, "right");
   text(g, d.arpNm.toFixed(1), 93, 9.6, 4.4, GREEN, "right"); text(g, "NM", 98, 9.8, 3.2, CYAN, "right");
-  text(g, "TERR", 98, 96, 3.6, CYAN, "right");
+  if (showTerrain) text(g, "TERR", 98, 96, 3.6, CYAN, "right");
   if (d.gpws) text(g, "TERR AHEAD", 98, 90.6, 4.4, d.gpws.level === "warning" ? RED : AMBER, "right", SANS, 700);
   g.restore();
 }
@@ -692,7 +694,7 @@ function fcu(g: G2D, body: number, game: Game): void {
 /** EFIS-kontrollpanel ved siden av FCU: trykkinnstilling, FD og LS, og velgere for ND (modus og rekkevidde).
  *  `dir` = 1 for venstre sete, -1 for høyre (speilvendt). FD-knappen lyser når flight director er på (D).
  *  SYNTETISK: QNH står alltid på 1013. */
-function efis(g: G2D, x0: number, dir: number, body: number, fd: boolean): void {
+function efis(g: G2D, x0: number, dir: number, body: number, fd: boolean, rangeNm: number): void {
   const y = GLARE_Y, w = EFIS_W, at = (o: number, ww = 0): number => (dir > 0 ? x0 + o : x0 + w - o - ww);
   g.fillStyle = shade(52, 60, 70, body); g.beginPath(); g.roundRect(x0, y, w, 13.2, 1.2); g.fill();
   g.strokeStyle = shade(20, 23, 28, body); g.lineWidth = 0.4; g.stroke();
@@ -701,9 +703,9 @@ function efis(g: G2D, x0: number, dir: number, body: number, fd: boolean): void 
   knob(g, at(4), y + 9.7, 2, body, 0, true);
   key(g, at(7.6, 4.4), y + 7, 4.4, 2.6, "FD", body, fd, 1.4, glareInk(body)); key(g, at(7.6, 4.4), y + 10, 4.4, 2.6, "LS", body, true, 1.4, glareInk(body));
   ["CSTR", "WPT", "VOR.D", "NDB", "ARPT"].forEach((s, i) => key(g, at(13.4 + i * 3.9, 3.6), y + 0.9, 3.6, 2.7, s, body, false, 1.05, glareInk(body)));
-  // ND-velgerne står på ARC og 10 NM, som er det skjermen viser
-  knob(g, at(18.6), y + 8.9, 2.3, body, 0.6 * dir, true); knob(g, at(27.6), y + 8.9, 2.3, body, -1.2 * dir, true);
-  text(g, "ARC", at(18.6), y + 12.2, 1.3, glareInk(body)); text(g, "10", at(27.6), y + 12.2, 1.3, glareInk(body));
+  // ND-velgerne: modus står på ARC, som er det skjermen viser. Rekkevidden følger Z-tasten og kan klikkes.
+  knob(g, at(18.6), y + 8.9, 2.3, body, 0.6 * dir, true); knob(g, at(27.6), y + 8.9, 2.3, body, (-1.2 + 0.5 * Math.log2(rangeNm / 10)) * dir, true);
+  text(g, "ARC", at(18.6), y + 12.2, 1.3, glareInk(body)); text(g, String(rangeNm), at(27.6), y + 12.2, 1.3, glareInk(body));
 }
 
 /** Varsellysene ytterst på blendingsskjermen. MASTER WARN blinker rødt mens et rødt varsel står på E/WD;
@@ -797,7 +799,7 @@ function thrustLevers(g: G2D, cx: number, top: number, thr: number, body: number
 }
 
 /** Bordkant og luftrister under skjermene på hver side, slik panelet er bygget under PFD og ND. */
-function lowerPanel(g: G2D, x: number, body: number): void {
+function lowerPanel(g: G2D, x: number, body: number, terrX: number, terrain: boolean): void {
   plate(g, x, ROW + DU + 3.2, 100, H - ROW - DU - 2.2, body, 92, 108, 124);
   // uttrekksbordet: kant med grep
   g.fillStyle = shade(60, 70, 80, body); g.beginPath(); g.roundRect(x + 6, ROW + DU + 5.4, 88, 3.4, 0.8); g.fill();
@@ -806,6 +808,10 @@ function lowerPanel(g: G2D, x: number, body: number): void {
   grille(g, x + 64, ROW + DU + 11.4, 30, 13.6, body);
   g.fillStyle = shade(70, 82, 94, body); g.beginPath(); g.roundRect(x + 40, ROW + DU + 12.4, 20, 11.6, 1); g.fill();
   g.strokeStyle = shade(44, 52, 60, body); g.lineWidth = 0.3; g.stroke();
+  // TERR ON ND: slår terrengbildet på ND av og på. I flyet sitter knappen ved siden av ND.
+  text(g, "TERR ON ND", terrX + TERR_W / 2, TERR_Y - 2, 1.7, ink(body));
+  key(g, terrX, TERR_Y, TERR_W, TERR_H, "", body);
+  text(g, "ON", terrX + TERR_W / 2, TERR_Y + TERR_H / 2 + 0.2, 2.2, terrain ? CYAN : "#27456b", "center", SANS, 700);
 }
 
 /** Sidepanel utenfor PFD: lysstyrkeknapper og høyttaler. Ses bare når vinduet er bredere enn 16:10. */
@@ -828,11 +834,14 @@ export const thrustAt = (ly: number): number => clamp((LEVER_BOTTOM - 2.6 - ly) 
 
 /** Hva som kan betjenes i punktet (lx, ly), eller null. Koordinatene er logiske enheter i det faste oppsettet:
  *  lx er regnet fra venstre kant av oppsettet (skjermens x minus OX), ly er skjermens logiske y.
- *  Spakene: understell, luftbrems, gass og klaff. Knappene: AP1 på FCU og FD på begge EFIS-panelene. */
+ *  Spakene: understell, luftbrems, gass og klaff. Knappene: AP1 på FCU, FD og rekkeviddeknappen på begge
+ *  EFIS-panelene, og TERR ON ND under skjermene. */
 export function panelHit(lx: number, ly: number): PanelControl | null {
   const inside = (x: number, y: number, w: number, h: number, pad = 0.8): boolean => lx >= x - pad && lx <= x + w + pad && ly >= y - pad && ly <= y + h + pad;
   if (inside(FCU_X + 45.6, GLARE_Y + 8.3, 4.6, 3.7)) return { kind: "autopilot" };
   if (inside(EFIS_L + 7.6, GLARE_Y + 7, 4.4, 2.6) || inside(EFIS_R + EFIS_W - 12, GLARE_Y + 7, 4.4, 2.6)) return { kind: "flightDirector" };
+  if (Math.hypot(lx - EFIS_L - 27.6, ly - GLARE_Y - 8.9) <= 3.2 || Math.hypot(lx - EFIS_R - EFIS_W + 27.6, ly - GLARE_Y - 8.9) <= 3.2) return { kind: "ndRange" };
+  if (inside(TERR_L, TERR_Y, TERR_W, TERR_H) || inside(TERR_R, TERR_Y, TERR_W, TERR_H)) return { kind: "ndTerrain" };
   if (inside(GEAR_X + 12, ROW + 25, 9.6, 20, 0)) return { kind: "gear" };
   if (ly < LEVER_TOP || ly > H) return null;
   if (Math.abs(lx - SPD_X - 2.5) <= 7) return { kind: "speedBrake" };
@@ -922,7 +931,7 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
   plate(g, 212, ROW - 1.6, 102, DU + 3.2, body);
   const pullUp = d.gpws?.level === "warning";
   sidePanel(g, 5, -1, body, pullUp); sidePanel(g, 315, 1, body, pullUp);
-  lowerPanel(g, 7, body); lowerPanel(g, 213, body);
+  lowerPanel(g, 7, body, TERR_L, game.nd.terrain); lowerPanel(g, 213, body, TERR_R, game.nd.terrain);
   plate(g, 109, ROW + DU + 3.2, 102, H - ROW - DU - 2.2, body);
   // Spakene fra midtkonsollen står på hver side av nedre ECAM-skjerm. I flyet sitter de lenger bak, utenfor bildet.
   plate(g, 110.4, ROW + DU + 4.4, 29.6, H - ROW - DU - 5, body, 58, 66, 76);
@@ -936,7 +945,7 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
   }
 
   fcu(g, body, game);
-  efis(g, EFIS_L, 1, body, game.flightDirector); efis(g, EFIS_R, -1, body, game.flightDirector);
+  efis(g, EFIS_L, 1, body, game.flightDirector, game.nd.rangeNm); efis(g, EFIS_R, -1, body, game.flightDirector, game.nd.rangeNm);
   glareLights(g, 37, 1, d); glareLights(g, 253, -1, d);
 
   pfd(g, 10, ROW, d, body);
