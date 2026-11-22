@@ -116,6 +116,33 @@ describe.skipIf(!hasTiles("kjevik10"))("taksing på Kjevik", () => {
     expect(P.brakeTemp).toBeLessThan(hot); // kjøles mens flyet står
   });
 
+  it("slipper parkeringsbremsen med samme tast, så flyet kan kjøre videre", () => {
+    const P = landed(t);
+    run(P, t, { KeyW: true }, 1);
+    run(P, t, {}, 4);
+    run(P, t, { Space: true }, 8);
+    park(P, quiet);
+    expect([P.parked, P.spd]).toEqual([true, 0]);
+    run(P, t, { KeyW: true }, 3);
+    expect(P.spd).toBe(0); // parkert: gassen gjør ingenting
+    park(P, quiet);
+    expect([P.parked, P.taxi]).toEqual([false, true]);
+    run(P, t, { KeyW: true }, 1);
+    run(P, t, {}, 5);
+    expect(P.spd).toBeGreaterThan(1);
+  });
+
+  it("slipper ikke et fly som har kjørt seg fast", () => {
+    const P = landed(t);
+    run(P, t, { KeyW: true }, 0.5);
+    run(P, t, {}, 15);
+    run(P, t, { ArrowRight: 1 }, 4);
+    run(P, t, {}, 30);
+    expect([P.parked, P.stuck]).toEqual([true, true]);
+    park(P, quiet);
+    expect(P.parked).toBe(true);
+  });
+
   it("nekter å sette parkeringsbremsen i fart", () => {
     const P = landed(t);
     run(P, t, { KeyW: true }, 6);

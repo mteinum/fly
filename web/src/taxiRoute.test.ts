@@ -74,6 +74,21 @@ describe.skipIf(!hasTiles("kjevik10"))("retningen flyet har", () => {
   });
 });
 
+describe.skipIf(!hasTiles("kjevik10"))("på oppstillingsflata", () => {
+  if (!hasTiles("kjevik10")) return;
+  const t = loadTestTerrain("kjevik10"), airport = t.meta.airports[0], graph = buildTaxiGraph(t, airport)!;
+  it("følger senterlinjene utenfor oppstillingsflatene: fra rullebanen er hvert punkt på ruta et punkt i nettet", () => {
+    const rw = airport.runways[0], [a, b] = rw.ends, x = a.x + (b.x - a.x) * 0.45, y = a.y + (b.y - a.y) * 0.45;
+    const plan = planTaxi(t, graph, x, y, chooseStand(graph, airport, 0)!, (a.headingGridDeg * Math.PI) / 180)!;
+    const isNode = (p: [number, number]) => graph.nodes.some((n) => Math.abs(n[0] - p[0]) < 1e-6 && Math.abs(n[1] - p[1]) < 1e-6);
+    // første halvdel av ruta ligger på rullebanen og taksebanene: der er ingenting rettet ut (punkt 0 og 1 er flyet og foten)
+    const half = plan.route.slice(2, Math.max(3, Math.floor(plan.route.length / 2)));
+    expect(half.length).toBeGreaterThan(2);
+    for (const p of half) expect(isNode(p)).toBe(true);
+    expect(plan.route.length).toBeGreaterThan(8);
+  });
+});
+
 describe.skipIf(!hasTiles("kjevik10"))("avkjøringene på Kjevik", () => {
   if (!hasTiles("kjevik10")) return;
   const t = loadTestTerrain("kjevik10"), airport = t.meta.airports[0], graph = buildTaxiGraph(t, airport)!, rw = airport.runways[0];

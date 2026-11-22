@@ -202,9 +202,16 @@ function taxi(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: number, say: 
   }
 }
 
-/** Sett parkeringsbremsen: flyet må stå (nesten) stille. Da er turen over. */
+/** Parkeringsbremsen: settes når flyet står (nesten) stille, og slippes med samme tast. Et fly som har kjørt seg
+ *  fast kommer ikke løs. */
 export function park(P: Plane, say: Say): void {
-  if (P.state !== "landed" || P.parked) return;
+  if (P.state !== "landed") return;
+  if (P.parked) {
+    if (P.stuck) { say("Stuck in the grass. Press R for a new approach.", 3); return; }
+    P.parked = false; P.still = 0;
+    say("Parking brake released", 2);
+    return;
+  }
   if (P.spd > 1.5) { say("Stop before setting the parking brake", 2); return; }
   P.spd = 0; P.thr = 0; P.parked = true;
   say("Parking brake set", 2);

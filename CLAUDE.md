@@ -51,6 +51,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     glRenderer.ts  WebGL: terrengnett med LOD, normalkart, bygninger, bruer, lys
     groundDetail.ts  prosedyrale bakkedetaljer per overflateklasse (shader, syntetisk)
     runwayDecal.ts   rullebanen som skarp flate med merking (merkingen er syntetisk)
+    airportSigns.ts  skilt (sted, retning, påbud) og ventepunktmerking etter vanlig mønster; plasseringen er syntetisk
     taxiDecal.ts     taksebaner, oppstillingsflater, senterlinjer og standnumre som skarpe flater (fra aeroways.json)
     audio.ts       lydmotor: motor, vind, hendelser, utrop, flygeleder
     diploma.ts     diplom etter landing: karakter, bilde til deling, deleknapper
@@ -79,7 +80,9 @@ Flisformat per utsnitt (alle rad for rad fra nord):
 - `colormap.png`: RGB, bakken: arealdekke + veier + rullebane. 10 m-flisene har ren
   flatefarge (spillet lyssetter selv); 50 m-flisene har hillshade bakt inn
 - `lights.png`: RGB, nattlys (kun 10 m). Syntetisk plassert langs veier og i bebyggelse
-- `surface.bin`: uint8, arealdekke med vei (16), rullebane (17) og taksebane/oppstillingsflate (18) lagt oppå; velger detaljmønster på bakken
+- `surface.bin`: uint8, arealdekke med vei (16), rullebane (17) og taksebane/oppstillingsflate (18) lagt oppå.
+  Der utsnittet har bakkeanlegg får bare celler HELT INNE i de skarpe flatene asfalt; kantcellene (også N50s
+  klasse 15) er gjort til flyplassgress (11), så asfalten ikke stikker hakkete ut forbi det spillet tegner skarpt; velger detaljmønster på bakken
 - `landcover.bin`: uint8 palettindeks (klasser i metadata.json; avgjør hva som er vann)
 - `structures.json`: `[kol, rad, type, bunn, topp, r, g, b]` for bruer og bygninger, `churchTowers`: `[x, y, bunn, topp]`, `lighthouses`: `[x, y, bunn, topp, tårn]` og `tunnels`: polylinjer `[x, y]`
 - `buildings.bin` (10 m-utsnittene): bygg med form, se footprints.py for formatet.

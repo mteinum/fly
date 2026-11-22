@@ -7,12 +7,16 @@
  * etter et fast mønster, ikke etter flyplassens faktiske oppmerking.
  */
 import * as THREE from "three";
+import { holdMarkings } from "./airportSigns";
 import { STAND_LANE_M } from "./physics";
 import type { Terrain } from "./terrain";
 
 const LIFT = 0.22; // m over terrenget. Lavere enn rullebanen (0,3), som dermed ligger øverst der de møtes
 const STEP = 12; // m mellom tverrsnitt langs en taksebane, så den følger terrenget
 const LINE_W = 0.5;
+/** Samme farge på oppstillingsflater og taksebaner, og lik den som er bakt inn i fargekartet (TAXIWAY i pipeline),
+ *  så asfalten henger sammen der flatene møtes og der den skarpe flata slutter. */
+const ASPHALT = 0x4e5056;
 
 type XZ = [number, number];
 
@@ -68,11 +72,20 @@ class Builder {
       prev = cur;
     }
   }
+  /** En flate. Trekantene deles opp til ingen kant er lengre enn STEP, og hvert punkt legges på terrenget: en stor,
+   *  plan trekant ville ellers skåret gjennom bakken der flata heller, og asfalten ville sett ut som løse flak. */
   polygon(ring: XZ[]): void {
     const contour = ring.map(([x, z]) => new THREE.Vector2(x, z));
-    const base = this.pos.length / 3;
-    for (const [x, z] of ring) this.vertex(x, z);
-    for (const [a, b, c] of THREE.ShapeUtils.triangulateShape(contour, [])) this.idx.push(base + a, base + b, base + c);
+    const split = (a: XZ, b: XZ, c: XZ): void => {
+      const ab = Math.hypot(b[0] - a[0], b[1] - a[1]), bc = Math.hypot(c[0] - b[0], c[1] - b[1]), ca = Math.hypot(a[0] - c[0], a[1] - c[1]);
+      if (Math.max(ab, bc, ca) <= STEP) { this.idx.push(this.vertex(a[0], a[1]), this.vertex(b[0], b[1]), this.vertex(c[0], c[1])); return; }
+      // del den lengste kanten på midten
+      const mid = (p: XZ, q: XZ): XZ => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+      if (ab >= bc && ab >= ca) { const m = mid(a, b); split(a, m, c); split(m, b, c); }
+      else if (bc >= ca) { const m = mid(b, c); split(a, b, m); split(a, m, c); }
+      else { const m = mid(c, a); split(a, b, m); split(m, b, c); }
+    };
+    for (const [a, b, c] of THREE.ShapeUtils.triangulateShape(contour, [])) split(ring[a], ring[b], ring[c]);
   }
   mesh(color: number, offset: number): THREE.Mesh {
     const geo = new THREE.BufferGeometry();
@@ -159,7 +172,7 @@ export function buildAirportGround(t: Terrain): THREE.Object3D[] {
     asphalt.strip(line, tw.width);
     paint.strip(line, LINE_W);
   }
-  const out: THREE.Object3D[] = [apron.mesh(0x55575b, -1), asphalt.mesh(0x47494e, -2), paint.mesh(0xd9b61c, -3)];
+  const out: THREE.Object3D[] = [apron.mesh(ASPHALT, -1), asphalt.mesh(ASPHALT, -2), paint.mesh(0xd9b61c, -3)];
   for (const st of aero.stands) {
     const [x, z] = m(st.at);
     let heading = 0;
@@ -171,8 +184,10 @@ export function buildAirportGround(t: Terrain): THREE.Object3D[] {
     }
     if (st.ref) out.push(standNumber(t, st.ref, x, z, heading));
   }
+  // ventepunktmerkingen foran rullebanene: to hele og to stiplede linjer tvers over taksebanen (se airportSigns.ts)
+  for (const mark of holdMarkings(t, t.meta.airports[0])) paint.strip(mark.line, mark.width);
   // innkjøringslinjene ble lagt til etter at flatene ble bygget: bygg dem på nytt
-  out[0] = apron.mesh(0x55575b, -1);
+  out[0] = apron.mesh(ASPHALT, -1);
   // Oppstillingsflatene er flombelyst om natta: rendereren skrur opp gløden når det mørkner. SYNTETISK.
   out[0].name = "apron";
   ((out[0] as THREE.Mesh).material as THREE.MeshStandardMaterial).emissive = new THREE.Color(0xfff0d0);

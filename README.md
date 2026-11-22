@@ -72,7 +72,10 @@ høydekartet og flyets bane akkurat nå (`web/src/gpws.ts`); reglene er forenkle
 ## Flyplassen på bakken
 
 Taksebaner, oppstillingsflater og stands er fra OpenStreetMap og tegnes som asfalt med gule senterlinjer og
-standnumre. Dataene ligger i `data/osm/<utsnitt>.aeroway.json` og hentes for hånd med `uv run flypipe aeroways <utsnitt>`.
+standnumre. Skiltene følger det vanlige mønsteret: svart med gul bokstav er taksebanen du står på, gult med svart
+bokstav og pil er taksebanene som tar av (også langs rullebanen, foran hver avkjøring), og rødt med hvit tekst er
+rullebanen foran et ventepunkt, der det også er malt to hele og to stiplede linjer tvers over taksebanen. Hvor
+skiltene står er satt etter regel, ikke kartlagt. Dataene ligger i `data/osm/<utsnitt>.aeroway.json` og hentes for hånd med `uv run flypipe aeroways <utsnitt>`.
 
 ## Vind
 
@@ -100,7 +103,7 @@ uten det kunne ingen landet på Mehamns 880 m.
 
 Når flyet har rullet ned til ca. 30 knop kan du ta over og takse: `W` gir gass (og starter taksingen), `S` tar den av,
 piltastene styrer nesehjulet, mellomrom eller pil ned bremser (mellomrom bremser også hardt under utrullingen, for
-å rekke en tidligere avkjøring), og `Enter` setter parkeringsbremsen når flyet står.
+å rekke en tidligere avkjøring), og `Enter` setter parkeringsbremsen når flyet står (og slipper den igjen).
 Hold deg på asfalten: i lav fart kjører flyet seg fast i gresset, i fart er det en ulykke. Gjør du ingenting,
 kommer diplomet seks sekunder etter at flyet har stanset, som før.
 

@@ -75,6 +75,10 @@ export interface Game {
    *  når flyplassen ikke har stands som kan nås. `taxiResult` er hvordan det gikk, når flyet står: til diplomet. */
   taxiPlan: TaxiPlan | null;
   taxiResult: string | null;
+  /** Hvor lenge flyet har stått parkert (s), og om det står et stykke fra standen. Da venter diplomet noen sekunder,
+   *  så piloten rekker å slippe bremsen og kjøre helt fram. */
+  parkedS: number;
+  parkedShort: boolean;
   /** Takseklareringer tårnet har gitt (teller opp for hver), og om den siste ba flyet snu på banen. Lyden leser den opp. */
   taxiCall: { count: number; turnAround: boolean };
   /** Takset helt fram til en nummerert stand: standen og tiden fra landing (s). Til diplomet og delingslenka. */
@@ -200,15 +204,19 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
       if (P.taxi && P.spd === 0 && toStandM < STAND_REACHED_M) park(P, say);
     }
     // Parkert siden sist: også når bremsen ble satt med Enter eller på panelet, som skjer mellom to steg
-    const justParked = P.parked && !sawParked;
+    const justParked = P.parked && !sawParked, released = !P.parked && sawParked;
     sawParked = P.parked;
+    game.parkedS = P.parked ? game.parkedS + dt : 0;
+    // bremsen er sluppet igjen: turen fortsetter, og resultatet gjelder ikke lenger
+    if (released) { game.taxiResult = game.taxiDone = null; game.parkedShort = false; replanIn = 0; }
     if (justParked && P.taxi) {
       const time = `${Math.floor(taxiS / 60)}:${String(Math.floor(taxiS % 60)).padStart(2, "0")}`;
       game.taxiResult = P.stuck ? `Got stuck in the grass on the way to ${name}.`
         : toStandM < STAND_REACHED_M ? `Taxied to ${name} in ${time}.`
         : `Parked ${Math.round(toStandM / 10) * 10} m from ${name}.`;
       if (!P.stuck && toStandM < STAND_REACHED_M && stand.ref) game.taxiDone = { stand: stand.ref, seconds: Math.floor(taxiS) };
-      if (!P.stuck) say(toStandM < STAND_REACHED_M ? `Parked at ${name}. Welcome to ${airport.name.split(",").pop()!.trim()}!` : game.taxiResult, 6);
+      game.parkedShort = !P.stuck && toStandM >= STAND_REACHED_M;
+      if (!P.stuck) say(toStandM < STAND_REACHED_M ? `Parked at ${name}. Welcome to ${airport.name.split(",").pop()!.trim()}!` : `${game.taxiResult} Enter releases the brake.`, 6);
       game.taxiPlan = null;
     }
   };
@@ -220,6 +228,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     recorder.clear();
     game.replay = null;
     game.taxiPlan = game.taxiResult = game.taxiDone = null;
+    game.parkedS = 0; game.parkedShort = false;
     stand = null; taxiS = 0; replanIn = 0; toldRoute = false; sawParked = false;
     game.autopilot = approach.autopilot = false;
     startApproach(P, terrain, ends[endIdx]);
@@ -252,6 +261,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     flightPathVector: false,
     taxiPlan: null,
     taxiResult: null,
+    parkedS: 0,
+    parkedShort: false,
     taxiCall: { count: 0, turnAround: false },
     taxiDone: null,
     look: params.get("look") === "up" ? "up" : params.get("look") === "down" ? "down" : "forward",

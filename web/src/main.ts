@@ -198,6 +198,8 @@ async function main(): Promise<void> {
   // Diplom etter landing: bildet tas i landingsøyeblikket, diplomet vises når flyet står stille
   const diploma = createDiplomaUi("https://fly.teinum.no/"), glCanvas = document.getElementById("gl") as HTMLCanvasElement;
   let landingPhoto: HTMLCanvasElement | null = null, wasLanded = false;
+  let diplomaShown = false;
+  const PARKED_SHORT_WAIT_S = 5;
   let shownPlan: typeof game.taxiPlan = null; // ruta som er tegnet på bakken nå
   // R og T starter ny innflyging og lukker diplomet - men ikke når de er bokstaver i navnet som skrives
   addEventListener("keydown", (e) => { if (!isTyping(e) && (e.code === "KeyR" || e.code === "KeyT")) diploma.hide(); });
@@ -382,10 +384,14 @@ async function main(): Promise<void> {
       game.msg.text = game.taxiResult ? `${game.taxiResult} Autopilot landing ${stars}. Press R.`
         : `${game.P.stuck ? "Stuck in the grass. " : ""}Autopilot: ${stars} ${grade.title}. Press R and beat it.`;
       game.msg.t = 1;
-    } else if (landed && game.P.parked && game.P.touchdown && !diploma.open && !clean && landingPhoto) {
+    } else if (landed && game.P.parked && game.P.touchdown && !diploma.open && !diplomaShown && !clean && landingPhoto && game.parkedS >= (game.parkedShort ? PARKED_SHORT_WAIT_S : 0)) {
+      // Parkert et stykke fra standen: diplomet venter litt, så piloten rekker å slippe bremsen og kjøre helt fram
       diploma.show({ airportName: chosen.name, icao: chosen.icao, touchdown: game.P.touchdown, taxi: game.taxiResult, taxiDone: game.taxiDone }, landingPhoto, () => { diploma.hide(); game.restart(); });
-      landingPhoto = null;
+      diplomaShown = true;
     }
+    // Parkeringsbremsen er sluppet igjen (Enter): diplomet legges bort, og kommer tilbake når flyet parkeres på nytt
+    if (landed && !game.P.parked && diplomaShown) { diploma.hide(); diplomaShown = false; }
+    if (!landed) diplomaShown = false;
     wasLanded = landed;
     g.setTransform(scale, 0, 0, scale, 0, -TOP * scale); // logisk TOP ligger i overkanten av vinduet
     g.clearRect(0, TOP, W, H - TOP);

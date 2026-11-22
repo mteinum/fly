@@ -34,6 +34,8 @@ const RUNWAY = "RWY";
 /** Så langt fra en stand uten innkjøringslinje til nærmeste punkt i nettet kobles den på (m, tvers over flata). */
 const STAND_LINK_M = 150;
 const TURN_BACK_M = 600;
+/** Så langt kan ruta gå rett over en oppstillingsflate i stedet for å følge nettet, ved flyet og ved standen (m). */
+const SHORTCUT_M = 250;
 
 /** Bygg nettet for flyplassen, eller null når utsnittet ikke har bakkeanlegg. */
 export function buildTaxiGraph(t: Terrain, airport: Airport): TaxiGraph | null {
@@ -163,6 +165,31 @@ export function planTaxi(t: Terrain, graph: TaxiGraph, x: number, y: number, sta
   }
   route.push(best.foot, [x, y]);
   route.reverse();
+  // På en åpen oppstillingsflate går ruta rett fram: fra flyet til det fjerneste punktet på ruta det kan kjøre rett
+  // til uten å forlate flata, og tilsvarende inn til standen. Ellers ville den gått vinkelrett inn på nærmeste
+  // linje. På taksebaner og rullebaner følger ruta alltid senterlinja.
+  const aprons = t.aeroways?.aprons ?? [];
+  const onApron = (px: number, py: number): boolean => aprons.some((ring) => {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+      const [xi, yi] = ring[i], [xj, yj] = ring[j];
+      if (yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi) + xi) inside = !inside;
+    }
+    return inside;
+  });
+  const acrossApron = (p: XY, q: XY): boolean => {
+    const steps = Math.max(1, Math.ceil((Math.hypot(q[0] - p[0], q[1] - p[1]) * t.cell) / 4));
+    for (let k = 0; k <= steps; k++) if (!onApron(p[0] + ((q[0] - p[0]) * k) / steps, p[1] + ((q[1] - p[1]) * k) / steps)) return false;
+    return true;
+  };
+  const within = (p: XY, q: XY) => Math.hypot(q[0] - p[0], q[1] - p[1]) * t.cell <= SHORTCUT_M;
+  let first = 1;
+  for (let i = 2; i < route.length && within(route[0], route[i]); i++) if (acrossApron(route[0], route[i])) first = i;
+  if (first > 1) route.splice(1, first - 1);
+  const end = route.length - 1;
+  let last = end - 1;
+  for (let i = end - 2; i > 0 && within(route[end], route[i]); i--) if (acrossApron(route[i], route[end])) last = i;
+  if (last < end - 1) route.splice(last + 1, end - 1 - last);
   // lengden er veien som faktisk kjøres, uten tillegget for å snu
   let distanceM = 0;
   for (let i = 1; i < route.length; i++) distanceM += Math.hypot(route[i][0] - route[i - 1][0], route[i][1] - route[i - 1][1]) * t.cell;

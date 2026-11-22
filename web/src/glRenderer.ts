@@ -11,6 +11,7 @@
 import * as THREE from "three";
 import type { Camera, Environment } from "./game";
 import { addGroundDetail, type GroundDetail } from "./groundDetail";
+import { airportSigns, buildSigns } from "./airportSigns";
 import { buildRunwayDecal } from "./runwayDecal";
 import { buildAirportGround, buildTaxiRoute, taxiLightPositions } from "./taxiDecal";
 import type { Plane } from "./plane";
@@ -158,6 +159,7 @@ export class GlRenderer {
       this.scene.add(mesh);
       if (mesh.name === "apron") this.apronMat = (mesh as THREE.Mesh).material as THREE.MeshStandardMaterial;
     }
+    for (const mesh of buildSigns(t, airportSigns(t, t.meta.airports[0]))) this.scene.add(mesh);
     this.buildingCount = this.addBuildings();
     this.addFootprints();
     this.addChurchTowers();
