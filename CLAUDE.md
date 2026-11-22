@@ -38,7 +38,7 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
 web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
   src/
     main.ts        laster fliser, kobler sammen og kjører løkka
-    game.ts        spilltilstand, klokke, inndata
+    game.ts        spilltilstand, klokke, inndata (taster, og stikke med mus/finger: trykk, hold og dra i bildet)
     terrain.ts     laster fliser; heightAt, isWater, utmToGrid, sann kurs
     physics.ts     flymodell (enkel, med A320-lignende fartsgrenser), klaffer, understell, luftbremser, landing, kollisjon,
                    utrulling med autobrems, og taksing på asfalten etter landing

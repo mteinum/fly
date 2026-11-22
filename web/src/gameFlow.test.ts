@@ -78,3 +78,33 @@ describe("reprise etter krasj", () => {
     expect(game.approach.count).toBe(count + 1);
   });
 });
+
+describe("styring med mus eller finger", () => {
+  it("drar flyet i krenging og nese, går til midten når den slippes, og tar over fra autopiloten", async () => {
+    const game = await newGame(), P = game.P;
+    game.stick(0.8, 0);
+    run(game, () => false, 2);
+    expect(P.roll).toBeGreaterThan(0.2); // høyre
+    game.stick(-0.8, 0);
+    run(game, () => false, 4);
+    expect(P.roll).toBeLessThan(-0.2);
+    game.stick(null);
+    const pitch0 = P.pitch;
+    game.stick(0, 0.9); // bakover = nese opp
+    run(game, () => false, 1);
+    expect(P.pitch).toBeGreaterThan(pitch0 + 0.05);
+    game.stick(0, -0.9);
+    run(game, () => false, 2);
+    expect(P.pitch).toBeLessThan(pitch0);
+    // et trykk uten å dra er ikke styring: autopiloten blir stående
+    game.stick(null);
+    game.control({ kind: "autopilot" });
+    game.stick(0.02, 0.01);
+    run(game, () => false, 0.5);
+    expect(game.autopilot).toBe(true);
+    game.stick(0.5, 0);
+    run(game, () => false, 0.1);
+    expect(game.autopilot).toBe(false);
+  });
+});
+

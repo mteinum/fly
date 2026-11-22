@@ -8,7 +8,7 @@ import { candidates, declutter, inSight, labelStyle, type PlaceName } from "./la
 import { drawOverhead, drawPedestal, overheadHit, pedestalHit, pedestalThrustAt } from "./cockpitViews";
 import { drawPanel, panelHit, thrustAt } from "./panel";
 import { groundVelocity, verticalSpeed } from "./physics";
-import { H, OX, setScreen, TOP, W } from "./screen";
+import { H, OX, setScreen, TOP, W, PANEL_TOP } from "./screen";
 import { type AisShip, Fleet, position, shipColor, shipKind } from "./ships";
 import { tcasLevel } from "./tcas";
 import { loadTerrain } from "./terrain";
@@ -100,21 +100,40 @@ async function main(): Promise<void> {
     const r = overlay.getBoundingClientRect();
     return cornerMapPoint(((e.clientX - r.left) / r.width) * W, logicalY(e), terrain, game, game.cam === "cockpit" ? 16 : 4);
   };
+  // Styring med mus eller finger: trykk og hold i bildet (utvendig kamera, eller frontruta i cockpit) og dra.
+  // Høyre/venstre krenger, fram (opp på skjermen) senker nesa og bak hever den, som en stikke. Slipp, og den går til midten.
+  const STICK_FULL = 34; // logiske enheter fra trykkpunktet til fullt utslag
+  let stick: { id: number; x0: number; y0: number; x: number; y: number } | null = null;
+  const logicalX = (e: PointerEvent): number => { const r = overlay.getBoundingClientRect(); return ((e.clientX - r.left) / r.width) * W; };
+  const stickAllowed = (e: PointerEvent): boolean =>
+    !game.replay && !diploma.open && game.P.state !== "crash" && (game.cam === "external" || (game.cam === "cockpit" && game.look === "forward" && logicalY(e) < PANEL_TOP));
   let draggingThrust = false;
   overlay.addEventListener("pointerdown", (e) => {
     const at = mapPointAt(e);
     if (at) { game.flyTo(at[0], at[1]); return; }
     const c = controlAt(e);
+    if (!c && stickAllowed(e)) {
+      stick = { id: e.pointerId, x0: logicalX(e), y0: logicalY(e), x: logicalX(e), y: logicalY(e) };
+      overlay.setPointerCapture(e.pointerId);
+      game.stick(0, 0);
+      e.preventDefault();
+      return;
+    }
     if (!c) return;
     game.control(c);
     draggingThrust = c.kind === "thrust";
     if (draggingThrust) overlay.setPointerCapture(e.pointerId);
   });
   overlay.addEventListener("pointermove", (e) => {
+    if (stick && e.pointerId === stick.id) {
+      stick.x = logicalX(e); stick.y = logicalY(e);
+      game.stick((stick.x - stick.x0) / STICK_FULL, (stick.y - stick.y0) / STICK_FULL); // ned på skjermen = stikka bak = nese opp
+      return;
+    }
     if (draggingThrust) game.control({ kind: "thrust", thr: (game.look === "down" ? pedestalThrustAt : thrustAt)(logicalY(e)) });
     else overlay.style.cursor = mapPointAt(e) ? "crosshair" : controlAt(e) ? "pointer" : "";
   });
-  for (const ev of ["pointerup", "pointercancel"]) overlay.addEventListener(ev, () => { draggingThrust = false; });
+  for (const ev of ["pointerup", "pointercancel"]) overlay.addEventListener(ev, () => { draggingThrust = false; if (stick) { stick = null; game.stick(null); } });
   // Musehjulet i tårnet: kikkerten inn og ut, ett trinn per rykk
   let wheelAt = 0;
   overlay.addEventListener("wheel", (e) => {
@@ -561,6 +580,18 @@ const MAX_TRANSIT_LABELS = 8;
     } else if (!photoFrame) {
       drawHud(g, terrain, map, game);
     }
+    drawStick();
+  };
+  /** Stikka mens den holdes: en ring der trykket startet og en prikk der fingeren er. */
+  const drawStick = () => {
+    if (!stick || photoFrame) return;
+    const dx = Math.max(-STICK_FULL, Math.min(STICK_FULL, stick.x - stick.x0)), dy = Math.max(-STICK_FULL, Math.min(STICK_FULL, stick.y - stick.y0));
+    g.save();
+    g.strokeStyle = "rgba(255,255,255,.55)"; g.lineWidth = 0.5;
+    g.beginPath(); g.arc(stick.x0, stick.y0, STICK_FULL, 0, Math.PI * 2); g.stroke();
+    g.beginPath(); g.moveTo(stick.x0 - 3, stick.y0); g.lineTo(stick.x0 + 3, stick.y0); g.moveTo(stick.x0, stick.y0 - 3); g.lineTo(stick.x0, stick.y0 + 3); g.stroke();
+    g.fillStyle = "rgba(255,210,122,.85)"; g.beginPath(); g.arc(stick.x0 + dx, stick.y0 + dy, 3.2, 0, Math.PI * 2); g.fill();
+    g.restore();
   };
   runLoop((dt) => {
     photoFrame = photoWanted;

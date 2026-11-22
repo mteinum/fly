@@ -99,6 +99,10 @@ export interface Game {
   wind: { fromTrueDeg: number; kt: number; gustKt: number | null; vector: Wind; source: "none" | "url" | "metar"; metar: string | null };
   /** Navigasjonsdisplayet: rekkevidden i NM (Z blar 10, 20, 40) og om terrenget tegnes (X). */
   nd: { rangeNm: number; terrain: boolean };
+  /** Stikka styrt med mus eller finger (trykk, hold og dra i bildet): utslag til høyre og bakover (nese opp), -1 til 1,
+   *  eller null når ingen holder. Virker som piltastene, og slipper autopiloten på samme måte. */
+  pointerStick: { right: number; back: number } | null;
+  stick(right: number | null, back?: number): void;
   /** Sightseeing: signalbyggene i utsnittet som kan finnes ved å fly over dem (tom liste der det er for få), hvor
    *  mange som er funnet på denne turen, og tiden da det siste ble funnet (s fra start), eller null. */
   sights: { list: Sight[]; found: number; doneS: number | null; photos: number };
@@ -129,6 +133,7 @@ export interface Game {
 }
 
 const TIME_STEP_MS = 30 * 60 * 1000;
+const STICK_DEADZONE = 0.06; // mindre utslag enn dette på mus/finger regnes som et klikk, ikke styring
 const DIRECT_REACHED_M = 400; // så nær punktet i kartet regnes flyet som framme
 /** Rekkeviddene ND kan stå på (NM). Flyet har også 80, 160 og 320, men kartutsnittet er bare 14 NM bredt. */
 export const ND_RANGES = [10, 20, 40];
@@ -191,6 +196,12 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
   /** Kontrollene dette steget: pilotens taster, eller autopilotens utslag når den flyr. */
   const controls = (dt: number): Keys => {
     const manual = softStick(held, K, dt);
+    // Mus eller finger på stikka: det største av tastene og dragingen gjelder, trinnløst
+    const ps = game.pointerStick, stickMoved = !!ps && (Math.abs(ps.right) > STICK_DEADZONE || Math.abs(ps.back) > STICK_DEADZONE);
+    if (ps && stickMoved) {
+      const pull = (k: string, v: number) => { manual[k] = Math.max(Number(manual[k] ?? 0), Math.max(0, v)); };
+      pull("ArrowRight", ps.right); pull("ArrowLeft", -ps.right); pull("ArrowDown", ps.back); pull("ArrowUp", -ps.back);
+    }
     game.apTarget = null;
     game.fd = null;
     if (game.flightDirector && P.state === "fly") {
@@ -200,12 +211,12 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     if (game.directTo && P.state !== "fly") game.directTo = null;
     if (game.directTo) {
       const to = steerTo(P, game.directTo.x, game.directTo.y, terrain.cell);
-      if (K.ArrowLeft || K.ArrowRight) { game.directTo = null; say("Map heading cancelled", 2); }
+      if (K.ArrowLeft || K.ArrowRight || (ps && Math.abs(ps.right) > STICK_DEADZONE)) { game.directTo = null; say("Map heading cancelled", 2); }
       else if (to.distanceM < DIRECT_REACHED_M) { game.directTo = null; say("Reached the point on the map", 2.5); }
       else return { ...manual, ArrowRight: Math.max(0, to.right), ArrowLeft: Math.max(0, -to.right) };
     }
     if (!game.autopilot || P.state !== "fly") return manual;
-    if (MANUAL.some((k) => K[k])) { setAutopilot(false); return manual; }
+    if (MANUAL.some((k) => K[k]) || stickMoved) { setAutopilot(false); return manual; }
     const cmd = autopilot(P, terrain, runwayOf(ends[endIdx]), ends[endIdx], wind.vector);
     if ("unable" in cmd) { setAutopilot(false, `: ${cmd.unable}`); return manual; }
     if (cmd.gearDown !== P.gearDown) toggleGear(P, say);
@@ -315,6 +326,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     wind,
     apTarget: null,
     directTo: null,
+    pointerStick: null,
+    stick(right, back = 0) { game.pointerStick = right === null ? null : { right: Math.min(1, Math.max(-1, right)), back: Math.min(1, Math.max(-1, back)) }; },
     sights: { list: sightsFrom(terrain.names), found: 0, doneS: null, photos: 0 },
     photographed(seen) {
       const fresh = seen.filter((s) => !s.photographed), total = game.sights.list.length;
