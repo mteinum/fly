@@ -8,6 +8,16 @@ html,body{margin:0;height:100%;overflow:hidden;background:#000;color:#e8e2d0;fon
 #help summary::-webkit-details-marker{display:none}
 .panel{margin-top:6px;padding:10px 14px;border-radius:6px;background:rgba(11,11,20,.88);border:1px solid #2c2c3a}
 .panel>div{margin:3px 0}
+#help .panel{width:min(92vw,520px);box-sizing:border-box;max-height:calc(100vh - 60px);overflow:auto}
+#help .tabs{display:flex;gap:4px;margin:6px 0 8px;border-bottom:1px solid #2c2c3a}
+#help .tabs button{border:0;border-bottom:2px solid transparent;border-radius:3px 3px 0 0;background:none;padding:4px 10px;color:#b9c3d6}
+#help .tabs button[aria-selected=true]{color:#ffb366;border-bottom-color:#ffb366}
+#help section p{margin:4px 0 8px}
+#help .keys{display:grid;grid-template-columns:max-content 1fr;gap:4px 14px;margin:0 0 8px}
+#help .keys dt{white-space:nowrap}
+#help .keys dd{margin:0;opacity:.85}
+#help kbd+kbd{margin-left:3px}
+#help .foot{margin-top:8px;padding-top:8px;border-top:1px solid #2c2c3a}
 #credits{position:fixed;right:6px;bottom:3px;font-size:10px;color:#fff;opacity:.55;text-shadow:0 0 3px #000;pointer-events:none;z-index:1}
 button{font:inherit;background:#1b1b29;color:#e8e2d0;border:1px solid #444458;padding:4px 8px;border-radius:3px;cursor:pointer}
 button:hover{background:#26263a}

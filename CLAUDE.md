@@ -52,7 +52,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     ships.ts       skip fra AIS: UTM -> rutenett, bevegelse mellom meldinger, jevne oppdateringer
     sights.ts      sightseeing: signalbyggene (stedsnavn av typen «landemerke») finnes ved å fly over dem og
                    fotograferes med K (midt i bildet, innen 1,5 km, fri sikt); teller, kart, diplom og bildets overskrift
-    flightlog.ts   flylogg per innflyging (UTM 33, sann kurs); L laster ned, utviklingsserveren lagrer i data/flights/
+    flightlog.ts   flylogg per innflyging (UTM 33, sann kurs); O laster ned, utviklingsserveren lagrer i data/flights/
     replay.ts      opptak av de siste 5 s og reprise utenfra etter krasj
     sun.ts         solas posisjon fra tid og sted
     sky.ts         himmelfarger og lysstyrke fra solhøyden

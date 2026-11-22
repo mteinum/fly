@@ -51,16 +51,61 @@
   <summary>Help</summary>
   <div class="panel">
     <h1>teinum-fly · Airbus A320 · <span id="where"></span></h1>
-    <nav id="airports" aria-label="Choose airport"></nav>
-    <div><kbd>←</kbd><kbd>→</kbd> bank · <kbd>↑</kbd> nose down · <kbd>↓</kbd> nose up · <kbd>W</kbd>/<kbd>S</kbd> thrust · <kbd>G</kbd> gear · <kbd>F</kbd>/<kbd>V</kbd> flaps out/in · <kbd>B</kbd> speed brakes · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> autobrake LO/MED/MAX · <kbd>A</kbd> autopilot · click the map to turn there · fly over the gold-named sights to collect them (orange squares on the map), and photograph them with <kbd>K</kbd> · <kbd>D</kbd> flight director · <kbd>P</kbd> flight path vector · <kbd>Z</kbd> map range · <kbd>X</kbd> terrain on map</div>
-    <div><kbd>C</kbd> camera (outside, cockpit, tower) · <kbd>U</kbd>/<kbd>J</kbd> look up at the overhead panel / down at the pedestal · <kbd>R</kbd> new approach · <kbd>T</kbd> next runway, then the sightseeing tour over the city · <kbd>L</kbd> fun figures on/off · <kbd>K</kbd> or the camera button takes a photo and copies it to the clipboard (you can also download it) · <kbd>Q</kbd>/<kbd>E</kbd> clock ∓ 30 min · <kbd>M</kbd> sound on/off · <kbd>N</kbd> place names on/off · <kbd>L</kbd> download flight log</div>
-    <div class="muted">After landing you can taxi to the terminal: <kbd>W</kbd> to start rolling, <kbd>←</kbd><kbd>→</kbd> steer, <kbd>S</kbd> less thrust, <kbd>Space</kbd> brakes (also during the landing roll, to make an earlier exit), <kbd>Enter</kbd> sets the parking brake, and releases it again. The tower gives you a stand: follow the green line and stay on the asphalt.</div>
-    <div class="muted">In the tower: <kbd>+</kbd> / <kbd>−</kbd>, the mouse wheel or a tap on the binoculars zooms in on the plane (2x, 4x, 8x).</div>
-    <div class="muted">In the cockpit you can also click or tap the gear lever, the speed brake, thrust and flap levers, and the AP1 and FD buttons.</div>
-    <div class="muted">You start on approach, 8 km out, with flaps 2 and the gear up: lower the gear, select full flaps, slow to about 140 kt, and land with the wings level and a gentle sink rate.</div>
-    <div class="muted" id="legend" hidden>Buildings by type: </div>
-    <div class="muted" id="info"></div>
-    <button id="fullscreen">Full screen on/off</button> <button id="aboutOpen2">About</button>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-tab="fly" aria-selected="true">Fly</button><button role="tab" data-tab="explore" aria-selected="false">Explore</button><button role="tab" data-tab="more" aria-selected="false">Cockpit &amp; taxi</button><button role="tab" data-tab="airports" aria-selected="false">Airports</button>
+    </div>
+    <section data-tab="fly">
+      <p>You start on approach, 8 km out. Lower the gear, select full flaps, slow to about 140 kt, and land with the wings level and a gentle sink rate.</p>
+      <dl class="keys">
+        <dt><kbd>←</kbd><kbd>→</kbd></dt><dd>bank</dd>
+        <dt><kbd>↑</kbd><kbd>↓</kbd></dt><dd>nose down / nose up</dd>
+        <dt><kbd>W</kbd><kbd>S</kbd></dt><dd>more / less thrust</dd>
+        <dt><kbd>G</kbd></dt><dd>landing gear</dd>
+        <dt><kbd>F</kbd><kbd>V</kbd></dt><dd>flaps out / in</dd>
+        <dt><kbd>B</kbd></dt><dd>speed brakes</dd>
+        <dt><kbd>A</kbd></dt><dd>autopilot: flies the approach and lands</dd>
+        <dt><kbd>R</kbd></dt><dd>start the approach again</dd>
+        <dt><kbd>T</kbd></dt><dd>next runway, then the sightseeing tour</dd>
+        <dt><kbd>C</kbd></dt><dd>camera: outside, cockpit, tower</dd>
+      </dl>
+    </section>
+    <section data-tab="explore" hidden>
+      <p>Press <kbd>T</kbd> past the last runway to start over the city. The sights have gold names, and are orange squares on the map.</p>
+      <dl class="keys">
+        <dt>Fly over a sight</dt><dd>collects it (the square turns green)</dd>
+        <dt><kbd>K</kbd> or 📷</dt><dd>takes a photo. A sight in the middle of the picture counts as photographed</dd>
+        <dt>Click the map</dt><dd>the plane turns to that point</dd>
+        <dt><kbd>Q</kbd><kbd>E</kbd></dt><dd>clock back / forward 30 minutes</dd>
+        <dt><kbd>N</kbd></dt><dd>place names on / off</dd>
+        <dt><kbd>L</kbd></dt><dd>fun figures on / off</dd>
+        <dt><kbd>M</kbd></dt><dd>sound on / off</dd>
+      </dl>
+      <div class="muted" id="legend" hidden>Buildings by type: </div>
+    </section>
+    <section data-tab="more" hidden>
+      <dl class="keys">
+        <dt><kbd>U</kbd><kbd>J</kbd></dt><dd>look up at the overhead panel / down at the pedestal</dd>
+        <dt><kbd>D</kbd></dt><dd>flight director</dd>
+        <dt><kbd>P</kbd></dt><dd>flight path vector</dd>
+        <dt><kbd>Z</kbd><kbd>X</kbd></dt><dd>map range / terrain on the navigation display</dd>
+        <dt><kbd>1</kbd><kbd>2</kbd><kbd>3</kbd></dt><dd>autobrake LO / MED / MAX</dd>
+        <dt><kbd>O</kbd></dt><dd>download the flight log of the last approach</dd>
+        <dt>Click or tap</dt><dd>the gear lever, speed brake, thrust and flap levers, and the AP1 and FD buttons</dd>
+        <dt>In the tower</dt><dd><kbd>+</kbd> <kbd>−</kbd>, the mouse wheel or a tap on the binoculars zooms in (2x, 4x, 8x)</dd>
+      </dl>
+      <p><b>Taxi after landing.</b> The tower gives you a stand: follow the green line and stay on the asphalt.</p>
+      <dl class="keys">
+        <dt><kbd>W</kbd><kbd>S</kbd></dt><dd>start rolling / less thrust</dd>
+        <dt><kbd>←</kbd><kbd>→</kbd></dt><dd>steer</dd>
+        <dt><kbd>Space</kbd></dt><dd>brakes (also during the landing roll, to make an earlier exit)</dd>
+        <dt><kbd>Enter</kbd></dt><dd>parking brake on / off</dd>
+      </dl>
+    </section>
+    <section data-tab="airports" hidden>
+      <nav id="airports" aria-label="Choose airport"></nav>
+      <div class="muted" id="info"></div>
+    </section>
+    <div class="foot"><button id="fullscreen">Full screen on/off</button> <button id="aboutOpen2">About</button></div>
   </div>
 </details>
 <div id="diploma" hidden>

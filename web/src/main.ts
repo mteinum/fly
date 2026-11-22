@@ -46,7 +46,7 @@ async function main(): Promise<void> {
   const picker = document.getElementById("airports")!;
   for (const a of airports) {
     const link = document.createElement("a");
-    link.textContent = `${a.icao} ${a.name.split(",").pop()!.trim()}`;
+    link.textContent = `${a.name.split(" Airport")[0]} ${a.icao}`; // «Kristiansand ENCN», som på delingssiden
     link.href = `?apt=${a.icao}`;
     if (a === chosen) link.className = "current";
     picker.append(link);
@@ -195,6 +195,15 @@ async function main(): Promise<void> {
   const about = document.getElementById("about")!;
   const showAbout = (on: boolean) => { about.hidden = !on; if (!on) overlay.focus(); };
   document.getElementById("aboutBuild")!.textContent = `Build ${__BUILD__.date}${__BUILD__.commit ? ` · ${__BUILD__.commit}` : ""}`;
+  // Hjelpen er delt i faner: ett tema om gangen i stedet for alt på én gang
+  const tabs = [...document.querySelectorAll<HTMLButtonElement>("#help .tabs button")];
+  for (const tab of tabs) tab.onclick = () => {
+    for (const other of tabs) other.setAttribute("aria-selected", String(other === tab));
+    for (const section of document.querySelectorAll<HTMLElement>("#help section")) section.hidden = section.dataset.tab !== tab.dataset.tab;
+  };
+  // ?help eller ?help=explore: start med hjelpen åpen, på den fanen (til lenker og skjermbilder)
+  const helpArg = new URLSearchParams(location.search).get("help");
+  if (helpArg !== null) { (document.getElementById("help") as HTMLDetailsElement).open = true; tabs.find((t) => t.dataset.tab === helpArg)?.click(); }
   for (const id of ["aboutOpen", "aboutOpen2"]) document.getElementById(id)!.onclick = () => showAbout(true);
   document.getElementById("aboutClose")!.onclick = () => showAbout(false);
   about.addEventListener("click", (e) => { if (e.target === about) showAbout(false); });
@@ -232,11 +241,11 @@ async function main(): Promise<void> {
   // R og T starter ny innflyging og lukker diplomet - men ikke når de er bokstaver i navnet som skrives
   addEventListener("keydown", (e) => { if (!isTyping(e) && (e.code === "KeyR" || e.code === "KeyT")) diploma.hide(); });
 
-  // Flylogg: L laster ned loggen fra forrige innflyging. I utviklingsmodus lagres hver logg også i data/flights/
+  // Flylogg: O laster ned loggen fra forrige innflyging. I utviklingsmodus lagres hver logg også i data/flights/
   // (se vite.config.ts), så den kan gås gjennom lokalt. Flyloggen sendes ingen steder fra den publiserte siden.
   let savedLog: FlightLog | null = null;
   addEventListener("keydown", (e) => {
-    if (e.code !== "KeyL" || e.repeat || isTyping(e)) return;
+    if (e.code !== "KeyO" || e.repeat || isTyping(e)) return; // ikke L: den slår morofigurene av og på (game.ts)
     const log = game.flightLog;
     if (log) {
       const link = document.createElement("a");
