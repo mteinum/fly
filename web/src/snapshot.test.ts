@@ -19,6 +19,9 @@ describe.skipIf(!hasTiles("kjeller10"))("delingsbildet", () => {
     expect(info.headline).toBe("Over Oslo");
     expect(info.detail).toEqual(["Airbus A320 · 1480 ft · 159 kt", "ENKJ Kjeller Airport · 22 Nov 2026 13:05"]);
     expect(info.fileName).toBe("fly-teinum-ENKJ-2026-11-22-1305");
+    // signalbygg i bildet (sightseeing) gir overskriften, med stedet etter
+    const withSights = snapshotInfo(t, airport, Object.assign(newPlane(), { x, y, alt: 450, spd: 82, state: "fly" }), noon, ["Operaen", "Munchmuseet"]);
+    expect(withSights.headline).toBe("Operaen and Munchmuseet, Oslo");
   });
 
   it("sier at flyet står på flyplassen etter landing, uten høyde og fart", () => {

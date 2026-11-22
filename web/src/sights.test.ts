@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PlaceName } from "./labels";
-import { sightsFrom, sightsLine, visitSights } from "./sights";
+import { namesInPhoto, sightsFrom, sightsInPhoto, sightsLine, visitSights } from "./sights";
 import { hasTiles, loadTestTerrain } from "./testTerrain";
 
 const place = (name: string, x: number, y: number, type = "landemerke"): PlaceName => ({ name, x, y, z: 20, size: 8, type, group: "bebyggelse" });
@@ -18,6 +18,24 @@ describe("sightseeing", () => {
     expect(visitSights(s, 100, 140, 300, 10).map((x) => x.name)).toEqual(["A"]);
     expect(visitSights(s, 100, 140, 300, 10)).toEqual([]);
     expect(s.filter((x) => x.found)).toHaveLength(1);
+  });
+
+  it("et sted er med i bildet når det er i rammen, nær nok og synlig; nærmeste først", () => {
+    const s = sightsFrom([place("Nær", 100, 100), place("Fjern", 100, 180), place("Tredje", 104, 190), place("Kant", 150, 100), place("Skjult", 120, 100), place("Langt", 100, 900)]);
+    const eye: [number, number, number] = [1000, 300, 800]; // 200 m sør for «Nær» (y øker mot sør), 300 m oppe
+    // en enkel «linse»: øst-vest gir x i bildet, alt havner midt i høyden; «Kant» faller utenfor rammen
+    const project = (wx: number) => (wx > 1400 ? [0.9, 0.5] : [0.5 + (wx - 1000) / 1000, 0.5]) as [number, number];
+    const seen = sightsInPhoto(s, eye, 10, project, (x) => x.name !== "Skjult");
+    // «Langt» er 8 km unna, og «Tredje» er i bildet, men ett bilde gir høyst to steder
+    expect(seen.map((x) => x.name)).toEqual(["Nær", "Fjern"]);
+    expect(sightsInPhoto(s, eye, 10, () => null, () => true)).toEqual([]); // bak kameraet
+  });
+
+  it("navngir bildet etter stedene i det", () => {
+    expect(namesInPhoto([])).toBe("");
+    expect(namesInPhoto(["Operaen"])).toBe("Operaen");
+    expect(namesInPhoto(["Operaen", "Munchmuseet"])).toBe("Operaen and Munchmuseet");
+    expect(namesInPhoto(["Operaen", "Munchmuseet", "Barcode", "Deichman Bjørvika"])).toBe("Operaen, Munchmuseet and 2 more");
   });
 
   it("skriver linja til diplomet", () => {

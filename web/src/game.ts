@@ -101,7 +101,9 @@ export interface Game {
   nd: { rangeNm: number; terrain: boolean };
   /** Sightseeing: signalbyggene i utsnittet som kan finnes ved å fly over dem (tom liste der det er for få), hvor
    *  mange som er funnet på denne turen, og tiden da det siste ble funnet (s fra start), eller null. */
-  sights: { list: Sight[]; found: number; doneS: number | null };
+  sights: { list: Sight[]; found: number; doneS: number | null; photos: number };
+  /** Stedene som var med i et bilde spilleren tok nå: de som er nye telles, og spilleren får beskjed. */
+  photographed(seen: Sight[]): void;
   /** Punktet spilleren har trykket på i oversiktskartet (rutenett), eller null. Flyet svinger dit av seg selv;
    *  høyde og fart styrer piloten fortsatt. Slippes når flyet er framme, eller når piloten svinger selv. */
   directTo: { x: number; y: number } | null;
@@ -268,8 +270,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     stand = null; taxiS = 0; replanIn = 0; toldRoute = false; sawParked = false;
     game.autopilot = approach.autopilot = false;
     game.directTo = null;
-    for (const s of game.sights.list) s.found = false;
-    game.sights.found = 0; game.sights.doneS = null;
+    for (const s of game.sights.list) s.found = s.photographed = false;
+    game.sights.found = game.sights.photos = 0; game.sights.doneS = null;
     startApproach(P, terrain, ends[endIdx]);
     const tour = tourIdx >= 0 ? tours[tourIdx] : null;
     if (tour) Object.assign(P, { x: tour.x, y: tour.y, alt: tour.altitudeM, hdg: ((tour.headingTrueDeg - terrain.meta.gridConvergenceDeg) * Math.PI) / 180, pitch: 0 });
@@ -313,7 +315,14 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     wind,
     apTarget: null,
     directTo: null,
-    sights: { list: sightsFrom(terrain.names), found: 0, doneS: null },
+    sights: { list: sightsFrom(terrain.names), found: 0, doneS: null, photos: 0 },
+    photographed(seen) {
+      const fresh = seen.filter((s) => !s.photographed), total = game.sights.list.length;
+      if (!fresh.length) return;
+      for (const s of fresh) s.photographed = true;
+      game.sights.photos += fresh.length;
+      say(game.sights.photos === total ? `All ${total} sights photographed!` : `Photographed ${fresh.map((s) => s.name).join(" and ")} (${game.sights.photos} of ${total})`, 5);
+    },
     flyTo(x, y) {
       if (P.state !== "fly" || game.replay) return;
       if (game.autopilot) setAutopilot(false);

@@ -15,6 +15,7 @@ import { loadTerrain } from "./terrain";
 import { towerView } from "./tower";
 import { osloTime } from "./clock";
 import { GLIDE_S, Transit, vehiclePosition, vehicleShape, type TransitMode, type TransitReport } from "./transit";
+import { sightsInPhoto } from "./sights";
 import { canShareSnapshot, composeSnapshot, copySnapshot, downloadSnapshot, shareSnapshot, snapshotInfo, type SnapshotInfo } from "./snapshot";
 import { drawTower, towerHit } from "./towerPanel";
 import { type AdsbAircraft, aircraftSize, locate, Traffic } from "./traffic";
@@ -553,7 +554,12 @@ const MAX_TRANSIT_LABELS = 8;
     frame(dt);
     if (!photoFrame) return;
     photoFrame = false;
-    const info = snapshotInfo(terrain, chosen, game.replay ? game.replay.plane : game.P, game.time);
+    // Sightseeing: signalbyggene som er med i bildet (i rammen, nær nok og med fri sikt) telles som fotografert
+    const [ex, ey, ez] = renderer.eye;
+    const inPicture = game.replay || game.P.state !== "fly" ? [] : sightsInPhoto(game.sights.list, [ex, ey, ez], terrain.cell, (wx, wy, wz) => renderer.project(wx, wy, wz),
+      (s) => inSight(terrain, ex / terrain.cell, ez / terrain.cell, ey, { name: s.name, x: s.x, y: s.y, z: s.z, size: 8, type: "landemerke", group: "bebyggelse" }));
+    game.photographed(inPicture);
+    const info = snapshotInfo(terrain, chosen, game.replay ? game.replay.plane : game.P, game.time, inPicture.map((s) => s.name));
     const shot = composeSnapshot(clean ? [glCanvas] : [glCanvas, overlay], glCanvas.width, glCanvas.height, info);
     photoTaken?.(shot);
     photoTaken = null;

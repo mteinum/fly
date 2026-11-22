@@ -2,6 +2,7 @@
  * Teksten bygges her (ren funksjon, testet); selve bildet settes sammen i composeSnapshot. */
 import { osloTime } from "./clock";
 import type { Plane } from "./plane";
+import { namesInPhoto } from "./sights";
 import type { Terrain } from "./terrain";
 
 const FT = 3.28084, KT = 1.943844;
@@ -33,10 +34,12 @@ export function nearestPlace(t: Terrain, x: number, y: number): string | null {
 }
 
 /** `airport.name` er navnet spillet viser (fra utsnittet), ikke navnet i flyplassdataene. */
-export function snapshotInfo(t: Terrain, airport: { icao: string; name: string }, P: Plane, timeMs: number): SnapshotInfo {
+export function snapshotInfo(t: Terrain, airport: { icao: string; name: string }, P: Plane, timeMs: number, inPicture: string[] = []): SnapshotInfo {
   const place = nearestPlace(t, P.x, P.y), name = airport.name, when = osloTime(timeMs);
   const headline = P.state === "landed" ? `${P.parked ? "Parked" : "On the ground"} at ${name}`
     : P.state === "crash" ? `Crashed${place ? ` near ${place}` : ""}`
+    // signalbygg som er med i bildet (sightseeing) går foran stedet flyet er over
+    : inPicture.length ? `${namesInPhoto(inPicture)}${place && !inPicture.includes(place) ? `, ${place}` : ""}`
     : place ? `Over ${place}` : `Near ${name}`;
   const clock = `${String(when.hour).padStart(2, "0")}:${String(when.minute).padStart(2, "0")}`;
   const flying = P.state === "fly" ? ` · ${Math.round((P.alt * FT) / 10) * 10} ft · ${Math.round(P.spd * KT)} kt` : "";
