@@ -105,3 +105,28 @@ cd pipeline && uv run flypipe build kjevik10
 
 Åpne `data/processed/kjevik10/tower_viewshed.tif` (meter over bakken et fly må ha for å ses) og
 `building_clusters.gpkg` (kolonnen `cluster`, -1 = står for seg selv) i QGIS.
+
+## Startsted for sightseeingturen
+
+**Spørsmål:** hvor bør en tur over byens signalbygg starte, så flyet kommer inn med byen foran seg og ikke en fjellrygg?
+
+**Metode** (`analysis.sightseeing_start`): midten av signalbyggene er medianen av posisjonene. Fra 16 retninger
+prøves en rett linje fra 3,5 km før midten til 4 km forbi. Retningen med lavest høyeste terreng langs linja
+velges, og starthøyden er det terrenget pluss 300 m, minst 450 m.
+
+| By | Kurs inn (sann) | Starthøyde |
+|---|---|---|
+| Kristiansand | 219° | 450 m |
+| Stavanger | 105° | 450 m |
+| Bergen | 307° | 560 m |
+| Ålesund | 307° | 450 m |
+| Bodø | 157° | 450 m |
+| Tromsø | 26° | 450 m |
+
+Oslo har en tur lagt inn for hånd. Gardermoen og Mehamn har færre enn tre signalbygg og får ingen.
+
+**Valgene som styrer svaret:** avstanden (3,5 km), hvor langt forbi midten linja sjekkes, klaringen og
+minstehøyden. Med 2 km forbi midten valgte metoden for Bergen en kurs rett mot Ulriken i 450 m; med 4 km
+kommer turen i stedet ned dalen fra sørøst og ut over Vågen. Linja er rett: metoden vet ingenting om hva
+som er pent å se, bare hva som er lavt.
+
