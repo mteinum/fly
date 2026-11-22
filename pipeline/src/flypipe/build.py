@@ -183,7 +183,6 @@ def build(area: Area) -> Path:
         if n["type"] in n50.LIGHTHOUSE_TYPES:
             n["z"] = max([n["z"], *[b[3] for b in beacons if abs(b[0] - n["x"]) < 3 and abs(b[1] - n["y"]) < 3]])
     flat_light = np.ones_like(shade)
-    rgb = terrain.colormap(hgt, area.cell, shade if area.bake_hillshade else flat_light, lc, features, steep_slope=area.steep_slope)
     # Tunneler ses ikke fra lufta. Spillet tegner dem som stiplet linje oppå bakken og sjøen, slik et kart gjør.
     tunnels = n50.tunnel_lines(vectors, grid) if area.n50_county else []
     on_runway = runway_mask(airport, grid)
@@ -191,9 +190,28 @@ def build(area: Area) -> Path:
     # fargekartet og overflateklassene, og følger med som vektorer i aeroways.json så spillet kan tegne dem skarpt.
     aero = osm.load_aeroways(area.id) if area.osm_footprints else None
     on_taxiway = np.zeros_like(on_runway)
+    ground = lc  # arealdekket fargekartet og overflateklassene bygges fra
+    fringe = np.zeros_like(on_runway)
     if aero and (aero["taxiways"] or aero["aprons"]):
-        on_taxiway = rasterize(osm.aeroway_shapes(aero), out_shape=(grid.height, grid.width), transform=grid.transform).astype(bool) & ~on_runway
-        rgb[on_taxiway] = terrain.TAXIWAY
+        # Spillet tegner rullebanen og bakkeanlegget som skarpe flater. I 10 m-celler stikker asfalten ut forbi
+        # dem som en hakkete kant, både fra rasteriseringen her og fra N50s egne flater (klasse 15). Derfor:
+        #  - bare celler som ligger HELT INNE i en skarp flate får asfalt
+        #  - celler i kanten (innen 20 m utenfor) som ellers ville vært asfalt, blir flyplassgress (klasse 11)
+        # N50-asfalt lenger unna enn det (flater OpenStreetMap ikke har) står som den er. landcover.bin er urørt.
+        from shapely.ops import unary_union
+
+        rw_shapes = [LineString([(e["east"], e["north"]) for e in rw["ends"]]).buffer(rw["widthM"] / 2, cap_style="flat") for rw in airport["runways"]]
+        paved = unary_union([*rw_shapes, *osm.aeroway_shapes(aero)])
+        burn = lambda shape, touched=False: rasterize([shape], out_shape=(grid.height, grid.width), transform=grid.transform, all_touched=touched).astype(bool)  # noqa: E731
+        inside = burn(paved.buffer(-0.75 * area.cell))
+        asphalt_before = (lc == landcover.RUNWAY_APRON) | on_runway | burn(unary_union(osm.aeroway_shapes(aero)))
+        fringe = burn(paved.buffer(20), touched=True) & ~inside & asphalt_before
+        on_runway = inside & burn(unary_union(rw_shapes).buffer(-0.75 * area.cell))
+        on_taxiway = inside & ~on_runway
+        ground = lc.copy()
+        ground[fringe] = landcover.AIRPORT_GRASS
+    rgb = terrain.colormap(hgt, area.cell, shade if area.bake_hillshade else flat_light, ground, features, steep_slope=area.steep_slope)
+    rgb[on_taxiway] = terrain.TAXIWAY
     rgb[on_runway] = terrain.RUNWAY
 
     out = TILES / area.id
@@ -224,7 +242,7 @@ def build(area: Area) -> Path:
     if lc is None:
         lc = np.where(hgt <= terrain.SEA_LEVEL_MAX, landcover.CLASSES[1].code, landcover.UNKNOWN).astype(np.uint8)
     lc.tofile(out / "landcover.bin")
-    surface = lc.copy()
+    surface = ground.copy()
     if features is not None:
         surface[features == n50.ROAD] = landcover.SURFACE_ROAD
     surface[on_taxiway] = landcover.SURFACE_TAXIWAY
@@ -291,6 +309,8 @@ def build(area: Area) -> Path:
             "aprons": len(aero["aprons"]),
             "stands": len(aero["stands"]),
             "cells": int(on_taxiway.sum()),
+            "fringeCells": int(fringe.sum()),
+            "fringe": "celler i kanten av de skarpe flatene som er gjort til flyplassgress i surface.bin og fargekartet",
         } if aero else None,
         "names": {
             "file": "names.json",

@@ -150,6 +150,7 @@ def load(area_id: str) -> Footprints:
 
 AEROWAY_WIDTH_M = {"taxiway": 23.0, "taxilane": 15.0}  # brukes når OSM ikke har bredden (vanlig)
 MAX_AEROWAY_WIDTH_M = 60.0
+STAND_LANE_M = 20.0  # samme som STAND_LANE_M i web/src/physics.ts
 
 
 def aeroway_path(area_id: str) -> Path:
@@ -244,4 +245,6 @@ def aeroway_shapes(aero: dict) -> list:
         poly = Polygon(a["ring"])
         if poly.is_valid and poly.area > 0:
             shapes.append(poly)
+    # innkjøringslinja til en stand ligger på asfalt, også der flata rundt ikke er kartlagt (20 m bred, som i spillet)
+    shapes += [LineString(st["line"]).buffer(STAND_LANE_M / 2, cap_style="round") for st in aero["stands"] if st["line"]]
     return shapes

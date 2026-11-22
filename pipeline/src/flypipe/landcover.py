@@ -30,6 +30,8 @@ class LandClass:
 
 
 UNKNOWN = 0
+AIRPORT_GRASS = 11  # «Lufthavn»: gresset mellom banene
+RUNWAY_APRON = 15  # N50s egne flater for rullebane og oppstilling
 CLASSES = [
     LandClass(0, "Ukjent", (), ((0, 0, 0), (0, 0, 0))),  # farges med høydebånd
     LandClass(1, "Havflate", ("Havflate",), ((45, 110, 150), (45, 110, 150)), water=True, shaded=False),

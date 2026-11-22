@@ -105,7 +105,11 @@ def test_surface_overlays_road_and_runway_on_landcover(any_tiles):
     road, runway, taxiway = codes["Vei"], codes["Rullebane (OurAirports)"], codes["Taksebane og oppstillingsflate (OpenStreetMap)"]
     assert lc.max() < road  # ingen overflatekoder har lekket inn i arealdekket
     untouched = (surface != road) & (surface != runway) & (surface != taxiway)
-    assert np.array_equal(surface[untouched], lc[untouched])
+    # Kanten av de skarpe flatene: N50-asfalt (15) som er gjort til flyplassgress (11), se build.py
+    fringe = untouched & (surface != lc)
+    assert set(np.unique(surface[fringe])) <= {11}
+    assert int(fringe.sum()) <= (meta.get("aeroways") or {}).get("fringeCells", 0)
+    assert np.array_equal(surface[untouched & ~fringe], lc[untouched & ~fringe])
     assert 0 < (surface == road).sum() <= meta["features"]["roadCells"]  # rullebanen dekker noen veiceller
     le, he = meta["airports"][0]["runways"][0]["ends"]
     for t in (0.02, 0.5, 0.98):
