@@ -2,7 +2,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { parseFootprints } from "./footprints";
-import { parseNames, type StructureFile, Terrain, type TerrainMeta } from "./terrain";
+import { parseNames, type StructureFile, Terrain, type TerrainMeta, parseBusStops } from "./terrain";
 
 const dataDir = (area: string): string => fileURLToPath(new URL(`../public/data/${area}/`, import.meta.url));
 
@@ -25,6 +25,7 @@ export function loadTestTerrain(area = "kjevik"): Terrain {
   if (meta.aeroways && existsSync(DATA + meta.aeroways.file)) terrain.aeroways = JSON.parse(readFileSync(DATA + meta.aeroways.file, "utf-8"));
   if (meta.names && existsSync(DATA + meta.names.file)) terrain.names = parseNames(JSON.parse(readFileSync(DATA + meta.names.file, "utf-8")));
   if (meta.rails && existsSync(DATA + meta.rails.file)) terrain.setRails(JSON.parse(readFileSync(DATA + meta.rails.file, "utf-8")));
+  if (meta.busStops && existsSync(DATA + meta.busStops.file)) terrain.busStops = parseBusStops(JSON.parse(readFileSync(DATA + meta.busStops.file, "utf-8")));
   return terrain;
 }
 

@@ -513,3 +513,16 @@ navngitte figurer fra Dyreparken er brukt.
   per slag, ikke linjenes egne farger) og
   bredden på stripa (9 m). Tunnelstrekninger tegnes stiplet oppå bakken. Det kjører ingen vogner.
 
+## Bussholdeplasser fra Enturs stoppestedsregister (2026-11-22)
+
+- **Kilde:** Enturs nasjonale stoppestedsregister (NSR) gjennom Journey Planner v3,
+  `https://api.entur.io/journey-planner/v3/graphql`, spørringen `stopPlacesByBbox`. Lisens NLOD, hodet
+  `ET-Client-Name: teinum-fly`. Hentes for hånd med `flypipe stops <utsnitt>` (ni spørringer per utsnitt) til
+  `data/entur/<utsnitt>.stops.json` (i git), og skrives til `busstops.json` i flisene.
+- **Utvalg:** stoppesteder med transportmåte buss eller ekspressbuss, ett per stoppested (ikke ett per plattform).
+  Antall: Oslo/Kjeller 1207, Bergen 1038, Sola 832, Kristiansand 665, Tromsø 492, Gardermoen 487, Ålesund 372,
+  Bodø 130, Mehamn 4. Kontrollert at spørringen ikke kutter svaret: Oslo sentrum ga 478 både i én og i fire ruter.
+- **Ekte:** hvor holdeplassene ligger og hva de heter (navnet vises ikke i spillet ennå).
+- **SYNTETISK:** skiltets størrelse. Skilt 512 («holdeplass for buss») er tegnet etter det offentlige trafikkskiltet,
+  9 m bredt på en 14 m høy stolpe, og vender alltid mot kameraet.
+

@@ -178,6 +178,9 @@ Busser og tog som er ute akkurat nå kjører på kartet, med linjenummer når du
 åpne data (NLOD) via `web/public/transit/`. Ruter i Oslo og Bybanen i Bergen sender ikke posisjoner dit, så de mangler.
 I utviklingsmodus: `?apt=ENCN&transit=/dev/transit-test.json` viser et opptak.
 
+Bussholdeplassene er merket med det blå holdeplasskiltet (skilt 512), forstørret så det synes fra lufta. De kommer fra
+Enturs nasjonale stoppestedsregister og hentes med `uv run flypipe stops <utsnitt>` til `data/entur/`.
+
 ## Jernbane, T-bane, trikk og bybane
 
 Jernbanen er tegnet på bakken som en svart og hvit stripe på alle kartene som har en (ikke Tromsø, Ålesund og Mehamn).

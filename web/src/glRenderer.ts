@@ -49,6 +49,28 @@ const SPOILER_DEG = 40; // luftbremsenes utslag når de er helt ute (SYNTETISK t
 
 const SRGB_TO_LINEAR = Uint8Array.from({ length: 256 }, (_, v) => Math.round(255 * (v / 255 <= 0.04045 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4)));
 
+/** Holdeplasskiltet (skilt 512: hvit buss på blå bunn) på en stolpe, tegnet i et kvadrat med stolpefoten nederst i midten. */
+function busStopTexture(): THREE.CanvasTexture {
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d")!, BLUE = "#14458f";
+  g.fillStyle = "#8d9399"; g.fillRect(61, 70, 6, 58); // stolpen
+  g.fillStyle = "#ffffff"; g.beginPath(); g.roundRect(14, 4, 100, 72, 8); g.fill();
+  g.fillStyle = BLUE; g.beginPath(); g.roundRect(18, 8, 92, 64, 5); g.fill();
+  // bussen: kasse med skrå front, fire vinduer og to hjul
+  g.fillStyle = "#ffffff";
+  g.beginPath(); g.moveTo(34, 24); g.lineTo(100, 24); g.lineTo(100, 52); g.lineTo(28, 52); g.lineTo(28, 40); g.closePath(); g.fill();
+  g.fillStyle = BLUE;
+  for (let i = 0; i < 4; i++) { g.beginPath(); g.roundRect(i === 0 ? 33 : 34 + i * 16.5, 28, 14, 10, 2); g.fill(); }
+  for (const x of [44, 84]) {
+    g.fillStyle = BLUE; g.beginPath(); g.arc(x, 52, 8, 0, 7); g.fill();
+    g.fillStyle = "#ffffff"; g.beginPath(); g.arc(x, 52, 6, 0, 7); g.fill();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 export class GlRenderer {
   readonly buildingCount: number;
   private renderer: THREE.WebGLRenderer;
@@ -95,6 +117,7 @@ export class GlRenderer {
   private transitBodies!: THREE.InstancedMesh;
   private transitWindows!: THREE.InstancedMesh;
   private transitLights!: THREE.Points;
+  private busStopSigns: THREE.Points | null = null;
   /** Andre fly (fra ADS-B): kropp, vinger og halefinne som instanser, og et blinkende lys hver. */
   private trafficBodies!: THREE.InstancedMesh;
   private trafficWings!: THREE.InstancedMesh;
@@ -169,6 +192,7 @@ export class GlRenderer {
     this.addChurchTowers();
     this.addTunnels();
     this.addRails();
+    this.addBusStops();
     this.addLighthouses();
     this.addShips();
     this.addTransit();
@@ -578,6 +602,25 @@ export class GlRenderer {
 
   /** Veitunneler: stiplet linje oppå bakken og sjøen der tunnelen går under, slik et kart tegner dem.
    *  Hvor tunnelen går er ekte (N50). At den synes, er SYNTETISK: en tunnel ses ikke fra lufta. */
+  /** Bussholdeplassene (Enturs stoppestedsregister): det blå holdeplasskiltet (skilt 512) på en stolpe, alltid vendt
+   *  mot kameraet. Hvor holdeplassene er, er ekte. Skiltet er SYNTETISK forstørret til 9 m bredde på en 14 m høy
+   *  stolpe, ellers synes det ikke fra lufta, og det står ett skilt per holdeplass, ikke ett per kjøreretning. */
+  private addBusStops(): void {
+    const stops = this.t.busStops;
+    if (!stops.length) return;
+    const { cell } = this.t, HEIGHT = 14, pos = new Float32Array(stops.length * 3);
+    stops.forEach((s, i) => pos.set([s.x * cell, this.t.roadPlace(s.x, s.y)[2] + HEIGHT / 2, s.y * cell], i * 3));
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+    // Punktstørrelsen i three.js regnes som om synsvinkelen var 90°. Med kameraets 60° må den ganges opp for at
+    // skiltet skal få riktig størrelse i verden.
+    const size = HEIGHT / Math.tan((60 * Math.PI) / 360);
+    const mat = new THREE.PointsMaterial({ map: busStopTexture(), size, sizeAttenuation: true, transparent: true, alphaTest: 0.5 });
+    this.busStopSigns = new THREE.Points(geo, mat);
+    this.busStopSigns.frustumCulled = false;
+    this.scene.add(this.busStopSigns);
+  }
+
   /** Jernbane, T-bane, trikk og bybane (OpenStreetMap) som fargede striper på bakken, stiplet der sporet går i tunnel.
    *  Hvor sporene og holdeplassene ligger er ekte. Fargene er SYNTETISKE (ett per slag, ikke linjenes egne), og
    *  stripa er bredere enn et spor. Jernbanen er svart og hvit i felt på 25 m, som på eldre kart, så den ikke
@@ -903,6 +946,8 @@ export class GlRenderer {
     }
     // Antikollisjonslys: et kort hvitt blink i sekundet, dag og natt, så flyene kan ses på avstand
     this.trafficLights.visible = (performance.now() / 1000) % 1.2 < 0.15;
+    // skiltene lyser ikke selv: de dempes med dagslyset
+    if (this.busStopSigns) (this.busStopSigns.material as THREE.PointsMaterial).color.setScalar(1 - 0.72 * sky.night);
     this.transitLights.visible = sky.night > 0.05;
     (this.transitLights.material as THREE.PointsMaterial).opacity = sky.night;
     this.shipLights.visible = sky.night > 0.05;

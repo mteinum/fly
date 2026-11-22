@@ -63,6 +63,7 @@ export interface TerrainMeta {
   /** Flyplassens bakkeanlegg (taksebaner, oppstillingsflater, stands), når det er hentet for utsnittet. */
   aeroways?: { file: string; source: string; taxiways: number; aprons: number; stands: number } | null;
   rails?: { file: string; source: string; tracks: number; stops: number } | null;
+  busStops?: { file: string; source: string; count: number } | null;
   /** Satt for utsnittene spillet bruker: andre fly kan hentes fra /traffic/ (se traffic.ts). */
   traffic?: { source: string } | null;
   /** Satt når utsnittet har sjø: da finnes det skipstrafikk å hente fra /ais/ (se ships.ts). */
@@ -107,6 +108,9 @@ export interface Aeroways {
   holds: [number, number][];
 }
 
+export interface BusStopFile { items: [number, number, string][] }
+export const parseBusStops = (f: BusStopFile): Terrain["busStops"] => f.items.map(([x, y, name]) => ({ x, y, name }));
+
 /** rails.json: jernbane, T-bane, trikk og bybane fra OpenStreetMap, i rutenettkoordinater [x, y]. */
 export type RailKind = "rail" | "metro" | "tram" | "lightrail";
 export interface Rails {
@@ -135,6 +139,8 @@ export class Terrain {
   names: PlaceName[] = [];
   aeroways: Aeroways | null = null;
   rails: Rails | null = null;
+  /** Bussholdeplasser fra Enturs stoppestedsregister (busstops.json): rutenettkoordinater og navn. */
+  busStops: { x: number; y: number; name: string }[] = [];
 
   /** Ta i bruk sporene. Stasjonene på T-bane og bybane får navneskilt. Trikkeholdeplassene er for mange til det, og
    *  jernbanestasjonene har alt navn fra N50. */
@@ -261,7 +267,7 @@ export interface TerrainAssets {
 
 export async function loadTerrain(baseUrl: string): Promise<TerrainAssets> {
   const meta: TerrainMeta = await (await fetch(`${baseUrl}/metadata.json`)).json();
-  const [hgtBuf, colormap, lights, lcBuf, surfaceBuf, structures, names, footprints, aeroways, rails] = await Promise.all([
+  const [hgtBuf, colormap, lights, lcBuf, surfaceBuf, structures, names, footprints, aeroways, rails, busStops] = await Promise.all([
     fetch(`${baseUrl}/${meta.heightmap.file}`).then((r) => r.arrayBuffer()),
     loadImage(`${baseUrl}/${meta.colormap.file}`),
     meta.lights ? loadImage(`${baseUrl}/${meta.lights.file}`) : null,
@@ -272,6 +278,7 @@ export async function loadTerrain(baseUrl: string): Promise<TerrainAssets> {
     meta.structures.footprints ? fetch(`${baseUrl}/${meta.structures.footprints.file}`).then((r) => r.arrayBuffer()) : null,
     meta.aeroways ? fetch(`${baseUrl}/${meta.aeroways.file}`).then((r) => r.json() as Promise<Aeroways>) : null,
     meta.rails ? fetch(`${baseUrl}/${meta.rails.file}`).then((r) => r.json() as Promise<Rails>) : null,
+    meta.busStops ? fetch(`${baseUrl}/${meta.busStops.file}`).then((r) => r.json() as Promise<BusStopFile>) : null,
   ]);
   // heightmap.f32 er little-endian, som alle plattformer nettlesere kjører på
   const terrain = new Terrain(meta, new Float32Array(hgtBuf), new Uint8Array(lcBuf), structures);
@@ -279,6 +286,7 @@ export async function loadTerrain(baseUrl: string): Promise<TerrainAssets> {
   if (footprints) terrain.footprints = parseFootprints(footprints);
   terrain.aeroways = aeroways;
   terrain.setRails(rails);
+  if (busStops) terrain.busStops = parseBusStops(busStops);
   return { terrain, colormap, lights, surface: new Uint8Array(surfaceBuf) };
 }
 

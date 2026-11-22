@@ -287,6 +287,15 @@ def build(area: Area) -> Path:
             "tracks": [{"kind": t["kind"], "tunnel": t["tunnel"], "line": [to_cell(q) for q in t["line"]]} for t in rails["tracks"]],
             "stops": [{"kind": s["kind"], "name": s["name"], "at": to_cell(s["at"])} for s in rails["stops"]],
         }, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
+    # Bussholdeplasser fra Enturs stoppestedsregister (data/entur/, hentet med `flypipe stops`)
+    from . import entur
+
+    bus_stops = entur.load_stops(area.id)
+    if bus_stops:
+        (out / "busstops.json").write_text(json.dumps({
+            "columns": ["x", "y", "name"],
+            "items": [[round((s["at"][0] - grid.west) / area.cell, 2), round((grid.north - s["at"][1]) / area.cell, 2), s["name"]] for s in bus_stops["stops"]],
+        }, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")
     (out / "names.json").write_text(
         json.dumps({"columns": ["name", "x", "y", "z", "size", "type", "group"],
                     "items": [[n["name"], round(n["x"], 2), round(n["y"], 2), round(n["z"], 1), n["size"], n["type"], n["group"]] for n in names]},
@@ -326,6 +335,11 @@ def build(area: Area) -> Path:
             "about": "arealdekke med vei og rullebane lagt oppå; styrer detaljmønster på bakken",
             "classes": landcover.surface_classes(terrain.ROAD, terrain.RUNWAY, terrain.TAXIWAY),
         },
+        "busStops": {
+            "file": "busstops.json",
+            "source": f"Entur, nasjonalt stoppestedsregister (NLOD), hentet {bus_stops['fetched']}",
+            "count": len(bus_stops["stops"]),
+        } if bus_stops else None,
         "rails": {
             "file": "rails.json",
             "source": f"OpenStreetMap (ODbL), hentet {rails['fetched']}",
