@@ -578,16 +578,18 @@ export class GlRenderer {
 
   /** Veitunneler: stiplet linje oppå bakken og sjøen der tunnelen går under, slik et kart tegner dem.
    *  Hvor tunnelen går er ekte (N50). At den synes, er SYNTETISK: en tunnel ses ikke fra lufta. */
-  /** T-bane, trikk og bybane (OpenStreetMap) som fargede striper på bakken, stiplet der sporet går i tunnel.
+  /** Jernbane, T-bane, trikk og bybane (OpenStreetMap) som fargede striper på bakken, stiplet der sporet går i tunnel.
    *  Hvor sporene og holdeplassene ligger er ekte. Fargene er SYNTETISKE (ett per slag, ikke linjenes egne), og
-   *  stripa er bredere enn et spor. */
+   *  stripa er bredere enn et spor. Jernbanen er svart og hvit i felt på 25 m, som på eldre kart, så den ikke
+   *  forveksles med en vei. */
   private addRails(): void {
     const rails = this.t.rails;
     if (!rails) return;
-    const { cell } = this.t, COLORS = { metro: 0xf08a1c, tram: 0x3f8fd6, lightrail: 0x2fa37a } as const;
+    const { cell } = this.t, COLORS = { rail: 0x1d1e22, metro: 0xf08a1c, tram: 0x3f8fd6, lightrail: 0x2fa37a } as const;
     const DASH = 30, GAP = 30, HALF = 4.5, LIFT = 2; // meter
-    for (const kind of ["metro", "tram", "lightrail"] as const) {
-      const pos: number[] = [], idx: number[] = [];
+    for (const kind of ["rail", "metro", "tram", "lightrail"] as const) {
+      const pos: number[] = [], idx: number[] = [], col: number[] = [];
+      const base0 = new THREE.Color().setHex(COLORS[kind], THREE.SRGBColorSpace), light = new THREE.Color().setHex(0xe8e8e4, THREE.SRGBColorSpace);
       for (const track of rails.tracks) {
         if (track.kind !== kind) continue;
         let along = 0;
@@ -599,7 +601,10 @@ export class GlRenderer {
           // korte biter (10 m), så stripa følger bakken; i tunnel bare annenhver bit
           for (let d = 0; d < len; d += 10) {
             const d1 = Math.min(d + 10, len);
-            if (track.tunnel && (along + (d + d1) / 2) % (DASH + GAP) > DASH) continue;
+            const mid = along + (d + d1) / 2;
+            if (track.tunnel && mid % (DASH + GAP) > DASH) continue;
+            const c = kind === "rail" && !track.tunnel && Math.floor(mid / 25) % 2 ? light : base0;
+            for (let k = 0; k < 4; k++) col.push(c.r, c.g, c.b);
             const base = pos.length / 3;
             for (const dd of [d, d1]) {
               const x = ax + ux * dd, y = ay + uy * dd, h = Math.max(0, this.t.heightAt(x, y)) + LIFT;
@@ -626,10 +631,13 @@ export class GlRenderer {
       if (!idx.length) continue;
       const geo = new THREE.BufferGeometry();
       geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
+      geo.setAttribute("color", new THREE.Float32BufferAttribute(col, 3));
       geo.setIndex(idx);
       geo.computeVertexNormals();
-      const mat = new THREE.MeshLambertMaterial({ color: COLORS[kind], emissive: COLORS[kind], emissiveIntensity: 0.25, side: THREE.DoubleSide, transparent: true, opacity: 0.9, depthWrite: false });
-      this.scene.add(new THREE.Mesh(geo, mat));
+      const mat = new THREE.MeshLambertMaterial({ vertexColors: true, emissive: COLORS[kind], emissiveIntensity: kind === "rail" ? 0 : 0.25, side: THREE.DoubleSide, transparent: true, opacity: 0.92, depthWrite: false });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.renderOrder = kind === "rail" ? 0 : 1; // der banene ligger oppå hverandre, vises bybanene over jernbanen
+      this.scene.add(mesh);
     }
   }
 

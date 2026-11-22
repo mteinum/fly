@@ -16,7 +16,7 @@ def main() -> None:
     o.add_argument("area", choices=sorted(AREAS))
     w = sub.add_parser("aeroways", help="hent taksebaner, oppstillingsflater og stands fra OpenStreetMap til data/osm/<utsnitt>.aeroway.json")
     w.add_argument("area", choices=sorted(AREAS))
-    rl = sub.add_parser("rails", help="hent T-bane, trikk og bybane fra OpenStreetMap til data/osm/<utsnitt>.rail.json")
+    rl = sub.add_parser("rails", help="hent jernbane, T-bane, trikk og bybane fra OpenStreetMap til data/osm/<utsnitt>.rail.json")
     rl.add_argument("area", choices=sorted(AREAS))
     sub.add_parser("mcp", help="start MCP-serveren for gjennomgang av flylogger (krever --group agent)")
     d = sub.add_parser("debrief", help="skriv hovedtallene for en flylogg i data/flights/ som JSON")

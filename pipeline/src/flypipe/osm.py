@@ -154,8 +154,10 @@ MAX_AEROWAY_WIDTH_M = 60.0
 STAND_LANE_M = 20.0  # samme som STAND_LANE_M i web/src/physics.ts
 
 
-RAIL_KINDS = {"subway": "metro", "tram": "tram", "light_rail": "lightrail"}
-STOP_SNAP_M = 60.0  # en holdeplass hører til sporet den ligger nærmest, innen så langt
+RAIL_KINDS = {"subway": "metro", "tram": "tram", "light_rail": "lightrail", "rail": "rail"}
+# En holdeplass hører til sporet den ligger nærmest, innen så langt. Jernbanestasjoner er kartlagt som ett punkt
+# midt på stasjonen, som kan ligge et stykke fra nærmeste spor.
+STOP_SNAP_M = {"metro": 60.0, "tram": 60.0, "lightrail": 60.0, "rail": 150.0}
 
 
 def rail_path(area_id: str) -> Path:
@@ -163,12 +165,12 @@ def rail_path(area_id: str) -> Path:
 
 
 def rails_from_elements(elements: list[dict], grid: GridSpec) -> dict:
-    """T-bane, trikk og bybane fra Overpass-elementer: spor (linjer) og holdeplasser (punkt), i UTM 33.
+    """Jernbane, T-bane, trikk og bybane fra Overpass-elementer: spor (linjer) og holdeplasser (punkt), i UTM 33.
 
-    Spor: way med railway=subway/tram/light_rail. Sidespor og verksteder (service=*) tas ikke med. Et spor som går
+    Spor: way med railway=rail/subway/tram/light_rail. Sidespor og verksteder (service=*) tas ikke med. Et spor som går
     ut av utsnittet deles, så bare bitene innenfor blir med. `tunnel` er sann der OpenStreetMap sier tunnel.
     Holdeplasser: node med navn og railway=station/tram_stop/halt. Slaget (T-bane, trikk, bybane) er det samme som
-    nærmeste spor; holdeplasser lenger enn STOP_SNAP_M fra et spor (jernbanestasjoner) faller bort.
+    nærmeste spor; holdeplasser lenger enn STOP_SNAP_M fra nærmeste spor faller bort.
     """
     from shapely.geometry import LineString, Point
     from shapely.strtree import STRtree
@@ -196,12 +198,14 @@ def rails_from_elements(elements: list[dict], grid: GridSpec) -> dict:
             if len(run) >= 2:
                 tracks.append({"id": el["id"], "kind": kind, "tunnel": tunnel, "line": [list(q) for q in run]})
             run = []
-    # I Oslo er trikkens forstadsbaner (Lilleakerbanen, Ekebergbanen) merket light_rail. Der utsnittet også har
-    # trikk, regnes de som trikk; bybane blir det bare der det ikke finnes trikk (Bergen).
-    if any(t["kind"] == "tram" for t in tracks):
+    # I Oslo er trikkens forstadsbaner (Lilleakerbanen, Ekebergbanen) merket light_rail, i Bergen er museumstrikken
+    # på Møhlenpris merket tram. Det slaget det er minst av, regnes som det andre: trikk i Oslo, bybane i Bergen.
+    km = {k: sum(math.dist(a, b) for t in tracks if t["kind"] == k for a, b in zip(t["line"], t["line"][1:])) for k in ("tram", "lightrail")}
+    if km["tram"] and km["lightrail"]:
+        minor, major = ("lightrail", "tram") if km["tram"] >= km["lightrail"] else ("tram", "lightrail")
         for t in tracks:
-            if t["kind"] == "lightrail":
-                t["kind"] = "tram"
+            if t["kind"] == minor:
+                t["kind"] = major
     stops: list[dict] = []
     if tracks:
         lines = [LineString(t["line"]) for t in tracks]
@@ -215,9 +219,9 @@ def rails_from_elements(elements: list[dict], grid: GridSpec) -> dict:
             if not inside(at):
                 continue
             i = int(tree.nearest(Point(at)))
-            if lines[i].distance(Point(at)) > STOP_SNAP_M:
-                continue
             kind = tracks[i]["kind"]
+            if lines[i].distance(Point(at)) > STOP_SNAP_M[kind]:
+                continue
             if (kind, name) in seen:  # én per navn og slag: hver retning har sin egen node i OpenStreetMap
                 continue
             seen.add((kind, name))
@@ -226,19 +230,19 @@ def rails_from_elements(elements: list[dict], grid: GridSpec) -> dict:
 
 
 def fetch_rails(area_id: str, grid: GridSpec, raw_dir: Path) -> Path | None:
-    """Hent T-bane, trikk og bybane fra Overpass og skriv data/osm/<utsnitt>.rail.json (i git, ODbL).
+    """Hent jernbane, T-bane, trikk og bybane fra Overpass og skriv data/osm/<utsnitt>.rail.json (i git, ODbL).
 
-    Skriver ingen fil når utsnittet ikke har slike spor (de fleste flyplassene).
+    Skriver ingen fil når utsnittet ikke har skinner (Mehamn, Tromsø og Ålesund).
     """
     from .crs import utm33_to_wgs84
 
     raw = raw_dir / "osm"
     raw.mkdir(parents=True, exist_ok=True)
-    path = raw / f"{area_id}_rail.json"
+    path = raw / f"{area_id}_rails.json"
     if not path.exists():
         corners = [utm33_to_wgs84(x, y) for x in (grid.west, grid.east) for y in (grid.south, grid.north)]
         box = f"{min(c[1] for c in corners):.6f},{min(c[0] for c in corners):.6f},{max(c[1] for c in corners):.6f},{max(c[0] for c in corners):.6f}"
-        q = (f'[out:json][timeout:180];(way["railway"~"^(subway|tram|light_rail)$"]({box});'
+        q = (f'[out:json][timeout:180];(way["railway"~"^(rail|subway|tram|light_rail)$"]({box});'
              f'node["railway"~"^(station|tram_stop|halt)$"]["name"]({box}););out geom;')
         print(f"  Overpass: {path.name}")
         for attempt, wait in enumerate((0, 20, 45, 90, 180, 300)):
@@ -252,10 +256,10 @@ def fetch_rails(area_id: str, grid: GridSpec, raw_dir: Path) -> Path | None:
         path.write_text(json.dumps(r.json()["elements"]), encoding="utf-8")
     out = rails_from_elements(json.loads(path.read_text(encoding="utf-8")), grid)
     if not out["tracks"]:
-        print("  ingen T-bane, trikk eller bybane i utsnittet")
+        print("  ingen skinner i utsnittet")
         return None
     doc = {
-        "about": "T-bane, trikk og bybane fra OpenStreetMap: spor (kind metro/tram/lightrail, tunnel ja/nei) og holdeplasser. "
+        "about": "Jernbane, T-bane, trikk og bybane fra OpenStreetMap: spor (kind rail/metro/tram/lightrail, tunnel ja/nei) og holdeplasser. "
                  "Koordinater er (øst, nord) i EPSG:25833. © OpenStreetMap contributors, ODbL 1.0.",
         "fetched": time.strftime("%Y-%m-%d"),
         **out,

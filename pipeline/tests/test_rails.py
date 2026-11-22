@@ -25,8 +25,10 @@ def test_spor_faar_slag_og_tunnel_og_sidespor_tas_ikke_med():
         _way(2, {"railway": "tram"}, [(261000, 6650500), (262000, 6650500)]),
         _way(3, {"railway": "subway", "service": "yard"}, [(261000, 6651000), (262000, 6651000)]),
         _way(4, {"railway": "rail"}, [(261000, 6649000), (262000, 6649000)]),
+        _way(5, {"railway": "rail", "service": "siding"}, [(261000, 6649100), (262000, 6649100)]),
+        _way(6, {"railway": "abandoned"}, [(261000, 6649200), (262000, 6649200)]),
     ], GRID)
-    assert [(t["id"], t["kind"], t["tunnel"]) for t in out["tracks"]] == [(1, "metro", True), (2, "tram", False)]
+    assert [(t["id"], t["kind"], t["tunnel"]) for t in out["tracks"]] == [(1, "metro", True), (2, "tram", False), (4, "rail", False)]
     (e, n), _ = out["tracks"][0]["line"]
     assert abs(e - 261000) < 0.2 and abs(n - 6650000) < 0.2
 
@@ -44,14 +46,21 @@ def test_holdeplasser_faar_slaget_til_naermeste_spor_og_en_per_navn():
         _stop(10, "Majorstuen", 261500, 6650010),
         _stop(11, "Majorstuen", 261500, 6649990),   # den andre retningen
         _stop(12, "Majorstuen", 261500, 6650490),   # trikkeholdeplassen med samme navn
-        _stop(13, "Oslo S", 261500, 6649000),       # jernbanestasjon, langt fra sporene våre
+        _stop(13, "Oslo S", 261500, 6649000),       # langt fra alle spor
+        _way(3, {"railway": "rail"}, [(261000, 6648500), (262000, 6648500)]),
+        _stop(15, "Nationaltheatret", 261500, 6648620),  # jernbanestasjon 120 m fra sporet: med
+        _stop(16, "Skøyen", 261800, 6648700),            # 200 m fra sporet: for langt
         {"type": "node", "id": 14, "tags": {"railway": "station"}, **_node(261600, 6650000)},  # uten navn
     ], GRID)
-    assert [(s["id"], s["kind"], s["name"]) for s in out["stops"]] == [(10, "metro", "Majorstuen"), (12, "tram", "Majorstuen")]
+    assert [(s["id"], s["kind"], s["name"]) for s in out["stops"]] == [(10, "metro", "Majorstuen"), (12, "tram", "Majorstuen"), (15, "rail", "Nationaltheatret")]
 
 
-def test_bybane_blir_trikk_der_utsnittet_har_trikk_og_forblir_bybane_ellers():
+def test_det_minste_av_trikk_og_bybane_regnes_som_det_andre():
     way = _way(1, {"railway": "light_rail"}, [(261000, 6650000), (262000, 6650000)])
     assert osm.rails_from_elements([way], GRID)["tracks"][0]["kind"] == "lightrail"
-    with_tram = osm.rails_from_elements([way, _way(2, {"railway": "tram"}, [(261000, 6650500), (262000, 6650500)])], GRID)
-    assert {t["kind"] for t in with_tram["tracks"]} == {"tram"}
+    # mer trikk enn bybane (Oslo): alt er trikk
+    oslo = osm.rails_from_elements([way, _way(2, {"railway": "tram"}, [(261000, 6650500), (263000, 6650500)])], GRID)
+    assert {t["kind"] for t in oslo["tracks"]} == {"tram"}
+    # en stubb med trikk ved siden av bybanen (museumstrikken i Bergen): alt er bybane
+    bergen = osm.rails_from_elements([way, _way(2, {"railway": "tram"}, [(261000, 6650500), (261200, 6650500)])], GRID)
+    assert {t["kind"] for t in bergen["tracks"]} == {"lightrail"}

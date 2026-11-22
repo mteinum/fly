@@ -497,15 +497,18 @@ navngitte figurer fra Dyreparken er brukt.
 - **Kontroll:** `deploy/test_transit.sh` tolker et lagret svar (tests/fixtures/entur_sample.json) mot en fasit med
   koordinater fra pyproj (`pipeline/tests/test_transit.py`).
 
-## T-bane, trikk og bybane fra OpenStreetMap (2026-11-22)
+## Jernbane, T-bane, trikk og bybane fra OpenStreetMap (2026-11-22)
 
-- **Kilde:** OpenStreetMap via Overpass (ODbL): way med `railway=subway`, `tram` eller `light_rail`, og holdeplasser
+- **Kilde:** OpenStreetMap via Overpass (ODbL): way med `railway=rail`, `subway`, `tram` eller `light_rail`, og holdeplasser
   (node med navn og `railway=station`, `tram_stop` eller `halt`). Hentes med `flypipe rails <utsnitt>` til
-  `data/osm/<utsnitt>.rail.json` (i git) og skrives til `rails.json` i flisene. Finnes for `kjeller10` (213 km spor,
-  162 holdeplasser) og `flesland10` (61 km, 39).
+  `data/osm/<utsnitt>.rail.json` (i git) og skrives til `rails.json` i flisene. Finnes for `kjeller10` (488 km spor, 200
+  holdeplasser), `gardermoen10` (95 km), `flesland10` (73 km), `sola10` (43 km), `kjevik10` (27 km) og `bodo10`
+  (13 km). Tromsø, Ålesund og Mehamn har ingen skinner.
 - **Ekte:** hvor sporene ligger, hvor de går i tunnel, og hvor holdeplassene er og heter.
 - **Tolkning:** sidespor og verksteder (`service=*`) er utelatt. En holdeplass får slaget til nærmeste spor innen
-  60 m, og det blir én per navn og slag. I Oslo er trikkens forstadsbaner merket `light_rail`; de regnes som trikk.
-- **SYNTETISK:** fargene (oransje T-bane, blå trikk, grønn bybane: ett per slag, ikke linjenes egne farger) og
+  60 m (jernbane: 150 m), og det blir én per navn og slag. I Oslo er trikkens forstadsbaner merket `light_rail`, og
+  i Bergen er museumstrikken merket `tram`: det slaget det er minst av i utsnittet, regnes som det andre.
+- **SYNTETISK:** fargene (jernbane i svarte og hvite felt på 25 m, oransje T-bane, blå trikk, grønn bybane: ett
+  per slag, ikke linjenes egne farger) og
   bredden på stripa (9 m). Tunnelstrekninger tegnes stiplet oppå bakken. Det kjører ingen vogner.
 

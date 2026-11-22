@@ -283,7 +283,7 @@ def build(area: Area) -> Path:
     if rails:
         to_cell = lambda p: [round((p[0] - grid.west) / area.cell, 2), round((grid.north - p[1]) / area.cell, 2)]  # noqa: E731
         (out / "rails.json").write_text(json.dumps({
-            "about": "Rutenettkoordinater [x, y]. kind: metro, tram eller lightrail. tunnel: sporet går under bakken der.",
+            "about": "Rutenettkoordinater [x, y]. kind: rail, metro, tram eller lightrail. tunnel: sporet går under bakken der.",
             "tracks": [{"kind": t["kind"], "tunnel": t["tunnel"], "line": [to_cell(q) for q in t["line"]]} for t in rails["tracks"]],
             "stops": [{"kind": s["kind"], "name": s["name"], "at": to_cell(s["at"])} for s in rails["stops"]],
         }, ensure_ascii=False, separators=(",", ":")), encoding="utf-8")

@@ -107,8 +107,8 @@ export interface Aeroways {
   holds: [number, number][];
 }
 
-/** rails.json: T-bane, trikk og bybane fra OpenStreetMap, i rutenettkoordinater [x, y]. */
-export type RailKind = "metro" | "tram" | "lightrail";
+/** rails.json: jernbane, T-bane, trikk og bybane fra OpenStreetMap, i rutenettkoordinater [x, y]. */
+export type RailKind = "rail" | "metro" | "tram" | "lightrail";
 export interface Rails {
   tracks: { kind: RailKind; tunnel: boolean; line: [number, number][] }[];
   stops: { kind: RailKind; name: string; at: [number, number] }[];
@@ -136,11 +136,12 @@ export class Terrain {
   aeroways: Aeroways | null = null;
   rails: Rails | null = null;
 
-  /** Ta i bruk sporene. Stasjonene på T-bane og bybane får navneskilt (trikkeholdeplassene er for mange til det). */
+  /** Ta i bruk sporene. Stasjonene på T-bane og bybane får navneskilt. Trikkeholdeplassene er for mange til det, og
+   *  jernbanestasjonene har alt navn fra N50. */
   setRails(rails: Rails | null): void {
     this.rails = rails;
     for (const s of rails?.stops ?? []) {
-      if (s.kind === "tram") continue;
+      if (s.kind === "tram" || s.kind === "rail") continue;
       const z = this.isWater(s.at[0], s.at[1]) ? 0 : this.heightAt(s.at[0], s.at[1]);
       this.names.push({ name: s.kind === "metro" ? `T ${s.name}` : s.name, x: s.at[0], y: s.at[1], z, size: 6.4, type: "banestasjon", group: "kollektiv" });
     }

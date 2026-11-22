@@ -43,3 +43,20 @@ describe.skipIf(!hasTiles("flesland10"))("Bybanen i Bergen", () => {
     expect(t.rails!.tracks.some((r) => r.kind === "lightrail" && r.tunnel)).toBe(true);
   });
 });
+
+describe("jernbane", () => {
+  it.each([["kjevik10", "Kristiansand"], ["sola10", "Sandnes sentrum"], ["gardermoen10", "Oslo lufthavn"], ["bodo10", "Bodø - Bådåddjo"], ["kjeller10", "Lillestrøm"], ["flesland10", "Bergen"]])("går gjennom %s, med stasjonen %s", (area, station) => {
+    if (!hasTiles(area)) return;
+    const t = loadTestTerrain(area), rail = t.rails!.tracks.filter((r) => r.kind === "rail");
+    expect(rail.reduce((s, r) => s + lengthKm(r.line, t.cell), 0)).toBeGreaterThan(10);
+    expect(t.rails!.stops.filter((s) => s.kind === "rail").map((s) => s.name)).toContain(station);
+    // jernbanestasjonene får ikke eget skilt: de har navn fra N50 fra før
+    expect(t.names.filter((n) => n.type === "banestasjon" && n.name === station)).toEqual([]);
+  });
+
+  it.each(["mehamn10", "tromso10", "alesund10"])("finnes ikke i %s", (area) => {
+    if (!hasTiles(area)) return;
+    expect(loadTestTerrain(area).rails).toBeNull();
+  });
+});
+
