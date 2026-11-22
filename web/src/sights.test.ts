@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { PlaceName } from "./labels";
 import { namesInPhoto, sightsFrom, sightsInPhoto, sightsLine, visitSights } from "./sights";
 import { hasTiles, loadTestTerrain } from "./testTerrain";
+import { wrapText } from "./hud";
 
 const place = (name: string, x: number, y: number, type = "landemerke"): PlaceName => ({ name, x, y, z: 20, size: 8, type, group: "bebyggelse" });
 
@@ -52,3 +53,14 @@ describe("sightseeing", () => {
     expect(names).not.toContain("Slottet");
   });
 });
+
+describe("lange meldinger", () => {
+  it("brytes ved ordskiller så ingen linje er for bred", () => {
+    const width = (s: string) => s.length; // ett tegn = én enhet
+    expect(wrapText("Kort", 20, width)).toEqual(["Kort"]);
+    expect(wrapText("Tower: taxi to stand 16 via C, Y. Optional: press W to taxi.", 30, width)).toEqual(["Tower: taxi to stand 16 via C,", "Y. Optional: press W to taxi."]);
+    expect(wrapText("Etlangtordutenmellomrom her", 10, width)).toEqual(["Etlangtordutenmellomrom", "her"]); // et ord deles aldri
+    expect(wrapText("", 10, width)).toEqual([""]);
+  });
+});
+

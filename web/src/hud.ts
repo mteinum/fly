@@ -131,13 +131,29 @@ export function drawSightsCount(g: CanvasRenderingContext2D, game: Game, inset: 
   g.restore();
 }
 
+/** Del en tekst i linjer som hver er høyst `max` brede, ved ordskiller. `width` måler en tekst. */
+export function wrapText(text: string, max: number, width: (s: string) => number): string[] {
+  const lines: string[] = [];
+  let line = "";
+  for (const word of text.split(" ")) {
+    const next = line ? `${line} ${word}` : word;
+    if (line && width(next) > max) { lines.push(line); line = word; } else line = next;
+  }
+  if (line) lines.push(line);
+  return lines.length ? lines : [""];
+}
+
 export function drawMessage(g: CanvasRenderingContext2D, game: Game, y: number): void {
   if (game.msg.t <= 0) return;
   g.save();
   g.font = `bold 8px ${FONT}`; g.textAlign = "center";
-  const w = g.measureText(game.msg.text).width + 12;
-  g.fillStyle = "rgba(0,0,0,.6)"; g.fillRect(W / 2 - w / 2, y - 8.5, w, 12);
-  g.fillStyle = "#ffd27a"; g.fillText(game.msg.text, W / 2, y);
+  // En lang melding brytes over flere linjer ved ordskiller, så den aldri går ut over vinduskanten
+  // bredden er det som er fritt mellom hjørnekartet til høyre og samme avstand til venstre (teksten er midtstilt)
+  const lines = wrapText(game.msg.text, W - 2 * (CORNER_MAP + 22), (s) => g.measureText(s).width);
+  const w = Math.max(...lines.map((l) => g.measureText(l).width)) + 12;
+  g.fillStyle = "rgba(0,0,0,.6)"; g.fillRect(W / 2 - w / 2, y - 8.5, w, 2 + lines.length * 10);
+  g.fillStyle = "#ffd27a";
+  lines.forEach((l, i) => g.fillText(l, W / 2, y + i * 10));
   g.restore();
 }
 
