@@ -147,7 +147,7 @@ export function startApproach(P: Plane, t: Terrain, end: RunwayEnd): void {
     y: end.y + Math.cos(hdg) * d,
     alt: glidePathAltitude(t, end, APPROACH_DIST_M), // på glidebanen som PFD viser
     hdg, spd: APPROACH_SPEED, pitch: -0.05, roll: 0, thr: 0,
-    gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, speedBrake: false, brake: 0, autobrake: P.autobrake, state: "fly", t: 0, touchdown: null, // autobremsen settes av den som starter innflygingen
+    gearDown: false, gear: 0, flapCfg: APPROACH_FLAPS, flaps: APPROACH_FLAPS, speedBrake: false, brake: 0, autobrake: P.autobrake, spoilersArmed: true, state: "fly", t: 0, touchdown: null, // autobremsen settes av den som starter innflygingen
   } satisfies Plane);
   // gass som holder startfarten i flat flyging
   P.thr = throttleFor(P, APPROACH_SPEED);
@@ -190,9 +190,9 @@ export function update(P: Plane, t: Terrain, airport: Airport, K: Keys, dt: numb
   if (P.state !== "fly") {
     P.t -= dt;
     if (P.state === "landed") {
-      // Utrulling: bakkespoilerne går ut av seg selv, autobremsen holder nedbremsingen den er satt til, og
+      // Utrulling: bakkespoilerne går ut av seg selv når de er armert, autobremsen holder nedbremsingen den er satt til, og
       // nesehjulet retter flyet inn etter banen (SYNTETISK: spillet har ikke sideror eller hjulstyring).
-      P.brake = Math.min(1, P.brake + dt / BRAKE_TIME);
+      if (P.spoilersArmed || P.speedBrake) P.brake = Math.min(1, P.brake + dt / BRAKE_TIME);
       P.spd = Math.max(0, P.spd - AUTOBRAKE_DECEL[P.autobrake] * dt);
       const end = airport.runways.flatMap((rw) => rw.ends).find((e) => e.ident === P.touchdown?.runway);
       if (end) {

@@ -27,6 +27,9 @@ export type PanelControl =
   | { kind: "gear" } | { kind: "speedBrake" } | { kind: "autopilot" } | { kind: "flightDirector" }
   /** Rekkevidden på ND (neste trinn), og terrengbildet på ND av/på. */
   | { kind: "ndRange" } | { kind: "ndTerrain" } | { kind: "flightPathVector" }
+  /** På overheadpanelet og midtkonsollen: setebeltebryteren, TERR på GPWS-panelet, TCAS-velgeren, armering av
+   *  bakkespoilerne, og siden SD skal vise (samme tast en gang til gir automatisk valg igjen). */
+  | { kind: "seatBelts" } | { kind: "gpwsTerr" } | { kind: "tcasMode" } | { kind: "spoilersArm" } | { kind: "sdPage"; page: "eng" | "wheel" }
   /** Autobremsen: 1 = LO, 2 = MED, 3 = MAX. */
   | { kind: "autobrake"; level: number }
   /** Klaffspaken settes i stilling 0-4. */
@@ -62,6 +65,11 @@ export interface Game {
    *  som piloten kan fly etter. `fd` er null når den er av, eller når autopiloten ikke kunne landet herfra. */
   flightDirector: boolean;
   fd: { pitch: number; bank: number } | null;
+  /** Hvor piloten ser i cockpit: fram mot instrumentpanelet, opp på overheadpanelet (U) eller ned på midtkonsollen (J). */
+  look: "forward" | "up" | "down";
+  /** Brytere på overheadpanelet og midtkonsollen som virker: setebelteskiltet (SIGNS i landingsmemoet), terrengvarselet,
+   *  TCAS i beredskap (da vises ingen trafikk), og hvilken side SD viser («auto» følger understellet). */
+  sys: { seatBelts: boolean; gpwsTerr: boolean; tcasStandby: boolean; sdPage: "auto" | "eng" | "wheel" };
   /** Fartsvektoren («fuglen») på PFD: viser hvor flyet er på vei over bakken. P slår den av og på. */
   flightPathVector: boolean;
   /** Vinden: hvor den kommer fra (sann retning i grader) og farten i knop, og det samme som fart i rutenettet.
@@ -177,6 +185,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     fd: null,
     nd: { rangeNm: ND_RANGES[0], terrain: true },
     flightPathVector: false,
+    look: params.get("look") === "up" ? "up" : params.get("look") === "down" ? "down" : "forward",
+    sys: { seatBelts: true, gpwsTerr: true, tcasStandby: false, sdPage: "auto" },
     wind,
     apTarget: null,
     ships: [],
@@ -193,6 +203,11 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
       else if (c.kind === "ndRange") nextRange();
       else if (c.kind === "ndTerrain") toggleTerrain();
       else if (c.kind === "flightPathVector") toggleBird();
+      else if (c.kind === "seatBelts") { game.sys.seatBelts = !game.sys.seatBelts; say(`Seat belt signs ${game.sys.seatBelts ? "on" : "off"}`, 1.5); }
+      else if (c.kind === "gpwsTerr") { game.sys.gpwsTerr = !game.sys.gpwsTerr; say(`Terrain warning ${game.sys.gpwsTerr ? "on" : "off"}`, 1.5); }
+      else if (c.kind === "tcasMode") { game.sys.tcasStandby = !game.sys.tcasStandby; say(`TCAS ${game.sys.tcasStandby ? "standby" : "TA"}`, 1.5); }
+      else if (c.kind === "spoilersArm") { P.spoilersArmed = !P.spoilersArmed; say(`Ground spoilers ${P.spoilersArmed ? "armed" : "not armed"}`, 1.5); }
+      else if (c.kind === "sdPage") game.sys.sdPage = game.sys.sdPage === c.page ? "auto" : c.page;
       else if (c.kind === "autobrake") setAutobrake(P, c.level, say);
       else if (c.kind === "flaps") for (let i = Math.abs(c.cfg - P.flapCfg), step = Math.sign(c.cfg - P.flapCfg); i > 0; i--) moveFlaps(P, step, say);
       else if (P.state === "fly") {
@@ -227,7 +242,9 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
       } else if (again) reset();
     },
   };
-  const toggleCam = () => { game.cam = CAMERAS[(CAMERAS.indexOf(game.cam) + 1) % CAMERAS.length]; };
+  const toggleCam = () => { game.cam = CAMERAS[(CAMERAS.indexOf(game.cam) + 1) % CAMERAS.length]; game.look = "forward"; };
+  /** Se opp eller ned i cockpit. Samme tast en gang til ser fram igjen. */
+  const lookTo = (dir: "up" | "down") => { if (game.cam === "cockpit") game.look = game.look === dir ? "forward" : dir; };
 
   addEventListener("keydown", (e) => {
     if (isTyping(e)) return; // navnefeltet på diplomet
@@ -241,6 +258,8 @@ export function createGame(terrain: Terrain, focus: HTMLElement): Game {
     if (e.code === "KeyA") setAutopilot(!game.autopilot);
     if (e.code === "KeyD") toggleFlightDirector();
     if (e.code === "Digit1" || e.code === "Digit2" || e.code === "Digit3") setAutobrake(P, Number(e.code.slice(5)), say);
+    if (e.code === "KeyU") lookTo("up");
+    if (e.code === "KeyJ") lookTo("down");
     if (e.code === "KeyP") toggleBird();
     if (e.code === "KeyZ") nextRange();
     if (e.code === "KeyX") toggleTerrain();

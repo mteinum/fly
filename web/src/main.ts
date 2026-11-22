@@ -5,6 +5,7 @@ import { createGame, isTyping, runLoop } from "./game";
 import { GlRenderer } from "./glRenderer";
 import { drawCornerMap, drawHud, drawMessage } from "./hud";
 import { candidates, declutter, inSight, labelStyle, type PlaceName } from "./labels";
+import { drawOverhead, drawPedestal, overheadHit, pedestalHit, pedestalThrustAt } from "./cockpitViews";
 import { drawPanel, panelHit, thrustAt } from "./panel";
 import { groundVelocity, verticalSpeed } from "./physics";
 import { H, OX, setScreen, TOP, W } from "./screen";
@@ -75,7 +76,8 @@ async function main(): Promise<void> {
   const controlAt = (e: PointerEvent) => {
     if (game.cam !== "cockpit" || game.replay) return null;
     const r = overlay.getBoundingClientRect();
-    return panelHit(((e.clientX - r.left) / r.width) * W - OX, logicalY(e));
+    const lx = ((e.clientX - r.left) / r.width) * W - OX, ly = logicalY(e);
+    return game.look === "up" ? overheadHit(lx, ly) : game.look === "down" ? pedestalHit(lx, ly) : panelHit(lx, ly);
   };
   let draggingThrust = false;
   overlay.addEventListener("pointerdown", (e) => {
@@ -86,7 +88,7 @@ async function main(): Promise<void> {
     if (draggingThrust) overlay.setPointerCapture(e.pointerId);
   });
   overlay.addEventListener("pointermove", (e) => {
-    if (draggingThrust) game.control({ kind: "thrust", thr: thrustAt(logicalY(e)) });
+    if (draggingThrust) game.control({ kind: "thrust", thr: (game.look === "down" ? pedestalThrustAt : thrustAt)(logicalY(e)) });
     else overlay.style.cursor = controlAt(e) ? "pointer" : "";
   });
   for (const ev of ["pointerup", "pointercancel"]) overlay.addEventListener(ev, () => { draggingThrust = false; });
@@ -377,6 +379,10 @@ async function main(): Promise<void> {
     }
     if (game.cam === "tower") {
       drawTower(g, terrain, map, game, towerView(terrain, game.P));
+      drawMessage(g, game, TOP + 20);
+    } else if (game.cam === "cockpit" && game.look !== "forward") {
+      // blikket er løftet eller senket: panelet fyller vinduet, og piloten ser ikke ut
+      if (game.look === "up") drawOverhead(g, game); else drawPedestal(g, game, terrain);
       drawMessage(g, game, TOP + 20);
     } else if (game.cam === "cockpit") {
       drawPanel(g, terrain, game);

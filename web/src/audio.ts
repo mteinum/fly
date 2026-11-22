@@ -198,7 +198,7 @@ export class GameAudio {
     if (P.state === "fly") {
       const w = warnings(P, ra);
       if (inside) {
-        const terrain = terrainAlert(P, t, this.airport, game.wind.vector);
+        const terrain = game.sys.gpwsTerr ? terrainAlert(P, t, this.airport, game.wind.vector) : null; // TERR av på overheadpanelet
         const call = altitudeCallout(prev.ra, ra);
         if (call !== null) this.say("callout", `alt_${call}`, 0.9, { force: call <= 50 });
         if (prev.ra > 15 && ra <= 15 && P.thr > 0.05) this.later(0.5, () => this.say("callout", "retard", 0.9, { force: true }));
@@ -210,7 +210,7 @@ export class GameAudio {
         if (w.overspeed && now > this.repeatAt.warning) { this.play("warning", 0.3); this.repeatAt.warning = now + 2.4; }
       }
       // trafikkvarsel: ett utrop når et nytt fly blir gult på ND. Under 500 fot tier det, som i flyet.
-      const advisories = new Set(game.traffic.filter((a) => a.tcas === "advisory").map((a) => a.id));
+      const advisories = new Set(game.sys.tcasStandby ? [] : game.traffic.filter((a) => a.tcas === "advisory").map((a) => a.id)); // TCAS i beredskap varsler ikke
       if (inside && ra > 500 && [...advisories].some((id) => !this.advised.has(id))) this.say("callout", "traffic", 0.95);
       this.advised = advisories;
       // tårnet ser at understellet ikke er ute: én påminnelse per innflyging

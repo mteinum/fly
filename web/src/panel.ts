@@ -29,9 +29,9 @@ import { guidance, type Guidance } from "./guidance";
 import { H, OX, PANEL_TOP, TOP, W } from "./screen";
 import type { Terrain } from "./terrain";
 
-const KT = 1.943844, FT = 3.28084, NM = 1852, DEG = 180 / Math.PI;
-const SANS = '"Helvetica Neue", Helvetica, Arial, sans-serif';
-const MONO = "ui-monospace, Menlo, Consolas, monospace";
+export const KT = 1.943844, FT = 3.28084, NM = 1852, DEG = 180 / Math.PI;
+export const SANS = '"Helvetica Neue", Helvetica, Arial, sans-serif';
+export const MONO = "ui-monospace, Menlo, Consolas, monospace";
 const DU = 46; // skjermstørrelse i logiske enheter
 const ECAM = 35.5; // de to ECAM-skjermene i midten er mindre, så begge får plass over hverandre
 const ROW = 124;
@@ -41,47 +41,53 @@ const TERR_L = 52.5, TERR_R = 258.5, TERR_Y = ROW + 46 + 17, TERR_W = 9, TERR_H 
 const GEAR_X = 184, LEVER_TOP = ROW + 46 + 7, LEVER_BOTTOM = 200 - 2.5, SPD_X = 115.6, THR_X = 129.6, FLAP_X = 190;
 
 // Airbus-fargene på skjermene
-const GREEN = "#2fe04a", CYAN = "#35d6f0", AMBER = "#ffa218", MAGENTA = "#ff5cf4", YELLOW = "#ffe93b", RED = "#ff3030", WHITE = "#f2f2f2";
+export const GREEN = "#2fe04a", CYAN = "#35d6f0", AMBER = "#ffa218", MAGENTA = "#ff5cf4", YELLOW = "#ffe93b", RED = "#ff3030", WHITE = "#f2f2f2";
 const TAPE = "#4d5157", SKY = "#2f93e0", EARTH = "#8a5a2c";
 
-type G2D = CanvasRenderingContext2D;
+export type G2D = CanvasRenderingContext2D;
 
-const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
-const shade = (r: number, g: number, b: number, f: number): string => `rgb(${(r * f) | 0},${(g * f) | 0},${(b * f) | 0})`;
-const pad = (v: number, n: number): string => String(Math.round(v)).padStart(n, "0");
+export const clamp = (v: number, a: number, b: number): number => (v < a ? a : v > b ? b : v);
+export const shade = (r: number, g: number, b: number, f: number): string => `rgb(${(r * f) | 0},${(g * f) | 0},${(b * f) | 0})`;
+export const pad = (v: number, n: number): string => String(Math.round(v)).padStart(n, "0");
 
-function text(g: G2D, str: string, x: number, y: number, size: number, color: string, align: CanvasTextAlign = "center", font = SANS, weight = 500): void {
+export function text(g: G2D, str: string, x: number, y: number, size: number, color: string, align: CanvasTextAlign = "center", font = SANS, weight = 500): void {
   g.font = `${weight} ${size}px ${font}`; g.fillStyle = color; g.textAlign = align; g.textBaseline = "middle";
   g.fillText(str, x, y);
 }
 
-function line(g: G2D, x0: number, y0: number, x1: number, y1: number, width: number, color: string): void {
+export function line(g: G2D, x0: number, y0: number, x1: number, y1: number, width: number, color: string): void {
   g.strokeStyle = color; g.lineWidth = width;
   g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
 }
 
 /** Hvor mørkt det er ute (0-1), satt av drawPanel. Om natta lyser teksten på panelet, som i flyet. */
 let night = 0;
-const ink = (body: number, f = 1): string => shade(235 * f, 235 * f, 235 * f, Math.max(body, 0.6 + 0.35 * night));
+/** Sett lyset på panelet etter hvor mørkt det er ute, og gi tilbake hvor lyse flatene skal være (0-1).
+ *  Om natta er panelet opplyst av flomlyset, så det blir ikke helt mørkt. Kalles først av alt som tegner i cockpit. */
+export function panelLight(game: Game): number {
+  night = game.env.sky.night;
+  return 1 - 0.6 * night;
+}
+export const ink = (body: number, f = 1): string => shade(235 * f, 235 * f, 235 * f, Math.max(body, 0.6 + 0.35 * night));
 /** Tekst på blendingsskjermen: hvit om dagen, oransje lys om natta. */
 const glareInk = (body: number): string => shade(235 + 20 * night, 235 - 60 * night, 235 - 170 * night, Math.max(body, 0.6 + 0.4 * night));
 const wrap180 = (deg: number): number => ((((deg + 180) % 360) + 360) % 360) - 180;
 
 /** Skrue i panelplata. */
-function screw(g: G2D, x: number, y: number, body: number): void {
+export function screw(g: G2D, x: number, y: number, body: number): void {
   g.fillStyle = shade(58, 66, 76, body); g.beginPath(); g.arc(x, y, 0.55, 0, 7); g.fill();
   line(g, x - 0.35, y - 0.2, x + 0.35, y + 0.2, 0.15, shade(20, 22, 26, body));
 }
 
 /** Panelplate: egen flate med fuge rundt og skruer i hjørnene. */
-function plate(g: G2D, x: number, y: number, w: number, h: number, body: number, r = 98, gr = 115, b = 131): void {
+export function plate(g: G2D, x: number, y: number, w: number, h: number, body: number, r = 98, gr = 115, b = 131): void {
   g.fillStyle = shade(r, gr, b, body); g.beginPath(); g.roundRect(x, y, w, h, 1); g.fill();
   g.strokeStyle = shade(44, 52, 60, body); g.lineWidth = 0.3; g.stroke();
   for (const sx of [x + 1.3, x + w - 1.3]) for (const sy of [y + 1.3, y + h - 1.3]) screw(g, sx, sy, body);
 }
 
 /** Dreieknapp sett forfra, med viser (vinkel i radianer, 0 = rett opp). */
-function knob(g: G2D, x: number, y: number, r: number, body: number, angle = 0, ring = false): void {
+export function knob(g: G2D, x: number, y: number, r: number, body: number, angle = 0, ring = false): void {
   const lum = Math.max(body, 0.5), k = g.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
   k.addColorStop(0, shade(150, 154, 160, lum)); k.addColorStop(1, shade(46, 48, 54, lum));
   g.fillStyle = "#0a0b0d"; g.beginPath(); g.arc(x, y, r + 0.35, 0, 7); g.fill();
@@ -92,7 +98,7 @@ function knob(g: G2D, x: number, y: number, r: number, body: number, angle = 0, 
 }
 
 /** Trykknapp med tekst. `lit` tenner lysstripa øverst. */
-function key(g: G2D, x: number, y: number, w: number, h: number, label: string, body: number, lit = false, size = 1.5, color = ink(body, 0.9)): void {
+export function key(g: G2D, x: number, y: number, w: number, h: number, label: string, body: number, lit = false, size = 1.5, color = ink(body, 0.9)): void {
   g.fillStyle = "#0b0c0f"; g.beginPath(); g.roundRect(x, y, w, h, 0.4); g.fill();
   g.strokeStyle = shade(70, 76, 84, Math.max(body, 0.5)); g.lineWidth = 0.2; g.stroke();
   if (lit) { g.fillStyle = GREEN; g.fillRect(x + 0.8, y + 0.5, w - 1.6, 0.4); }
@@ -100,7 +106,7 @@ function key(g: G2D, x: number, y: number, w: number, h: number, label: string, 
 }
 
 /** Varsellampe med tekst på én eller to linjer: lyser i fargen når den er på, ellers svakt. */
-function lamp(g: G2D, x: number, y: number, w: number, h: number, label: string, color: string, on: boolean, size = 1.5): void {
+export function lamp(g: G2D, x: number, y: number, w: number, h: number, label: string, color: string, on: boolean, size = 1.5): void {
   g.fillStyle = on ? color : "#0b0c0f"; g.beginPath(); g.roundRect(x, y, w, h, 0.4); g.fill();
   g.strokeStyle = "#3a3f47"; g.lineWidth = 0.2; g.stroke();
   const rows = label.split("\n");
@@ -144,12 +150,14 @@ interface Data {
   fpv: boolean; fpaDeg: number;
   /** Stillingen flight director ber om (rad), eller null når den er av eller ikke har noe å vise. */
   fd: Game["fd"];
+  /** Setebelteskiltet er på (bryteren på overheadpanelet). */
+  signs: boolean;
   /** Terrengvarselet som gjelder nå (se gpws.ts). */
   gpws: TerrainAlert | null;
 }
 
 /** Åpner en skjerm: ramme, svart flate, og koordinater 0-100 klippet til skjermen. */
-function beginDisplay(g: G2D, x: number, y: number, size: number, body: number): void {
+export function beginDisplay(g: G2D, x: number, y: number, size: number, body: number): void {
   g.fillStyle = shade(34, 38, 44, Math.max(body, 0.45));
   g.beginPath(); g.roundRect(x - 1.6, y - 1.6, size + 3.2, size + 3.2, 1.4); g.fill();
   g.strokeStyle = shade(120, 130, 142, body); g.lineWidth = 0.2; g.stroke();
@@ -451,7 +459,8 @@ function nd(g: G2D, x: number, y: number, d: Data, t: Terrain, game: Game, body:
   // Andre fly, slik TCAS viser dem (se tcas.ts): åpen rombe for fjern trafikk, fylt rombe for nær trafikk
   // (innen 6 NM og 1200 fot), gul sirkel ved trafikkvarsel. Tallet er høydeforskjellen i hundre fot, og pila
   // viser at flyet stiger eller synker mer enn 500 fot i minuttet. Fly på bakken vises ikke.
-  for (const a of game.traffic) {
+  if (game.sys.tcasStandby) text(g, "TCAS STBY", 2, 96, 3.6, GREEN, "left");
+  for (const a of game.sys.tcasStandby ? [] : game.traffic) {
     const [tx, ty] = toScreen(a.x, a.y), rel = (a.alt - altM) * FT;
     if (a.tcas === "ground" || Math.hypot(tx - AX, ty - AY) > R || ty < 16 || Math.abs(rel) > 9900) continue;
     const c = a.tcas === "advisory" ? AMBER : WHITE;
@@ -564,12 +573,13 @@ function ewd(g: G2D, x: number, y: number, size: number, d: Data, body: number):
     d.warnings.forEach((m, i) => text(g, m, 3, MY + i * MS, MF, RED, "left", MONO, 700));
   } else {
     // Landingsmemo som i flyet: blå linje med prikker til punktet er gjort, så grønn.
-    // SIGNS, CABIN og SPLRS finnes ikke i modellen og står alltid som gjort.
+    // SIGNS følger setebeltebryteren på overheadpanelet, SPLRS om bakkespoilerne er armert (midtkonsollen).
+    // CABIN finnes ikke i modellen og står alltid som gjort.
     const memo: [string, string, boolean][] = [
       ["LDG GEAR DN", "LDG GEAR......DN", P.gear >= 1],
-      ["SIGNS ON", "", true],
+      ["SIGNS ON", "SIGNS.........ON", d.signs],
       ["CABIN READY", "", true],
-      ["SPLRS ARM", "", true],
+      ["SPLRS ARM", "SPLRS........ARM", P.spoilersArmed],
       ["FLAPS FULL", "FLAPS.......FULL", P.flaps >= 3.98],
     ];
     text(g, "LDG", 3, MY, MF, GREEN, "left", MONO);
@@ -629,7 +639,7 @@ function sdCruise(g: G2D, d: Data, game: Game): void {
   const rows: [number, string, string, string, string][] = [[25, "F.USED", "KG", used, used], [36, "OIL", "QT", "11.5", "11.5"], [45, "VIB N1", "", "0.8", "0.9"], [51.6, "VIB N2", "", "1.2", "1.1"]];
   for (const [y, label, unit, left, right] of rows) {
     text(g, label, 50, unit ? y - 2 : y, 3.6, WHITE); if (unit) text(g, unit, 50, y + 2.2, 3, CYAN);
-    text(g, left, 30, y, 4.6, GREEN, "right"); text(g, right, 80, y, 4.6, GREEN, "right");
+    text(g, left, 30, y, 4.6, GREEN, "right"); text(g, right, 70, y, 4.6, GREEN, "left");
     line(g, 32, y, 39, y, 0.4, "#8a8f96"); line(g, 61, y, 68, y, 0.4, "#8a8f96");
   }
   text(g, "AIR", 4, 59, 4.4, WHITE, "left"); line(g, 4, 62, 12.6, 62, 0.4, WHITE);
@@ -642,13 +652,28 @@ function sdCruise(g: G2D, d: Data, game: Game): void {
   text(g, "CAB ALT", 56, 77, 3, WHITE, "left"); text(g, String(Math.round(cabinFt / 50) * 50), 89, 77, 4, GREEN, "right"); text(g, "FT", 99.4, 77.2, 2.6, CYAN, "right");
 }
 
+/** ENGINE-siden: motorenes sekundære verdier. SYNTETISK: brukt drivstoff som på CRUISE, resten faste tall. */
+function sdEngine(g: G2D, d: Data): void {
+  text(g, "ENGINE", 4, 6, 5, WHITE, "left"); line(g, 4, 9.6, 23, 9.6, 0.4, WHITE);
+  const used = String(Math.round(d.fuelUsedKg / 10) * 10);
+  const rows: [number, string, string, string, string][] = [[20, "F.USED", "KG", used, used], [32, "OIL", "QT", "11.5", "11.5"], [42, "", "PSI", "48", "48"], [52, "", "°C", "92", "92"], [63, "VIB N1", "", "0.8", "0.9"], [71, "VIB N2", "", "1.2", "1.1"]];
+  for (const [y, label, unit, left, right] of rows) {
+    if (label) text(g, label, 50, unit ? y - 2 : y, 3.6, WHITE);
+    if (unit) text(g, unit, 50, label ? y + 2.2 : y, 3, CYAN);
+    text(g, left, 30, y, 4.6, GREEN, "right"); text(g, right, 70, y, 4.6, GREEN, "left");
+    line(g, 32, y, 39, y, 0.4, "#8a8f96"); line(g, 61, y, 68, y, 0.4, "#8a8f96");
+  }
+}
+
 /** Nedre ECAM-skjerm. Bytter side selv, som i flyet: CRUISE med understellet oppe, WHEEL når spaken settes ned.
  *  De faste dataene nederst står på alle sider. Ekte: klokka. SYNTETISK: vekten, og lufttemperaturene
  *  (standardatmosfære fra høyden; TAT fra farten). */
 function sd(g: G2D, x: number, y: number, size: number, d: Data, game: Game, body: number): void {
   beginDisplay(g, x, y, size, body);
   const P = d.plane;
-  if (P.gearDown || P.gear > 0) sdWheel(g, P); else sdCruise(g, d, game);
+  // ECAM-tastene på midtkonsollen kan velge side; ellers følger den understellet
+  const page = game.sys.sdPage === "auto" ? (P.gearDown || P.gear > 0 ? "wheel" : "cruise") : game.sys.sdPage;
+  if (page === "wheel") sdWheel(g, P); else if (page === "eng") sdEngine(g, d); else sdCruise(g, d, game);
   // faste data nederst
   line(g, 2, 81, 98, 81, 0.4, WHITE); line(g, 35, 82, 35, 99, 0.4, WHITE); line(g, 63, 82, 63, 99, 0.4, WHITE);
   const satK = 288.15 - 0.0019812 * d.altFt, mach = d.kt / KT / (20.05 * Math.sqrt(satK)), tatK = satK * (1 + 0.2 * mach * mach);
@@ -907,9 +932,7 @@ const anim = { at: 0, kt: 0, trend: 0, eng: -1, approach: -1, fuelKg: 0 };
 const SPOOL_S = 1.6; // SYNTETISK: tidskonstant for motorenes turtall etter gasshåndtaket
 
 export function drawPanel(g: G2D, t: Terrain, game: Game): void {
-  night = game.env.sky.night;
-  // Om natta er panelet opplyst av flomlyset under blendingsskjermen, så det blir ikke helt mørkt
-  const P = game.P, body = 1 - 0.6 * night;
+  const P = game.P, body = panelLight(game);
   const end = game.airport.runways.flatMap((rw) => rw.ends).find((e) => e.ident === game.approach.ident);
   const ground = groundVelocity(P, game.wind.vector);
   const kt = P.spd * KT, now = performance.now() / 1000, dt = clamp(now - anim.at, 0, 0.5);
@@ -945,7 +968,8 @@ export function drawPanel(g: G2D, t: Terrain, game: Game): void {
     gsKt: P.state === "fly" ? ground.speed * KT : kt, trackDeg: P.state === "fly" ? t.trueHeadingDeg(ground.track) : t.trueHeadingDeg(P.hdg),
     fpv: game.flightPathVector && P.state === "fly", fpaDeg: Math.atan2(verticalSpeed(P), ground.speed) * DEG,
     fd: game.fd,
-    gpws: terrainAlert(P, t, game.airport, game.wind.vector),
+    signs: game.sys.seatBelts,
+    gpws: game.sys.gpwsTerr ? terrainAlert(P, t, game.airport, game.wind.vector) : null, // TERR av på overheadpanelet
     nextFlapKt: P.flapCfg < 4 ? speedLimit({ ...P, flapCfg: P.flapCfg + 1, flaps: P.flapCfg + 1, gear: 0, gearDown: false }) * KT : null,
   };
   const target = game.airport.runways.find((rw) => rw.ends.some((e) => e.ident === game.approach.ident));

@@ -41,6 +41,10 @@ Taster: piltaster styrer, `W`/`S` gass, `G` understell, `F`/`V` klaff ut/inn,
 halvtime bakover/framover, `M` slår lyden av og på, `N` stedsnavnene, `D` flight director, `P` fartsvektoren,
 `1`/`2`/`3` autobrems LO/MED/MAX, `Z` rekkevidden på ND (10, 20, 40 NM), `X` terrenget på ND av og på. Lyden starter ved første tastetrykk.
 
+`U` ser opp på overheadpanelet og `J` ned på midtkonsollen (samme tast en gang til ser fram igjen). Der virker
+setebeltebryteren og TERR på GPWS-panelet (oppe), og gasshåndtakene, luftbremsen med armering av bakkespoilerne,
+klaffspaken, ECAM-tastene ENG og WHEEL og TCAS-velgeren (nede). Resten er tegnet for at panelene skal ligne.
+
 I cockpit kan understellsspaken, luftbremsen, gasshåndtakene (dra), klaffspaken og knappene AP1 og FD også
 betjenes med mus eller finger.
 
