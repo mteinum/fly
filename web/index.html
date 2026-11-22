@@ -124,69 +124,74 @@
 <div id="about" role="dialog" aria-modal="true" aria-labelledby="aboutTitle" hidden>
   <div class="sheet">
     <h1 id="aboutTitle">teinum-fly</h1>
-    <p>A flight simulator in your browser. You land an Airbus A320 at Kjevik, Sola, Flesland, Ålesund, Gardermoen, Kjeller, Bodø, Tromsø or Mehamn, over terrain built from open Norwegian map data.</p>
-
-    <h2>Who made it</h2>
-    <p>Developed by <a href="https://morten.teinum.no/" target="_blank" rel="noopener">Morten Teinum</a> as a side project for the course IS-930, Geographic IT and AI in practice, at the University of Agder, autumn 2026.</p>
-    <p>The code is written together with Claude Code, an AI coding agent from Anthropic. Every time it got something wrong and had to correct it, the mistake went into a log. The log is part of the project: <a href="https://github.com/mteinum/fly/blob/main/docs/ai-logg.md" target="_blank" rel="noopener">docs/ai-logg.md</a> (in Norwegian).</p>
-
-    <h2>What is real</h2>
-    <ul>
-      <li>The terrain, in true scale with no vertical exaggeration.</li>
-      <li>Land cover, roads, bridges and place names.</li>
-      <li>Every building: where it stands, its outline and what type it is.</li>
-      <li>Church towers and lighthouses: where they stand and how tall they are.</li>
-      <li>Ships at the coastal airports: where they are right now, their size, course and speed.</li>
-      <li>Other aircraft: where they are right now, their altitude, course, speed, callsign and type.</li>
-      <li>The railways, the metro and tram lines in Oslo and the light rail in Bergen: where the tracks run, where they are in tunnel (dashed) and where the stations are.</li>
-      <li>Bus stops: where they are, from the national stop register.</li>
-      <li>Buses and trains: where they last reported being, and their line number. Only what the operators send to Entur: Oslo's city buses, trams and metro and Bergen's light rail are missing.</li>
-      <li>Runways, the position of the sun and the time of day.</li>
-      <li>The wind: direction and speed as the airport last reported them.</li>
-    </ul>
-
-    <h2>What is made up</h2>
-    <ul>
-      <li>The fun figures: the chimpanzee over the zoo in Kristiansand, the crown over the Royal Palace, the ski jumper, ships, whales, the northern lights and the rest. The places are real; the figures are invented and many times larger than life. <kbd>L</kbd> turns them off.</li>
-      <li>The flight model. It is simple, with speeds in the range of an A320. The game lets you land it at Mehamn, whose 880 m runway no A320 could use, and at Kjeller, a small airfield for light aircraft.</li>
-      <li>The sightseeing tours: the sights are real places, but the starting point is worked out for the view (3.5 km from the sights, coming in over the lowest ground), and how close you must fly to collect or photograph one is chosen for the game.</li>
-      <li>At Kjeller: the parking stands and the tower position, and the Oslo city tour, which is a starting point chosen for the view and not a real route. There is no weather report for Kjeller, so the wind is calm there.</li>
-      <li>The wind is the same everywhere on the map and at every height, without gusts or turbulence.</li>
-      <li>The glide path and localiser. They are geometry from the runway ends, not the airport's ILS.</li>
-      <li>The width of most taxiways, and the yellow lines and numbers painted on them.</li>
-      <li>Taxiway lights and apron floodlighting at night.</li>
-      <li>The airport signs. They follow the standard pattern (black for where you are, yellow for where the taxiways lead, red before a runway), but their positions are placed by rule, not surveyed.</li>
-      <li>Night lights, runway markings, ground detail, and the colours and flat roofs of buildings. Most building heights are estimates.</li>
-      <li>The shape of the ships and of other aircraft, and how they move between position reports.</li>
-      <li>The colours of the railway, metro, tram and light rail lines (one per kind, not the lines' own), and the width of the stripes.</li>
-      <li>The size of the bus stop signs: a real sign is 60 cm wide, the ones here are 8 m, on a 12 m pole. There is one per stop, not one per direction.</li>
-      <li>The shape, colour and size of buses and trains (buses are drawn two and a half times too large, to be seen from the air), and their straight-line glide between two reports. Trains in tunnels are drawn on the surface.</li>
-      <li>How lighthouses flash. Real ones each have their own pattern and colours.</li>
-      <li>Tunnels are underground. The dashed lines only show where they run.</li>
-      <li>All sound, including the voice from the tower.</li>
-    </ul>
-    <p>This is a game. Do not use it for navigation or flight training.</p>
-
-    <h2>Data and credits</h2>
-    <ul>
-      <li>Elevation (DTM and DOM), N50 map data, building points (Matrikkelen) and place names: © Kartverket, CC BY 4.0.</li>
-      <li>Building outlines: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, available under the Open Database License. The building data in the game is shared under the same licence. Taxiways, aprons and stand numbers at the airports are also from OpenStreetMap.</li>
-      <li>Ship positions: Kystverket's open AIS data (NLOD), relayed by this site. Small fishing and leisure boats are not included.</li>
-      <li>Buses and trains: <a href="https://developer.entur.no/" target="_blank" rel="noopener">Entur</a>'s open vehicle positions (NLOD), relayed by this site. Bus stops: Entur's national stop register (NLOD).</li>
-      <li>Aircraft positions: <a href="https://www.adsb.lol/" target="_blank" rel="noopener">adsb.lol</a>, a community network of ADS-B receivers, under the Open Database License. Coverage depends on where volunteers have receivers, so some aircraft are missing.</li>
-      <li>Wind: the airport's latest weather report (METAR) from <a href="https://api.met.no/" target="_blank" rel="noopener">MET Norway</a>, CC BY 4.0, relayed by this site.</li>
-      <li>Airports and runways: OurAirports, public domain.</li>
-      <li>Sound: generated with ElevenLabs.</li>
-      <li>Drawn with three.js.</li>
-      <li>The University of Agder logo marks its campus and belongs to the university.</li>
-    </ul>
-    <p>Not affiliated with Airbus, Avinor or Kartverket.</p>
-
-    <h2>Privacy</h2>
-    <p>The game has no accounts and stores nothing about you. The ship, aircraft and weather services keep the latest positions and weather report, nothing about visitors. The site loads Google Tag Manager for visitor statistics. If you share a diploma, the name you typed is part of the link.</p>
-
-    <h2>Source code</h2>
-    <p><a href="https://github.com/mteinum/fly" target="_blank" rel="noopener">github.com/mteinum/fly</a>. The code is under the MIT licence; data, sound and fonts have their own terms.</p>
+    <div class="tabs" role="tablist">
+      <button role="tab" data-tab="about" aria-selected="true">About</button><button role="tab" data-tab="real" aria-selected="false">What is real</button><button role="tab" data-tab="madeup" aria-selected="false">What is made up</button><button role="tab" data-tab="credits" aria-selected="false">Credits &amp; privacy</button>
+    </div>
+    <section data-tab="about">
+      <p>A flight simulator in your browser. You land an Airbus A320 at Kjevik, Sola, Flesland, Ålesund, Gardermoen, Kjeller, Bodø, Tromsø or Mehamn, over terrain built from open Norwegian map data.</p>
+      <h2>Who made it</h2>
+      <p>Developed by <a href="https://morten.teinum.no/" target="_blank" rel="noopener">Morten Teinum</a> as a side project for the course IS-930, Geographic IT and AI in practice, at the University of Agder, autumn 2026.</p>
+      <p>The code is written together with Claude Code, an AI coding agent from Anthropic. Every time it got something wrong and had to correct it, the mistake went into a log. The log is part of the project: <a href="https://github.com/mteinum/fly/blob/main/docs/ai-logg.md" target="_blank" rel="noopener">docs/ai-logg.md</a> (in Norwegian).</p>
+      <h2>Source code</h2>
+      <p><a href="https://github.com/mteinum/fly" target="_blank" rel="noopener">github.com/mteinum/fly</a>. The code is under the MIT licence; data, sound and fonts have their own terms.</p>
+    </section>
+    <section data-tab="real" hidden>
+      <p>Everything here comes from open data, placed where the source says it is.</p>
+      <ul>
+        <li>The terrain, in true scale with no vertical exaggeration.</li>
+        <li>Land cover, roads, bridges and place names.</li>
+        <li>Every building: where it stands, its outline and what type it is.</li>
+        <li>Church towers and lighthouses: where they stand and how tall they are.</li>
+        <li>Ships at the coastal airports: where they are right now, their size, course and speed.</li>
+        <li>Other aircraft: where they are right now, their altitude, course, speed, callsign and type.</li>
+        <li>The railways, the metro and tram lines in Oslo and the light rail in Bergen: where the tracks run, where they are in tunnel (dashed) and where the stations are.</li>
+        <li>Bus stops: where they are, from the national stop register.</li>
+        <li>Buses and trains: where they last reported being, and their line number. Only what the operators send to Entur: Oslo's city buses, trams and metro and Bergen's light rail are missing.</li>
+        <li>Runways, the position of the sun and the time of day.</li>
+        <li>The wind: direction and speed as the airport last reported them.</li>
+      </ul>
+    </section>
+    <section data-tab="madeup" hidden>
+      <p>Placed by pattern or drawn for the game, not taken from data.</p>
+      <ul>
+        <li>The fun figures: the chimpanzee over the zoo in Kristiansand, the crown over the Royal Palace, the ski jumper, ships, whales, the northern lights and the rest. The places are real; the figures are invented and many times larger than life. <kbd>L</kbd> turns them off.</li>
+        <li>The flight model. It is simple, with speeds in the range of an A320. The game lets you land it at Mehamn, whose 880 m runway no A320 could use, and at Kjeller, a small airfield for light aircraft.</li>
+        <li>The sightseeing tours: the sights are real places, but the starting point is worked out for the view (3.5 km from the sights, coming in over the lowest ground), and how close you must fly to collect or photograph one is chosen for the game.</li>
+        <li>At Kjeller: the parking stands and the tower position, and the Oslo city tour, which is a starting point chosen for the view and not a real route. There is no weather report for Kjeller, so the wind is calm there.</li>
+        <li>The wind is the same everywhere on the map and at every height, without gusts or turbulence.</li>
+        <li>The glide path and localiser. They are geometry from the runway ends, not the airport's ILS.</li>
+        <li>The width of most taxiways, and the yellow lines and numbers painted on them.</li>
+        <li>Taxiway lights and apron floodlighting at night.</li>
+        <li>The airport signs. They follow the standard pattern (black for where you are, yellow for where the taxiways lead, red before a runway), but their positions are placed by rule, not surveyed.</li>
+        <li>Night lights, runway markings, ground detail, and the colours and flat roofs of buildings. Most building heights are estimates.</li>
+        <li>The shape of the ships and of other aircraft, and how they move between position reports.</li>
+        <li>The colours of the railway, metro, tram and light rail lines (one per kind, not the lines' own), and the width of the stripes.</li>
+        <li>The size of the bus stop signs: a real sign is 60 cm wide, the ones here are 8 m, on a 12 m pole. There is one per stop, not one per direction.</li>
+        <li>The shape, colour and size of buses and trains (buses are drawn two and a half times too large, to be seen from the air), and their straight-line glide between two reports. Trains in tunnels are drawn on the surface.</li>
+        <li>How lighthouses flash. Real ones each have their own pattern and colours.</li>
+        <li>Tunnels are underground. The dashed lines only show where they run.</li>
+        <li>All sound, including the voice from the tower.</li>
+      </ul>
+    </section>
+    <section data-tab="credits" hidden>
+      <h2>Data and credits</h2>
+      <ul>
+        <li>Elevation (DTM and DOM), N50 map data, building points (Matrikkelen) and place names: © Kartverket, CC BY 4.0.</li>
+        <li>Building outlines: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors, available under the Open Database License. The building data in the game is shared under the same licence. Taxiways, aprons and stand numbers at the airports are also from OpenStreetMap.</li>
+        <li>Ship positions: Kystverket's open AIS data (NLOD), relayed by this site. Small fishing and leisure boats are not included.</li>
+        <li>Buses and trains: <a href="https://developer.entur.no/" target="_blank" rel="noopener">Entur</a>'s open vehicle positions (NLOD), relayed by this site. Bus stops: Entur's national stop register (NLOD).</li>
+        <li>Aircraft positions: <a href="https://www.adsb.lol/" target="_blank" rel="noopener">adsb.lol</a>, a community network of ADS-B receivers, under the Open Database License. Coverage depends on where volunteers have receivers, so some aircraft are missing.</li>
+        <li>Wind: the airport's latest weather report (METAR) from <a href="https://api.met.no/" target="_blank" rel="noopener">MET Norway</a>, CC BY 4.0, relayed by this site.</li>
+        <li>Airports and runways: OurAirports, public domain.</li>
+        <li>Sound: generated with ElevenLabs.</li>
+        <li>Drawn with three.js.</li>
+        <li>The University of Agder logo marks its campus and belongs to the university.</li>
+      </ul>
+      <p>Not affiliated with Airbus, Avinor or Kartverket.</p>
+      <h2>Privacy</h2>
+      <p>The game has no accounts and stores nothing about you. The ship, aircraft and weather services keep the latest positions and weather report, nothing about visitors. The site loads Google Tag Manager for visitor statistics. If you share a diploma, the name you typed is part of the link.</p>
+    </section>
+    <p class="foot">This is a game. Do not use it for navigation or flight training.</p>
     <p class="muted" id="aboutBuild"></p>
     <button id="aboutClose">Close</button>
   </div>

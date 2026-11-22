@@ -196,11 +196,15 @@ async function main(): Promise<void> {
   const showAbout = (on: boolean) => { about.hidden = !on; if (!on) overlay.focus(); };
   document.getElementById("aboutBuild")!.textContent = `Build ${__BUILD__.date}${__BUILD__.commit ? ` · ${__BUILD__.commit}` : ""}`;
   // Hjelpen er delt i faner: ett tema om gangen i stedet for alt på én gang
-  const tabs = [...document.querySelectorAll<HTMLButtonElement>("#help .tabs button")];
-  for (const tab of tabs) tab.onclick = () => {
-    for (const other of tabs) other.setAttribute("aria-selected", String(other === tab));
-    for (const section of document.querySelectorAll<HTMLElement>("#help section")) section.hidden = section.dataset.tab !== tab.dataset.tab;
+  const tabbed = (root: string): HTMLButtonElement[] => {
+    const buttons = [...document.querySelectorAll<HTMLButtonElement>(`${root} .tabs button`)];
+    for (const tab of buttons) tab.onclick = () => {
+      for (const other of buttons) other.setAttribute("aria-selected", String(other === tab));
+      for (const section of document.querySelectorAll<HTMLElement>(`${root} section`)) section.hidden = section.dataset.tab !== tab.dataset.tab;
+    };
+    return buttons;
   };
+  const tabs = tabbed("#help"), aboutTabs = tabbed("#about");
   // ?help eller ?help=explore: start med hjelpen åpen, på den fanen (til lenker og skjermbilder)
   const helpArg = new URLSearchParams(location.search).get("help");
   if (helpArg !== null) { (document.getElementById("help") as HTMLDetailsElement).open = true; tabs.find((t) => t.dataset.tab === helpArg)?.click(); }
@@ -209,7 +213,8 @@ async function main(): Promise<void> {
   about.addEventListener("click", (e) => { if (e.target === about) showAbout(false); });
   addEventListener("keydown", (e) => { if (e.code === "Escape" && !about.hidden) showAbout(false); });
   // ?about: åpne den med en gang (til skjermbilder)
-  if (params.has("about")) showAbout(true);
+  // ?about eller ?about=real: start med om-skjermen åpen, på den fanen
+  if (params.has("about")) { showAbout(true); aboutTabs.find((t) => t.dataset.tab === params.get("about"))?.click(); }
 
   // ?clean: bare 3D-bildet, uten skjermtekst, hjelp og kreditering. Til skjermbilder (f.eks. delingsbildet).
   const clean = new URLSearchParams(location.search).has("clean");
