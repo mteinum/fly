@@ -116,6 +116,8 @@ export interface Game {
   /** Sett kursen mot et skip i `ships` (valgt i skipslista). Punktet følger skipet til flyet er over det, eller
    *  til skipet ikke lenger er med i lista. */
   flyToShip(id: number): void;
+  /** Skipet flyet nettopp kom fram til (valgt i skipslista). main.ts tar et bilde av det og nuller feltet. */
+  shipReached: { id: number; name: string } | null;
   /** Autopiloten flyr (A slår den av og på). `approach.autopilot` husker om den har vært brukt på denne innflygingen. */
   autopilot: boolean;
   /** Ett steg: klokke, fysikk, meldinger og ny innflyging når det trengs. */
@@ -221,7 +223,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
     if (game.directTo) {
       const to = steerTo(P, game.directTo.x, game.directTo.y, terrain.cell), ship = game.directTo.ship;
       if (K.ArrowLeft || K.ArrowRight || (ps && Math.abs(ps.right) > STICK_DEADZONE)) { game.directTo = null; say(ship ? `Heading to ${ship.name} cancelled` : "Map heading cancelled", 2); }
-      else if (to.distanceM < DIRECT_REACHED_M) { game.directTo = null; say(ship ? `Reached ${ship.name}` : "Reached the point on the map", 2.5); }
+      else if (to.distanceM < DIRECT_REACHED_M) { game.directTo = null; game.shipReached = ship ?? null; say(ship ? `Reached ${ship.name}: photo taken` : "Reached the point on the map", 2.5); }
       else return { ...manual, ArrowRight: Math.max(0, to.right), ArrowLeft: Math.max(0, -to.right) };
     }
     if (!game.autopilot || P.state !== "fly") return manual;
@@ -351,6 +353,7 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
       game.directTo = { x: Math.min(terrain.width, Math.max(0, x)), y: Math.min(terrain.height, Math.max(0, y)) };
       say("Turning to the point on the map", 2.5);
     },
+    shipReached: null,
     flyToShip(id) {
       const s = game.ships.find((s) => s.id === id);
       if (!s || P.state !== "fly" || game.replay) return;

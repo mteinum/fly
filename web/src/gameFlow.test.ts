@@ -125,6 +125,15 @@ describe("kurs mot et skip", () => {
     expect(game.msg.text).toContain("TESTSKIP");
   });
 
+  it("melder fra når flyet er over skipet, så det kan tas bilde", async () => {
+    const game = await newGame(), P = game.P;
+    game.ships = [{ id: 7, x: P.x + 5, y: P.y, heading: 0, speed: 0, name: "TESTSKIP", lengthM: 80, detail: "" }];
+    game.flyToShip(7);
+    game.step(0.02);
+    expect(game.directTo).toBeNull();
+    expect(game.shipReached).toEqual({ id: 7, name: "TESTSKIP" });
+  });
+
   it("gjør ingenting for et skip som ikke finnes", async () => {
     const game = await newGame();
     game.flyToShip(1);

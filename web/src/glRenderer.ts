@@ -979,8 +979,9 @@ export class GlRenderer {
     return [p.x, p.y, p.z];
   }
 
-  /** `spectator` er kameraets faste plass i verden når cam er «replay». */
-  render(P: Plane, cam: Camera, env: Environment, spectator?: [number, number, number]): void {
+  /** `spectator` er kameraets faste plass i verden når cam er «replay». `zoom` (rutenett, og størrelse i meter) gir
+   *  i stedet et bilde fra flyets buk med lang brennvidde, rettet mot det punktet: bildet av skipet flyet er over. */
+  render(P: Plane, cam: Camera, env: Environment, spectator?: [number, number, number], zoom?: { x: number; y: number; sizeM: number }): void {
     const { cell } = this.t, x = P.x * cell, z = P.y * cell;
     const fx = Math.sin(P.hdg), fz = -Math.cos(P.hdg);
     // Kurs om Y (med klokka sett ovenfra = negativ vinkel), nese opp om X, høyre vinge ned om Z
@@ -1014,9 +1015,17 @@ export class GlRenderer {
     this.landingLight.target.position.set(x + fx * 300, P.alt - 45 + Math.sin(P.pitch) * 300, z + fz * 300);
 
     const view = cam === "tower" ? towerView(this.t, P, this.towerZoom) : null;
-    this.camera.fov = view ? towerFov(this.towerZoom) : cam === "replay" ? 42 : 60;
+    // skipsbildet: brennvidden velges så skipet fyller omtrent halve bildehøyden
+    const eyeY = P.alt - 4, zoomDist = zoom ? Math.hypot(zoom.x * cell - x, eyeY - 4, zoom.y * cell - z) : 0;
+    this.camera.fov = zoom ? Math.min(60, Math.max(1, (2 * Math.atan(zoom.sizeM / zoomDist) * 180) / Math.PI)) : view ? towerFov(this.towerZoom) : cam === "replay" ? 42 : 60;
     this.camera.updateProjectionMatrix();
-    if (cam === "replay" && spectator) {
+    if (zoom) {
+      this.plane.visible = this.shadow.visible = false; // kameraet sitter i flyet
+      this.camera.clearViewOffset();
+      this.camera.position.set(x, eyeY, z);
+      this.camera.rotation.order = "XYZ";
+      this.camera.lookAt(zoom.x * cell, 4, zoom.y * cell);
+    } else if (cam === "replay" && spectator) {
       // reprise: kameraet står stille og følger flyet med blikket
       this.camera.clearViewOffset();
       this.camera.position.set(...spectator);
@@ -1046,7 +1055,7 @@ export class GlRenderer {
     this.groundDetail.setTime(performance.now() / 1000);
     this.updateLod();
     this.renderer.render(this.scene, this.camera);
-    if (view) this.renderScope(view.eye, x, P.alt + 3.6, z, view.scopeFov);
+    if (view && !zoom) this.renderScope(view.eye, x, P.alt + 3.6, z, view.scopeFov);
   }
 
   /** Kikkertkameraet: flyet sett fra tårnet med lang brennvidde, tegnet inn i skjermen på benken. */

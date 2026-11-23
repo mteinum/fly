@@ -459,9 +459,14 @@ const MAX_TRANSIT_LABELS = 8;
   const photoMenu = el("photoMenu"), photoNote = el("photoNote");
   let photo: { canvas: HTMLCanvasElement; info: SnapshotInfo } | null = null;
   const closePhoto = () => { photoMenu.hidden = true; photo = null; overlay.focus(); };
-  const showPhoto = (canvas: HTMLCanvasElement, info: SnapshotInfo) => {
+  /** `note`: bildet er tatt av spillet selv (skipsbildet), og er ikke kopiert: det krever et trykk fra spilleren. */
+  const showPhoto = (canvas: HTMLCanvasElement, info: SnapshotInfo, note?: string) => {
     photo = { canvas, info };
     (el("photoPreview") as HTMLImageElement).src = canvas.toDataURL("image/jpeg", 0.7);
+    el("photoShare").hidden = !canShareSnapshot();
+    photoMenu.hidden = false;
+    el("photoCopy").textContent = note ? "Copy" : "Copy again";
+    if (note) { photoCopied = null; photoNote.textContent = note; return; }
     photoNote.textContent = "Copying…";
     const copied = photoCopied;
     const say = (text: string) => { if (photo?.canvas === canvas && photoCopied === copied) photoNote.textContent = text; };
@@ -469,8 +474,18 @@ const MAX_TRANSIT_LABELS = 8;
     copied?.then(() => say("Copied. Paste it into a message or a post."), () => say(failed));
     // noen nettlesere svarer aldri (venter på en tillatelse ingen ser): ikke la «Copying…» stå
     setTimeout(() => { if (photoNote.textContent === "Copying…") say(failed); }, 5000);
-    el("photoShare").hidden = !canShareSnapshot();
-    photoMenu.hidden = false;
+  };
+  /** Bildet av skipet flyet nettopp kom fram til: tegnet én gang ekstra med lang brennvidde fra flyets buk, så
+   *  skipet er motivet. Skjermbildet tegnes på nytt etterpå, så spilleren ser ikke utsnittet før i menyen. */
+  const shipPhoto = (reached: { id: number; name: string }) => {
+    const s = game.ships.find((s) => s.id === reached.id);
+    if (!s || game.replay || game.P.state !== "fly") return;
+    renderer.render(game.P, game.cam, game.env, undefined, { x: s.x, y: s.y, sizeM: s.lengthM });
+    const info = snapshotInfo(terrain, chosen, game.P, game.time);
+    info.headline = [reached.name, s.detail].filter(Boolean).join(" · ");
+    const shot = composeSnapshot([glCanvas], glCanvas.width, glCanvas.height, info);
+    draw3d();
+    showPhoto(shot, info, `Photo of ${reached.name}, taken as you passed over.`);
   };
   const act = (id: string, run: (p: NonNullable<typeof photo>) => Promise<string>) => {
     el(id).onclick = () => {
@@ -541,6 +556,10 @@ const MAX_TRANSIT_LABELS = 8;
     setInterval(() => { if (!document.hidden) void poll(); }, GLIDE_S * 1000);
   }
 
+  const draw3d = (): void => {
+    if (game.replay) renderer.render(game.replay.plane, "replay", game.env, game.replay.spectator);
+    else { renderer.towerZoom = game.towerZoom; renderer.render(game.P, game.cam, game.env); }
+  };
   const frame = (dt: number): void => {
     game.step(dt);
     const shipNow = performance.now() / 1000;
@@ -572,8 +591,7 @@ const MAX_TRANSIT_LABELS = 8;
     audio.update(game, terrain);
     const today = osloTime(game.time);
     renderer.figureState = { on: game.figures, wind: game.wind.vector, month: today.month, day: today.day };
-    if (game.replay) renderer.render(game.replay.plane, "replay", game.env, game.replay.spectator);
-    else { renderer.towerZoom = game.towerZoom; renderer.render(game.P, game.cam, game.env); }
+    draw3d();
     if (game.flightLog !== savedLog) {
       savedLog = game.flightLog;
       if (import.meta.env.DEV && savedLog) void fetch("/__flightlog", { method: "POST", body: JSON.stringify(savedLog) }).catch(() => {});
@@ -655,6 +673,7 @@ const MAX_TRANSIT_LABELS = 8;
     photoFrame = photoWanted;
     photoWanted = false;
     frame(dt);
+    if (game.shipReached) { const reached = game.shipReached; game.shipReached = null; if (!photoFrame) shipPhoto(reached); }
     if (!photoFrame) return;
     photoFrame = false;
     // Sightseeing: signalbyggene som er med i bildet (i rammen, nær nok og med fri sikt) telles som fotografert
