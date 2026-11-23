@@ -1,7 +1,9 @@
 import { execSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
+import { versionAndCompress } from "./src/dataVersions.ts";
 
 const FLIGHTS = fileURLToPath(new URL("../data/flights/", import.meta.url));
 
@@ -61,6 +63,18 @@ const videoFrames = (): Plugin => ({
   },
 });
 
+/** Kun bygget: etter at Vite har kopiert public/ til dist/ får flisene i dist/data versjon (hash i metadata.json)
+ *  og ferdig komprimerte utgaver (.br og .gz). Se src/dataVersions.ts. Utviklingsserveren leser public/ som før. */
+const dataVersions = (): Plugin => {
+  let dataDir = "";
+  return {
+    name: "data-versions",
+    apply: "build",
+    configResolved(config) { dataDir = resolve(config.root, config.build.outDir, "data"); },
+    async closeBundle() { console.log(await versionAndCompress(dataDir)); },
+  };
+};
+
 /** Hvilken utgave som kjører, til Om-skjermen: dato og git-commit på byggetidspunktet. */
 const build = () => {
   let commit = process.env.GITHUB_SHA?.slice(0, 7) ?? "";
@@ -68,4 +82,4 @@ const build = () => {
   return { date: new Date().toISOString().slice(0, 10), commit };
 };
 
-export default defineConfig({ plugins: [flightLogs(), videoFrames()], define: { __BUILD__: JSON.stringify(build()) } });
+export default defineConfig({ plugins: [flightLogs(), videoFrames(), dataVersions()], define: { __BUILD__: JSON.stringify(build()) } });

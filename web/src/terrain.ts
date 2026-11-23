@@ -265,20 +265,27 @@ export interface TerrainAssets {
   surface: Uint8Array;
 }
 
+/** Adressen til en fil som metadata.json peker på. Bygget (src/dataVersions.ts) legger filas innholds-hash i
+ *  metadata, og med `?v=<hash>` kan nettleseren beholde fila for alltid: nytt innhold gir ny adresse.
+ *  Utviklingsserveren har ingen hash og henter fila som før. */
+export function fileUrl(baseUrl: string, entry: { file: string; hash?: string }): string {
+  return `${baseUrl}/${entry.file}${entry.hash ? `?v=${entry.hash}` : ""}`;
+}
+
 export async function loadTerrain(baseUrl: string): Promise<TerrainAssets> {
   const meta: TerrainMeta = await (await fetch(`${baseUrl}/metadata.json`)).json();
   const [hgtBuf, colormap, lights, lcBuf, surfaceBuf, structures, names, footprints, aeroways, rails, busStops] = await Promise.all([
-    fetch(`${baseUrl}/${meta.heightmap.file}`).then((r) => r.arrayBuffer()),
-    loadImage(`${baseUrl}/${meta.colormap.file}`),
-    meta.lights ? loadImage(`${baseUrl}/${meta.lights.file}`) : null,
-    fetch(`${baseUrl}/${meta.landcover.file}`).then((r) => r.arrayBuffer()),
-    fetch(`${baseUrl}/${meta.surface.file}`).then((r) => r.arrayBuffer()),
-    fetch(`${baseUrl}/${meta.structures.file}`).then((r) => r.json() as Promise<StructureFile>),
-    meta.names ? fetch(`${baseUrl}/${meta.names.file}`).then((r) => r.json() as Promise<NameFile>) : null,
-    meta.structures.footprints ? fetch(`${baseUrl}/${meta.structures.footprints.file}`).then((r) => r.arrayBuffer()) : null,
-    meta.aeroways ? fetch(`${baseUrl}/${meta.aeroways.file}`).then((r) => r.json() as Promise<Aeroways>) : null,
-    meta.rails ? fetch(`${baseUrl}/${meta.rails.file}`).then((r) => r.json() as Promise<Rails>) : null,
-    meta.busStops ? fetch(`${baseUrl}/${meta.busStops.file}`).then((r) => r.json() as Promise<BusStopFile>) : null,
+    fetch(fileUrl(baseUrl, meta.heightmap)).then((r) => r.arrayBuffer()),
+    loadImage(fileUrl(baseUrl, meta.colormap)),
+    meta.lights ? loadImage(fileUrl(baseUrl, meta.lights)) : null,
+    fetch(fileUrl(baseUrl, meta.landcover)).then((r) => r.arrayBuffer()),
+    fetch(fileUrl(baseUrl, meta.surface)).then((r) => r.arrayBuffer()),
+    fetch(fileUrl(baseUrl, meta.structures)).then((r) => r.json() as Promise<StructureFile>),
+    meta.names ? fetch(fileUrl(baseUrl, meta.names)).then((r) => r.json() as Promise<NameFile>) : null,
+    meta.structures.footprints ? fetch(fileUrl(baseUrl, meta.structures.footprints)).then((r) => r.arrayBuffer()) : null,
+    meta.aeroways ? fetch(fileUrl(baseUrl, meta.aeroways)).then((r) => r.json() as Promise<Aeroways>) : null,
+    meta.rails ? fetch(fileUrl(baseUrl, meta.rails)).then((r) => r.json() as Promise<Rails>) : null,
+    meta.busStops ? fetch(fileUrl(baseUrl, meta.busStops)).then((r) => r.json() as Promise<BusStopFile>) : null,
   ]);
   // heightmap.f32 er little-endian, som alle plattformer nettlesere kjører på
   const terrain = new Terrain(meta, new Float32Array(hgtBuf), new Uint8Array(lcBuf), structures);
