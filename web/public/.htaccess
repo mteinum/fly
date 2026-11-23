@@ -5,6 +5,19 @@ Options -Indexes
   RewriteEngine On
   RewriteCond %{HTTPS} !=on
   RewriteRule ^ https://fly.teinum.no%{REQUEST_URI} [R=301,L,NE]
+
+  # Flisene ligger ferdig komprimert ved siden av originalen (.br og .gz, skrevet av bygget, se web/src/dataVersions.ts).
+  # Brotli først, så gzip; finnes ingen av dem sendes originalen, og mod_deflate komprimerer som før.
+  RewriteCond %{HTTP:Accept-Encoding} \bbr\b
+  RewriteCond %{REQUEST_FILENAME}.br -s
+  RewriteRule ^(data/.+\.(?:f32|bin|json))$ $1.br [L]
+  RewriteCond %{HTTP:Accept-Encoding} \bgzip\b
+  RewriteCond %{REQUEST_FILENAME}.gz -s
+  RewriteRule ^(data/.+\.(?:f32|bin|json))$ $1.gz [L]
+  # Andre runde, på den omskrevne stien: riktig innholdstype, og ingen komprimering én gang til.
+  # Må stå her og ikke på regelen over: variabler satt i første runde får forstavelsen REDIRECT_.
+  RewriteRule ^data/.+\.json\.(?:br|gz)$ - [L,T=application/json,E=no-gzip:1,E=no-brotli:1]
+  RewriteRule ^data/.+\.(?:f32|bin)\.(?:br|gz)$ - [L,T=application/octet-stream,E=no-gzip:1,E=no-brotli:1]
 </IfModule>
 
 # Delingssiden (share/) har en fellesfil som ikke skal åpnes direkte
@@ -17,9 +30,13 @@ Options -Indexes
 <IfModule mod_mime.c>
   # Fliser fra pipeline: rå Float32 og uint8
   AddType application/octet-stream .f32 .bin
+  # Ferdig komprimerte fliser: .br og .gz er en koding av innholdet, ikke en egen filtype
+  RemoveType .br .gz
+  AddEncoding br .br
+  AddEncoding gzip .gz
 </IfModule>
 
-# Høydekart og klasseraster er store (26 MB + 2 x 6,5 MB), men komprimerer godt
+# Det som ikke er komprimert på forhånd (html, js, css, og fliser uten .br/.gz) komprimeres her
 <IfModule mod_deflate.c>
   AddOutputFilterByType DEFLATE application/octet-stream application/json text/html text/css application/javascript text/javascript
 </IfModule>
@@ -36,10 +53,21 @@ Options -Indexes
   <FilesMatch "\.(png|jpg|mp3)$">
     Header set Cache-Control "public, max-age=3600"
   </FilesMatch>
-  # Metadata og fliser hører sammen og må aldri henge etter: nettleseren spør alltid om de er endret
-  # (uendrede filer lastes ikke ned på nytt). Navn og kreditering i spillet kommer fra metadata.
-  <FilesMatch "\.(json|f32|bin)$">
-    Header set Cache-Control "no-cache"
+  # Fliser med versjon i adressen (?v=<hash>, satt av fileUrl i web/src/terrain.ts) endres aldri: nytt innhold
+  # gir ny adresse. De kan caches for alltid. <If> leses etter <FilesMatch> og vinner over timen for png over.
+  <FilesMatch "\.(json|f32|bin|png)(\.br|\.gz)?$">
+    <If "%{QUERY_STRING} =~ /^v=[0-9a-f]{12}$/">
+      Header set Cache-Control "public, max-age=31536000, immutable"
+    </If>
+  </FilesMatch>
+  # Uten versjon (metadata.json, index.json, lydmanifestet): nettleseren spør alltid om fila er endret
+  # (uendrede filer lastes ikke ned på nytt). Navn, kreditering og flisenes versjoner kommer fra metadata.
+  <FilesMatch "\.(json|f32|bin)(\.br|\.gz)?$">
+    <If "%{QUERY_STRING} !~ /^v=[0-9a-f]{12}$/">
+      Header set Cache-Control "no-cache"
+    </If>
+    # Samme adresse gir ulikt innhold etter hva nettleseren tåler
+    Header merge Vary "Accept-Encoding"
   </FilesMatch>
   <FilesMatch "\.html$">
     Header set Cache-Control "no-cache"
