@@ -35,11 +35,20 @@ h1{font-size:15px;margin:0 0 4px;color:#ffb366}
 .touch{display:none;position:fixed;left:0;right:0;bottom:16px;justify-content:center;gap:6px;flex-wrap:wrap;z-index:2}
 @media (pointer:coarse){.touch{display:flex}}
 .touch button{padding:10px 14px;font-size:16px;background:rgba(27,27,41,.7)}
-.clean #help,.clean #credits,.clean .touch,.clean #photoBtn,.clean #photoMenu{display:none}
+.clean #help,.clean #credits,.clean .touch,.clean #photoBtn,.clean #photoMenu,.clean #shipBtn,.clean #shipMenu{display:none}
 /* Fotoknappen nede til venstre. På berøringsskjerm står den i knapperaden i stedet, så den ikke dekkes av den. */
 #photoBtn{position:fixed;left:10px;bottom:36px;z-index:3;width:40px;height:40px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.45);color:#9fd0ff;opacity:.8}
 #photoBtn:hover{opacity:1;background:rgba(0,0,0,.6)}
 @media (pointer:coarse){#photoBtn{display:none}}
+/* Skipslista: knappen står ved siden av fotoknappen. Bare på skjermer med mus. */
+#shipBtn{position:fixed;left:58px;bottom:36px;z-index:3;width:40px;height:40px;padding:0;border:0;border-radius:50%;display:grid;place-items:center;background:rgba(0,0,0,.45);color:#9fd0ff;opacity:.8}
+#shipBtn:hover{opacity:1;background:rgba(0,0,0,.6)}
+#shipBtn[hidden],#shipMenu[hidden],#shipNone[hidden]{display:none}
+@media (pointer:coarse){#shipBtn{display:none}}
+#shipMenu{position:fixed;left:10px;bottom:84px;z-index:4;width:min(320px,calc(100vw - 20px));max-height:min(60vh,420px);overflow:auto;padding:10px;border-radius:10px;background:rgba(16,18,28,.94);box-shadow:0 6px 24px rgba(0,0,0,.5);font-size:13px;color:#e8e2d0}
+#shipMenu .head{margin-bottom:6px}
+#shipList button{display:grid;grid-template-columns:1fr max-content;gap:0 10px;width:100%;margin-top:4px;padding:6px 8px;text-align:left;font-size:13px}
+#shipList .detail{grid-column:1/-1;opacity:.7;font-size:12px}
 #tPhoto{display:inline-grid;place-items:center;padding:8px 14px}
 #photoMenu{position:fixed;left:10px;bottom:84px;z-index:4;width:min(320px,calc(100vw - 20px));padding:10px;border-radius:10px;background:rgba(16,18,28,.94);box-shadow:0 6px 24px rgba(0,0,0,.5);font-size:13px;color:#e8e2d0}
 #photoMenu[hidden]{display:none}

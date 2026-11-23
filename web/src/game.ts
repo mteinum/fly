@@ -110,9 +110,12 @@ export interface Game {
   photographed(seen: Sight[]): void;
   /** Punktet spilleren har trykket på i oversiktskartet (rutenett), eller null. Flyet svinger dit av seg selv;
    *  høyde og fart styrer piloten fortsatt. Slippes når flyet er framme, eller når piloten svinger selv. */
-  directTo: { x: number; y: number } | null;
+  directTo: { x: number; y: number; ship?: { id: number; name: string } } | null;
   /** Sett kursen mot et punkt i rutenettet (trykk i oversiktskartet). */
   flyTo(x: number, y: number): void;
+  /** Sett kursen mot et skip i `ships` (valgt i skipslista). Punktet følger skipet til flyet er over det, eller
+   *  til skipet ikke lenger er med i lista. */
+  flyToShip(id: number): void;
   /** Autopiloten flyr (A slår den av og på). `approach.autopilot` husker om den har vært brukt på denne innflygingen. */
   autopilot: boolean;
   /** Ett steg: klokke, fysikk, meldinger og ny innflyging når det trengs. */
@@ -124,7 +127,7 @@ export interface Game {
   /** Satt mens reprisen etter en krasj spilles av. Fysikken står stille imens. */
   replay: Replay | null;
   /** Skipene akkurat nå, til kartet: posisjon i rutenettet, rutenettkurs (rad) og fart (m/s). Settes av main.ts. */
-  ships: { x: number; y: number; heading: number; speed: number; name: string; lengthM: number; detail: string }[];
+  ships: { id: number; x: number; y: number; heading: number; speed: number; name: string; lengthM: number; detail: string }[];
   /** Andre fly akkurat nå, til kart, skilt og ND: posisjon i rutenettet, høyde (m), rutenettkurs, stigning (m/s),
    *  kallesignal og linje to, og hvordan TCAS ser flyet (se tcas.ts). */
   traffic: { id: string; x: number; y: number; alt: number; heading: number; climb: number; name: string; detail: string; tcas: TcasLevel }[];
@@ -209,10 +212,16 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
       if (!("unable" in want)) game.fd = { pitch: want.pitch, bank: want.bank };
     }
     if (game.directTo && P.state !== "fly") game.directTo = null;
+    if (game.directTo?.ship) {
+      // et skip flytter seg: punktet følger det
+      const target = game.directTo.ship, s = game.ships.find((s) => s.id === target.id);
+      if (s) { game.directTo.x = s.x; game.directTo.y = s.y; }
+      else { game.directTo = null; say(`${target.name} is no longer reporting its position`, 3); }
+    }
     if (game.directTo) {
-      const to = steerTo(P, game.directTo.x, game.directTo.y, terrain.cell);
-      if (K.ArrowLeft || K.ArrowRight || (ps && Math.abs(ps.right) > STICK_DEADZONE)) { game.directTo = null; say("Map heading cancelled", 2); }
-      else if (to.distanceM < DIRECT_REACHED_M) { game.directTo = null; say("Reached the point on the map", 2.5); }
+      const to = steerTo(P, game.directTo.x, game.directTo.y, terrain.cell), ship = game.directTo.ship;
+      if (K.ArrowLeft || K.ArrowRight || (ps && Math.abs(ps.right) > STICK_DEADZONE)) { game.directTo = null; say(ship ? `Heading to ${ship.name} cancelled` : "Map heading cancelled", 2); }
+      else if (to.distanceM < DIRECT_REACHED_M) { game.directTo = null; say(ship ? `Reached ${ship.name}` : "Reached the point on the map", 2.5); }
       else return { ...manual, ArrowRight: Math.max(0, to.right), ArrowLeft: Math.max(0, -to.right) };
     }
     if (!game.autopilot || P.state !== "fly") return manual;
@@ -341,6 +350,13 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
       if (game.autopilot) setAutopilot(false);
       game.directTo = { x: Math.min(terrain.width, Math.max(0, x)), y: Math.min(terrain.height, Math.max(0, y)) };
       say("Turning to the point on the map", 2.5);
+    },
+    flyToShip(id) {
+      const s = game.ships.find((s) => s.id === id);
+      if (!s || P.state !== "fly" || game.replay) return;
+      if (game.autopilot) setAutopilot(false);
+      game.directTo = { x: s.x, y: s.y, ship: { id, name: s.name || "the ship" } };
+      say(`Turning to ${s.name || "the ship"}`, 2.5);
     },
     ships: [],
     traffic: [],

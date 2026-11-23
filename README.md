@@ -47,7 +47,7 @@ halvtime bakover/framover, `M` slår lyden av og på, `N` stedsnavnene, `D` flig
 setebeltebryteren og TERR på GPWS-panelet (oppe), og gasshåndtakene, luftbremsen med armering av bakkespoilerne,
 klaffspaken, ECAM-tastene ENG og WHEEL og TCAS-velgeren (nede). Resten er tegnet for at panelene skal ligne.
 
-`L` slår morofigurene av og på (sjimpansen over Dyreparken, krona over Slottet, nordlys i nord og flere; se `web/src/figures.ts`). `?fun=0` starter uten dem.
+`L` slår morofigurene av og på (sjimpansen over Dyreparken, krona over Slottet, nordlys i nord og flere; se `web/src/figures.ts`). `?fun=0` starter uten dem. `H` (eller skipsknappen nede til venstre) åpner en liste over de ekte skipene i utsnittet (AIS); velg ett, og flyet svinger mot det og følger det.
 
 Kameraknappen nede til venstre (eller `K`) tar et bilde til deling: utsikten med en stripe nederst som sier hvor flyet er, høyde, fart, flyplass og tid. Bildet kopieres til utklippstavla med en gang, og en liten meny viser det og lar deg også laste det ned (og dele det, der enheten har delingsark).
 

@@ -108,3 +108,26 @@ describe("styring med mus eller finger", () => {
   });
 });
 
+
+describe("kurs mot et skip", () => {
+  it("følger skipet mens det flytter seg, og slipper når skipet blir borte", async () => {
+    const game = await newGame(), P = game.P;
+    const ship = { id: 257000000, x: P.x + 300, y: P.y - 300, heading: 0, speed: 5, name: "TESTSKIP", lengthM: 80, detail: "" };
+    game.ships = [ship];
+    game.flyToShip(ship.id);
+    expect(game.directTo).toMatchObject({ x: ship.x, y: ship.y, ship: { id: ship.id, name: "TESTSKIP" } });
+    game.ships = [{ ...ship, x: ship.x + 20, y: ship.y - 10 }];
+    game.step(0.02);
+    expect(game.directTo).toMatchObject({ x: ship.x + 20, y: ship.y - 10 });
+    game.ships = [];
+    game.step(0.02);
+    expect(game.directTo).toBeNull();
+    expect(game.msg.text).toContain("TESTSKIP");
+  });
+
+  it("gjør ingenting for et skip som ikke finnes", async () => {
+    const game = await newGame();
+    game.flyToShip(1);
+    expect(game.directTo).toBeNull();
+  });
+});

@@ -46,6 +46,12 @@
   <div class="row"><button id="photoDownload">Download</button><button id="photoCopy">Copy again</button><button id="photoShare" hidden>Share</button><button id="photoClose" aria-label="Close">✕</button></div>
   <div id="photoNote" role="status"></div>
 </div>
+<button id="shipBtn" title="Ships nearby (H)" aria-label="Ships nearby" aria-haspopup="dialog" hidden><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M11 2h2v3h4v4.6l3 1.4-2.2 6H6.2L4 11l3-1.4V5h4V2ZM9 7v1.7l3-1.4 3 1.4V7H9ZM3 19h18v2H3v-2Z"/></svg></button>
+<div id="shipMenu" role="dialog" aria-label="Ships nearby" hidden>
+  <div class="head">Ships nearby <span class="muted">· pick one to fly to it</span></div>
+  <div id="shipList"></div>
+  <div id="shipNone" class="muted">No ships are reporting their position here right now.</div>
+</div>
 <button id="aboutOpen" aria-haspopup="dialog">About</button>
 <details id="help">
   <summary>Help</summary>
@@ -76,6 +82,7 @@
         <dt>Fly over a sight</dt><dd>collects it (the square turns green)</dd>
         <dt><kbd>K</kbd> or 📷</dt><dd>takes a photo. A sight in the middle of the picture counts as photographed</dd>
         <dt>Click the map</dt><dd>the plane turns to that point</dd>
+        <dt><kbd>H</kbd></dt><dd>list of the real ships nearby: pick one and the plane turns to it</dd>
         <dt><kbd>Q</kbd><kbd>E</kbd></dt><dd>clock back / forward 30 minutes</dd>
         <dt><kbd>N</kbd></dt><dd>place names on / off</dd>
         <dt><kbd>L</kbd></dt><dd>fun figures on / off</dd>

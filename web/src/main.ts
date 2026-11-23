@@ -327,8 +327,9 @@ const MAX_TRANSIT_LABELS = 8;
     g.beginPath(); g.arc(px, cy, r, Math.PI * 0.82, Math.PI * 0.18); g.lineTo(px, py); g.closePath(); g.fill(); g.stroke();
     g.fillStyle = "#fff"; g.beginPath(); g.arc(px, cy, 1.1, 0, Math.PI * 2); g.fill();
     g.font = '600 3.4px "Helvetica Neue", Helvetica, Arial, sans-serif'; g.textAlign = "center";
-    g.lineWidth = 0.8; g.strokeStyle = "rgba(0,0,0,.6)"; g.strokeText(`${km.toFixed(1)} km`, px, cy - r - 1.6);
-    g.fillStyle = "#fff"; g.fillText(`${km.toFixed(1)} km`, px, cy - r - 1.6);
+    const text = to.ship ? `${to.ship.name} · ${km.toFixed(1)} km` : `${km.toFixed(1)} km`;
+    g.lineWidth = 0.8; g.strokeStyle = "rgba(0,0,0,.6)"; g.strokeText(text, px, cy - r - 1.6);
+    g.fillStyle = "#fff"; g.fillText(text, px, cy - r - 1.6);
     g.restore();
   };
   const drawNames = () => {
@@ -483,6 +484,43 @@ const MAX_TRANSIT_LABELS = 8;
   act("photoShare", async (p) => ((await shareSnapshot(p.canvas, p.info)) ? "Shared." : ""));
   el("photoClose").onclick = closePhoto;
   el("photoBtn").onclick = wantPhoto;
+  // Skipslista (H, eller knappen ved siden av fotoknappen): de ekte skipene i utsnittet, nærmest først. Et trykk på
+  // et skip setter kursen dit, og punktet følger skipet. Rekkefølgen står fast mens lista er åpen, så radene ikke
+  // bytter plass under pekeren; avstandene oppdateres.
+  const shipMenu = el("shipMenu"), shipList = el("shipList"), shipBtn = el("shipBtn"), shipRows = new Map<number, { row: HTMLButtonElement; dist: HTMLElement }>();
+  const shipKm = (s: { x: number; y: number }) => (Math.hypot(s.x - game.P.x, s.y - game.P.y) * terrain.cell) / 1000;
+  const closeShips = () => { shipMenu.hidden = true; overlay.focus(); };
+  const refreshShips = () => {
+    if (shipMenu.hidden) return;
+    const seen = new Set<number>();
+    for (const s of [...game.ships].sort((a, b) => shipKm(a) - shipKm(b))) {
+      seen.add(s.id);
+      let r = shipRows.get(s.id);
+      if (!r) {
+        const row = document.createElement("button"), name = document.createElement("b"), dist = document.createElement("span"), detail = document.createElement("span");
+        name.textContent = s.name || "Unnamed ship"; detail.textContent = s.detail; detail.className = "detail";
+        row.append(name, dist, detail);
+        row.onclick = () => { game.flyToShip(s.id); closeShips(); };
+        shipList.append(row);
+        shipRows.set(s.id, (r = { row, dist }));
+      }
+      r.dist.textContent = `${shipKm(s).toFixed(1)} km`;
+    }
+    for (const [id, r] of shipRows) if (!seen.has(id)) { r.row.remove(); shipRows.delete(id); }
+    el("shipNone").hidden = shipRows.size > 0;
+  };
+  shipBtn.hidden = !terrain.meta.ships;
+  shipBtn.onclick = () => {
+    if (!shipMenu.hidden) return closeShips();
+    shipRows.clear(); shipList.replaceChildren();
+    shipMenu.hidden = false;
+    refreshShips();
+  };
+  setInterval(refreshShips, 1000);
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Escape" && !shipMenu.hidden) closeShips();
+    if (e.code === "KeyH" && !e.repeat && !isTyping(e) && terrain.meta.ships) shipBtn.click();
+  });
   window.addEventListener("keydown", (e) => { if (e.code === "Escape" && !photoMenu.hidden) closePhoto(); });
 
   // Kollektivtrafikk: ekte busser og tog fra Entur, hentet fra /transit/ på serveren hvert 20. sekund.
@@ -510,7 +548,7 @@ const MAX_TRANSIT_LABELS = 8;
     renderer.setTransit(buses);
     const ships = fleet.list.map((s) => {
       const [x, y] = position(s, terrain, shipNow);
-      return { x, y, heading: s.heading, lengthM: s.lengthM, beamM: s.beamM, speed: s.speed, color: shipColor(s.type), name: s.name,
+      return { id: s.id, x, y, heading: s.heading, lengthM: s.lengthM, beamM: s.beamM, speed: s.speed, color: shipColor(s.type), name: s.name,
         // linje to på skiltet: type og destinasjon, det som finnes av dem
         detail: [shipKind(s.type), s.dest && `→ ${s.dest}`].filter(Boolean).join(" ") };
     });
