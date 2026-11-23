@@ -182,6 +182,50 @@ function lobsterFisher(): Model {
   };
 }
 
+/** Kystvakta, som jevnlig kontrollerer hummerfisket: et grått skip med skråstriper i rødt, hvitt og blått
+ *  som ligger i farvannet. */
+function coastGuard(): Model {
+  const g = new THREE.Group(), ship = group(g), GREY = 0x9aa3ab, LIGHT = 0xc9cfd4, DECK = 0x4a5058;
+  part(ship, box(8, 4, 36), GREY, 0, 1, 0);
+  const bow = group(ship, 0, 1, -23);
+  part(bow, cone(5.66, 10, 4), GREY, 0, 0, 0, -Math.PI / 2, Math.PI / 4);
+  bow.scale.y = 0.5; // like høy som skroget
+  for (const [k, c] of [RED, WHITE, 0x00205b].entries()) part(ship, box(8.3, 4, 1.1), c, 0, 1, -13.25 + k * 1.25, -0.5);
+  // skipssidas «KYSTVAKT», som på de ekte skipene
+  const cv = document.createElement("canvas");
+  cv.width = 512; cv.height = 80;
+  const ctx = cv.getContext("2d")!;
+  ctx.fillStyle = "#18181c"; ctx.font = "bold 76px sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText("KYSTVAKT", 256, 44, 500);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const lettering = new THREE.MeshLambertMaterial({ map: tex, transparent: true });
+  for (const s of [-1, 1]) part(ship, new THREE.PlaneGeometry(13, 2), lettering, s * 4.15, 1.7, -1, 0, s * Math.PI / 2);
+  part(ship, box(7, 3.5, 12), LIGHT, 0, 4.75, -4);
+  part(ship, box(6.4, 2.4, 6), LIGHT, 0, 7.7, -6); // brua
+  part(ship, box(6.5, 0.9, 5), 0x1c2733, 0, 8, -6.6);
+  part(ship, cyl(0.25, 0.35, 7, 8), GREY, 0, 12.4, -5);
+  const blue = part(ship, sph(0.6), glow(0x2a6cff), 0, 16.2, -5);
+  part(ship, cyl(0.2, 0.2, 1.2, 6), GREY, 0, 9.5, -7.5);
+  const radar = part(ship, box(3.4, 0.4, 0.5), WHITE, 0, 10.2, -7.5);
+  part(ship, box(3, 3.5, 3), GREY, 0, 8.25, 0.5); // skorsteinen
+  part(ship, box(3.1, 0.6, 3.1), BLACK, 0, 10, 0.5);
+  part(ship, box(8, 0.4, 11), DECK, 0, 3.2, 12.5); // helikopterdekket
+  part(ship, cyl(3, 3, 0.1, 20), WHITE, 0, 3.45, 12.5);
+  part(ship, box(1.8, 1.2, 1.8), DECK, 0, 3.6, -15.5); // kanonen på bakken
+  part(ship, cyl(0.15, 0.15, 3, 6), DECK, 0, 3.9, -17.5, Math.PI / 2);
+  ship.scale.setScalar(4);
+  return {
+    obj: g,
+    tick: (f) => {
+      ship.position.y = Math.sin(f.now * 0.5) * 0.6;
+      ship.rotation.z = Math.sin(f.now * 0.4) * 0.02;
+      radar.rotation.y = f.now * 2;
+      blue.visible = f.now % 1 < 0.15 || (f.now % 1 > 0.3 && f.now % 1 < 0.45);
+    },
+  };
+}
+
 /* ---------- Oslo ---------- */
 
 function crown(): Model {
@@ -610,7 +654,7 @@ function aurora(): { mesh: THREE.Mesh; uniforms: { time: { value: number }; stre
 
 function build(fig: PlacedFigure, t: Terrain): Model {
   const models: Record<FigureKind, () => Model> = {
-    chimp, pirateShip, cannon, lobsterFisher, crown, skiJumper: () => skiJumper(fig, t.cell), vikingShip, sinnataggen, dancer, umbrella, funicular: () => funicular(fig, t),
+    chimp, pirateShip, cannon, lobsterFisher, coastGuard, crown, skiJumper: () => skiJumper(fig, t.cell), vikingShip, sinnataggen, dancer, umbrella, funicular: () => funicular(fig, t),
     swords, oilPlatform, polarBear, maelstrom, santa, puffins, moose, balloon, whale, flags: () => flags(fig),
   };
   return models[fig.kind]();

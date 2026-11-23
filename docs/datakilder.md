@@ -474,7 +474,7 @@ sjekket mot dokumentasjonen – ikke før.
 SYNTETISK: figurene i `web/src/figures.ts` og `figureModels.ts` er oppdiktet og sterkt forstørret (en sjimpanse på
 60 m). Stedene er ekte: koordinatene er fra Sentralt stedsnavnregister (`ws.geonorge.no/stedsnavn/v1/navn`) eller
 N50-stedsnavnene i flisene, og kilden står ved hver figur. Unntak, valgt for hånd: Operaen (omtrentlig posisjon),
-hvalene, hummerfiskeren ved Flekkerøy (nærmeste åpne vann fra øya), oljeplattformen ved Sola (det står ingen der), elgen ved Gardermoen, ballongen og flaggrekka ved tårnet.
+hvalene, hummerfiskeren ved Flekkerøy (nærmeste åpne vann fra øya), kystvaktskipet i leia mellom Flekkerøya og Randesund, nord for Oksøy fyr (Kystvakten kontrollerer hummerfisket jevnlig, men skipet og plassen er oppdiktet), oljeplattformen ved Sola (det står ingen der), elgen ved Gardermoen, ballongen og flaggrekka ved tårnet.
 Skip, hval og plattform flyttes til nærmeste åpne vann i arealdekket. Fløibanen går i rett linje mellom
 Vetrlidsallmenningen og Fløyen, ikke i banens trasé. Nordlyset (Tromsø, Bodø, Mehamn) vises hver mørk natt, uten
 sammenheng med faktisk nordlysaktivitet. Nissen vises i desember og flaggene 17. mai. Ingen logoer eller
