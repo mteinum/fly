@@ -217,6 +217,11 @@ cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstje
   `podman machine start && podman run --rm -v "$PWD":/w -w /w docker.io/library/php:8.1-cli bash deploy/test_ais.sh /tmp/ais-test`
   (tilsvarende for deploy/test_share.sh, som trenger GD). Begge kjøres også i GitHub Actions.
 - Publiseringen sletter aldri filer på serveren. En fil som skal bort må erstattes med en tom utgave.
+- Flisene caches for alltid og sendes ferdig komprimert. Bygget (web/src/dataVersions.ts, Vite-plugin i vite.config.ts)
+  setter `hash` (SHA-256, 12 tegn) på hver `{ file }` i dist/data/*/metadata.json og skriver .br og .gz ved siden av
+  hver .f32/.bin/.json; web/public/data røres ikke, og filnavnene er uendret. Spillet henter med `fileUrl` (terrain.ts),
+  som legger på `?v=<hash>`, og web/public/.htaccess gir slike adresser `immutable` og velger .br/.gz. metadata.json og
+  index.json har `no-cache`. En ny fil i metadata må ha `file` og lastes med `fileUrl`, ellers blir den ikke cachet.
 - KI i spillet koster ingenting å spille: ingen språkmodell kalles fra den publiserte siden. Det som trenger en
   modell (gjennomgang av flylogger) kjører bare lokalt, og modellen får alle tall fra verktøy (debrief.py).
 - Glidebanens geometri finnes to steder: web/src/guidance.ts og pipeline/src/flypipe/analysis.py. Endres den ene,
