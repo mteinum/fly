@@ -3,7 +3,7 @@
  * Ekte: hvilke skip som er der, hvor de er, kurs, fart, navn, type og mål (det skipet selv sender).
  * Fiskefartøy under 15 m og fritidsfartøy under 45 m er ikke med i de åpne dataene.
  * SYNTETISK: formen og fargen skipet tegnes med, og bevegelsen mellom to meldinger (rett fram med samme fart).
- * Skip vi kjenner igjen på navnet (shipModelKind) får en egen, håndtegnet modell i stedet for to klosser.
+ * Formen er et mønster for skipstypen (shipModelKind), bygget i lengden og bredden skipet oppgir; se shipModels.ts.
  *
  * Ren regning uten three.js, så den kan testes uten nettleser. Serveren har alt gjort lengde/bredde om til
  * UTM 33; her gjøres bare UTM -> rutenett og sann kurs -> rutenettkurs, som for alt annet i spillet.
@@ -52,13 +52,22 @@ export function shipColor(type: number): number {
   return 0x70767e;
 }
 
-/** Skip som har en egen modell (shipModels.ts). */
-export type ShipModelKind = "superspeed";
+/** Modellene skipene tegnes med (shipModels.ts). */
+export type ShipModelKind = "superspeed" | "cargo" | "tanker" | "passenger" | "highSpeed" | "fishing" | "tug" | "dredger" | "pilot" | "diving" | "sailing" | "workboat";
 
-/** Hvilken modell et skip skal tegnes med, ut fra navnet det sender. null = den vanlige formen.
- *  Color Lines SuperSpeed 1 går Kristiansand-Hirtshals og sender «SUPERSPEED 1». */
-export function shipModelKind(name: string): ShipModelKind | null {
-  return /^SUPER\s*SPEED(\s*\d)?$/i.test(name.trim()) ? "superspeed" : null;
+/** Hvilken modell et skip tegnes med: etter navnet for de få vi kjenner igjen, ellers etter AIS-typen.
+ *  Color Lines SuperSpeed 1 går Kristiansand-Hirtshals og sender «SUPERSPEED 1». Kystverkets losbåter heter
+ *  «LOS» og et nummer, og er losbåter også når de sender en annen type. */
+export function shipModelKind(name: string, type: number): ShipModelKind {
+  const n = name.trim();
+  if (/^SUPER\s*SPEED(\s*\d)?$/i.test(n)) return "superspeed";
+  if (type === 50 || /^LOS\s*\d+$/i.test(n)) return "pilot";
+  if (type >= 80 && type <= 89) return "tanker";
+  if (type >= 70 && type <= 79) return "cargo";
+  if (type >= 60 && type <= 69) return "passenger";
+  if (type >= 40 && type <= 49) return "highSpeed";
+  const kinds: Record<number, ShipModelKind> = { 30: "fishing", 31: "tug", 32: "tug", 52: "tug", 33: "dredger", 34: "diving", 36: "sailing" };
+  return kinds[type] ?? "workboat";
 }
 
 /** AIS-skipstype (0-99) i klartekst, slik den vises på skiltet. Tom for typer som ikke sier noe. */

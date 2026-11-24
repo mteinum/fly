@@ -101,8 +101,13 @@ describe("skipets plass og skilt", () => {
     expect(fromAis([ship()], t, 0)[0].dest).toBe("");
   });
 
-  it("kjenner igjen SuperSpeed på navnet, og bare den", () => {
-    for (const name of ["SUPERSPEED 1", "SUPERSPEED 2", "SuperSpeed 1 ", "SUPERSPEED1", "SUPER SPEED 1", "SUPERSPEED"]) expect(shipModelKind(name)).toBe("superspeed");
-    for (const name of ["", "TESTSKIP", "COLOR FANTASY", "SUPERSPEEDY", "MS SUPERSPEED EXPRESS"]) expect(shipModelKind(name)).toBeNull();
+  it("velger modell etter navnet for SuperSpeed og losbåtene, ellers etter typen", () => {
+    for (const name of ["SUPERSPEED 1", "SUPERSPEED 2", "SuperSpeed 1 ", "SUPERSPEED1", "SUPER SPEED 1", "SUPERSPEED"]) expect(shipModelKind(name, 60)).toBe("superspeed");
+    for (const name of ["", "TESTSKIP", "COLOR FANTASY", "SUPERSPEEDY", "MS SUPERSPEED EXPRESS"]) expect(shipModelKind(name, 60)).toBe("passenger");
+    expect(shipModelKind("LOS113", 0)).toBe("pilot");
+    expect(shipModelKind("LOS 127", 90)).toBe("pilot");
+    expect(shipModelKind("LOSNA", 70)).toBe("cargo");
+    const byType: [number, string][] = [[30, "fishing"], [31, "tug"], [52, "tug"], [33, "dredger"], [34, "diving"], [36, "sailing"], [45, "highSpeed"], [50, "pilot"], [65, "passenger"], [74, "cargo"], [89, "tanker"], [51, "workboat"], [0, "workboat"], [99, "workboat"]];
+    for (const [type, kind] of byType) expect(shipModelKind("TESTSKIP", type)).toBe(kind);
   });
 });

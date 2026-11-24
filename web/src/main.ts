@@ -567,7 +567,7 @@ const MAX_TRANSIT_LABELS = 8;
     renderer.setTransit(buses);
     const ships = fleet.list.map((s) => {
       const [x, y] = position(s, terrain, shipNow);
-      return { id: s.id, x, y, heading: s.heading, lengthM: s.lengthM, beamM: s.beamM, speed: s.speed, color: shipColor(s.type), name: s.name,
+      return { id: s.id, x, y, heading: s.heading, lengthM: s.lengthM, beamM: s.beamM, speed: s.speed, color: shipColor(s.type), name: s.name, type: s.type,
         // linje to på skiltet: type og destinasjon, det som finnes av dem
         detail: [shipKind(s.type), s.dest && `→ ${s.dest}`].filter(Boolean).join(" ") };
     });

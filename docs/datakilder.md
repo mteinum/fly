@@ -381,10 +381,14 @@ spillet tegner skipene ved Kjevik, Sola, Flesland og Bodø (`web/src/ships.ts`).
   Destinasjonen er skrevet inn for hånd om bord og er ofte rar eller gammel. Destinasjoner med seks sifre eller
   mer vises ikke (noen skriver telefonnummer der).
 - **Syntetisk:** skipets form og farge, og bevegelsen mellom to meldinger (rett fram med samme fart, høyst 2,5 min).
-  Alle skip tegnes som et skrog med overbygg, unntatt Color Lines SuperSpeed (kjent igjen på navnet i AIS), som har
-  en egen modell i sann målestokk (`web/src/shipModels.ts`). Den er tegnet for hånd etter hvordan skipet ser ut, ikke
-  etter tegninger, og er derfor også syntetisk. På skutesida står «Color Line» og skipets navn fra AIS som
-  vanlig tekst (bedt om av eieren av prosjektet); rederiets logo er ikke med.
+  Hvert skip tegnes med en modell for typen det sender (`web/src/shipModels.ts`): lasteskip, tankskip, passasjerskip,
+  hurtigbåt, fiskebåt, slepebåt, mudringsfartøy, losbåt, dykkerfartøy, seilskip, eller arbeidsbåt for alt annet.
+  Modellen bygges i sann målestokk i lengden og bredden skipet oppgir (ekte), men formen er et mønster for typen og
+  ikke det enkelte skipet. Der typen har flere vanlige farger eller lastemåter (luker eller containere) er valget
+  trukket fast fra skipets AIS-nummer; AIS sier ingenting om det. Losbåter kjennes også igjen på navnet («LOS» og
+  et nummer). Color Lines SuperSpeed (kjent igjen på navnet) har en egen modell, tegnet for hånd etter hvordan skipet
+  ser ut, ikke etter tegninger. På skutesida står «Color Line» og skipets navn fra AIS som vanlig tekst (bedt om av
+  eieren av prosjektet); rederiets logo er ikke med.
 - **Ikke med:** fiskefartøy under 15 m og fritidsfartøy under 45 m (ikke i de åpne dataene), og skip som ikke er
   hørt på ti minutter.
 - **Kontroll:** PHP-koden tolker et opptak av strømmen (2013 linjer, `tests/fixtures/ais_sample.txt`) likt med en
