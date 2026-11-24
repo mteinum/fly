@@ -20,6 +20,8 @@ import { CHURCH_TOWER_HALF_WIDTH, LIGHTHOUSE_RADIUS } from "./physics";
 import { buildingMesh } from "./footprints";
 import { BUILDING, type Terrain, type TerrainAssets } from "./terrain";
 import { Figures } from "./figureModels";
+import { buildShipModel, type ShipModel } from "./shipModels";
+import { shipModelKind } from "./ships";
 import { SCOPE, towerFov, towerView } from "./tower";
 import { H as SCREEN_H, horizonShift, OX, PANEL_TOP, TOP, TOWER_SILL } from "./screen";
 
@@ -115,6 +117,8 @@ export class GlRenderer {
   private shipHouses!: THREE.InstancedMesh;
   private shipWakes!: THREE.InstancedMesh;
   private shipLights!: THREE.Points;
+  /** Skip med egen modell, etter AIS-id. Lages når skipet dukker opp og fjernes når det er borte. */
+  private shipModels = new Map<number, ShipModel>();
   private transitBodies!: THREE.InstancedMesh;
   private transitWindows!: THREE.InstancedMesh;
   private transitLights!: THREE.Points;
@@ -510,7 +514,8 @@ export class GlRenderer {
   }
 
   /** Skip tegnes som et skrog med overbygg akter, skalert etter lengde og bredde, og kjølvann når de er i fart.
-   *  Hvor de er og hvor store de er kommer fra AIS; formen er SYNTETISK og lik for alle. */
+   *  Hvor de er og hvor store de er kommer fra AIS; formen er SYNTETISK og lik for alle, unntatt de få som har
+   *  en egen modell (shipModels.ts). */
   private addShips(): void {
     const unit = () => new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0);
     this.shipHulls = new THREE.InstancedMesh(unit(), new THREE.MeshLambertMaterial(), MAX_SHIPS);
@@ -529,23 +534,38 @@ export class GlRenderer {
     this.scene.add(this.shipHulls, this.shipHouses, this.shipWakes, this.shipLights);
   }
 
-  /** Hvor skipene er nå. x og y i rutenettceller, heading som rutenettkurs i radianer, mål og fart i meter. */
-  setShips(ships: { x: number; y: number; heading: number; lengthM: number; beamM: number; speed: number; color: number }[]): void {
+  /** Hvor skipene er nå. x og y i rutenettceller, heading som rutenettkurs i radianer, mål og fart i meter.
+   *  Skip med egen modell (shipModels.ts) tegnes med den, i lengden skipet selv sender. */
+  setShips(ships: { id: number; name: string; x: number; y: number; heading: number; lengthM: number; beamM: number; speed: number; color: number }[]): void {
     const { cell } = this.t, m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), c = new THREE.Color();
     const pos = this.shipLights.geometry.getAttribute("position") as THREE.BufferAttribute;
+    const hidden = new THREE.Matrix4().makeScale(0, 0, 0), modelled = new Set<number>();
     let wakes = 0;
     const n = Math.min(ships.length, MAX_SHIPS);
     for (let i = 0; i < n; i++) {
       const s = ships[i], X = s.x * cell, Z = s.y * cell, fx = Math.sin(s.heading), fz = -Math.cos(s.heading);
       q.setFromAxisAngle(up, -s.heading); // boksens lengde ligger langs z; kurs 0 = nord = -z
-      const freeboard = Math.min(Math.max(s.lengthM * 0.06, 2), 12);
-      m.compose(new THREE.Vector3(X, 0, Z), q, new THREE.Vector3(s.beamM, freeboard, s.lengthM));
-      this.shipHulls.setMatrixAt(i, m); this.shipHulls.setColorAt(i, c.setHex(s.color, THREE.SRGBColorSpace));
-      // overbygget står akter: en firedel av lengden, litt smalere enn skroget
-      const house = s.lengthM * 0.24, top = freeboard + Math.min(Math.max(s.lengthM * 0.07, 2.5), 16);
-      m.compose(new THREE.Vector3(X - fx * s.lengthM * 0.3, freeboard, Z - fz * s.lengthM * 0.3), q, new THREE.Vector3(s.beamM * 0.8, top - freeboard, house));
-      this.shipHouses.setMatrixAt(i, m);
-      pos.setXYZ(i, X - fx * s.lengthM * 0.3, top + 3, Z - fz * s.lengthM * 0.3);
+      const kind = shipModelKind(s.name);
+      if (kind) {
+        let model = this.shipModels.get(s.id);
+        if (!model) { this.shipModels.set(s.id, (model = buildShipModel(kind, s.name))); this.scene.add(model.obj); }
+        modelled.add(s.id);
+        // et skip som ikke har sendt målene sine (28 m som standard) tegnes i modellens egen størrelse
+        const k = s.lengthM > model.lengthM / 2 ? s.lengthM / model.lengthM : 1;
+        model.obj.position.set(X, 0, Z); model.obj.quaternion.copy(q); model.obj.scale.setScalar(k);
+        this.shipHulls.setMatrixAt(i, hidden); this.shipHulls.setColorAt(i, c.setHex(s.color, THREE.SRGBColorSpace));
+        this.shipHouses.setMatrixAt(i, hidden);
+        pos.setXYZ(i, X + fx * 52 * k, model.mastM * k + 2, Z + fz * 52 * k);
+      } else {
+        const freeboard = Math.min(Math.max(s.lengthM * 0.06, 2), 12);
+        m.compose(new THREE.Vector3(X, 0, Z), q, new THREE.Vector3(s.beamM, freeboard, s.lengthM));
+        this.shipHulls.setMatrixAt(i, m); this.shipHulls.setColorAt(i, c.setHex(s.color, THREE.SRGBColorSpace));
+        // overbygget står akter: en firedel av lengden, litt smalere enn skroget
+        const house = s.lengthM * 0.24, top = freeboard + Math.min(Math.max(s.lengthM * 0.07, 2.5), 16);
+        m.compose(new THREE.Vector3(X - fx * s.lengthM * 0.3, freeboard, Z - fz * s.lengthM * 0.3), q, new THREE.Vector3(s.beamM * 0.8, top - freeboard, house));
+        this.shipHouses.setMatrixAt(i, m);
+        pos.setXYZ(i, X - fx * s.lengthM * 0.3, top + 3, Z - fz * s.lengthM * 0.3);
+      }
       if (s.speed > 1.5) {
         // kjølvannet blir lengre og bredere med farten
         const len = Math.min(s.speed * 28, 600);
@@ -553,6 +573,8 @@ export class GlRenderer {
         this.shipWakes.setMatrixAt(wakes++, m);
       }
     }
+    // modeller for skip som ikke lenger er med i lista
+    for (const [id, model] of this.shipModels) if (!modelled.has(id)) { this.scene.remove(model.obj); model.dispose(); this.shipModels.delete(id); }
     this.shipHulls.count = this.shipHouses.count = n;
     this.shipWakes.count = wakes;
     this.shipLights.geometry.setDrawRange(0, n);
@@ -954,6 +976,7 @@ export class GlRenderer {
     (this.transitLights.material as THREE.PointsMaterial).opacity = sky.night;
     this.shipLights.visible = sky.night > 0.05;
     (this.shipLights.material as THREE.PointsMaterial).opacity = sky.night;
+    for (const model of this.shipModels.values()) model.night(sky.night);
     this.lamps.visible = sky.night > 0.05;
     (this.lamps.material as THREE.PointsMaterial).opacity = sky.night;
     this.landingLight.intensity = sky.night * 2.5;

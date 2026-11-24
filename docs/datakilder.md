@@ -381,6 +381,9 @@ spillet tegner skipene ved Kjevik, Sola, Flesland og Bodø (`web/src/ships.ts`).
   Destinasjonen er skrevet inn for hånd om bord og er ofte rar eller gammel. Destinasjoner med seks sifre eller
   mer vises ikke (noen skriver telefonnummer der).
 - **Syntetisk:** skipets form og farge, og bevegelsen mellom to meldinger (rett fram med samme fart, høyst 2,5 min).
+  Alle skip tegnes som et skrog med overbygg, unntatt Color Lines SuperSpeed (kjent igjen på navnet i AIS), som har
+  en egen modell i sann målestokk (`web/src/shipModels.ts`). Den er tegnet for hånd etter hvordan skipet ser ut, ikke
+  etter tegninger, og er derfor også syntetisk. Rederiets logo er ikke med; på skutesida står navnet fra AIS.
 - **Ikke med:** fiskefartøy under 15 m og fritidsfartøy under 45 m (ikke i de åpne dataene), og skip som ikke er
   hørt på ti minutter.
 - **Kontroll:** PHP-koden tolker et opptak av strømmen (2013 linjer, `tests/fixtures/ais_sample.txt`) likt med en

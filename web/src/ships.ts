@@ -3,6 +3,7 @@
  * Ekte: hvilke skip som er der, hvor de er, kurs, fart, navn, type og mål (det skipet selv sender).
  * Fiskefartøy under 15 m og fritidsfartøy under 45 m er ikke med i de åpne dataene.
  * SYNTETISK: formen og fargen skipet tegnes med, og bevegelsen mellom to meldinger (rett fram med samme fart).
+ * Skip vi kjenner igjen på navnet (shipModelKind) får en egen, håndtegnet modell i stedet for to klosser.
  *
  * Ren regning uten three.js, så den kan testes uten nettleser. Serveren har alt gjort lengde/bredde om til
  * UTM 33; her gjøres bare UTM -> rutenett og sann kurs -> rutenettkurs, som for alt annet i spillet.
@@ -49,6 +50,15 @@ export function shipColor(type: number): number {
   if (type === 51 || type === 50 || type === 58) return 0xd9482b; // redning, los, ambulanse: rødt
   if (type === 52 || type === 31 || type === 32) return 0xc98a2b; // slepebåt og slep: oransje
   return 0x70767e;
+}
+
+/** Skip som har en egen modell (shipModels.ts). */
+export type ShipModelKind = "superspeed";
+
+/** Hvilken modell et skip skal tegnes med, ut fra navnet det sender. null = den vanlige formen.
+ *  Color Lines SuperSpeed 1 går Kristiansand-Hirtshals og sender «SUPERSPEED 1». */
+export function shipModelKind(name: string): ShipModelKind | null {
+  return /^SUPER\s*SPEED(\s*\d)?$/i.test(name.trim()) ? "superspeed" : null;
 }
 
 /** AIS-skipstype (0-99) i klartekst, slik den vises på skiltet. Tom for typer som ikke sier noe. */

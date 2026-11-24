@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { type AisShip, Fleet, fromAis, MAX_AGE_S, position, shipColor, shipKind } from "./ships";
+import { type AisShip, Fleet, fromAis, MAX_AGE_S, position, shipColor, shipKind, shipModelKind } from "./ships";
 import { loadTestTerrain } from "./testTerrain";
 
 const t = loadTestTerrain();
@@ -99,5 +99,10 @@ describe("skipets plass og skilt", () => {
     expect([shipKind(70), shipKind(79), shipKind(84), shipKind(60), shipKind(52), shipKind(30), shipKind(0), shipKind(99)]).toEqual(["Cargo", "Cargo", "Tanker", "Passenger", "Tug", "Fishing", "", ""]);
     expect(fromAis([ship({ dest: "BERGEN-FLAAM-BERGEN" })], t, 0)[0].dest).toBe("BERGEN-FLAAM-BERGEN");
     expect(fromAis([ship()], t, 0)[0].dest).toBe("");
+  });
+
+  it("kjenner igjen SuperSpeed på navnet, og bare den", () => {
+    for (const name of ["SUPERSPEED 1", "SUPERSPEED 2", "SuperSpeed 1 ", "SUPERSPEED1", "SUPER SPEED 1", "SUPERSPEED"]) expect(shipModelKind(name)).toBe("superspeed");
+    for (const name of ["", "TESTSKIP", "COLOR FANTASY", "SUPERSPEEDY", "MS SUPERSPEED EXPRESS"]) expect(shipModelKind(name)).toBeNull();
   });
 });
