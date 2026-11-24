@@ -3,7 +3,8 @@
  *
  * SYNTETISK: formen er tegnet for hånd etter hvordan skipet ser ut, ikke etter tegninger eller oppmåling. Hovedmålene
  * (lengde 211,3 m, bredde 25,8 m) er skipets egne, og modellen er i sann målestokk, ikke forstørret som morofigurene.
- * Rederiets logo og navnetrekk er ikke med (se CLAUDE.md om logoer); på skutesida står skipets navn fra AIS.
+ * På skutesida står rederiets navn og skipets navn fra AIS som vanlig tekst, etter ønske fra eieren av prosjektet.
+ * Rederiets logo (merket på skorsteinen) er ikke med (se CLAUDE.md om logoer).
  *
  * Modellene er tegnet i meter med y opp fra vannflata og baugen mot -z, som flyet og de andre skipene.
  */
@@ -49,17 +50,17 @@ function profile(points: [number, number][], width: number): THREE.BufferGeometr
   return new THREE.ExtrudeGeometry(s, { depth: width, bevelEnabled: false }).rotateY(Math.PI / 2).translate(-width / 2, 0, 0);
 }
 
-/** Navnet på skutesida, som tekstur. */
-function lettering(text: string): THREE.CanvasTexture {
-  const cv = document.createElement("canvas");
-  cv.width = 1024; cv.height = 128;
-  const ctx = cv.getContext("2d")!;
-  ctx.fillStyle = "#14306b"; ctx.font = "italic bold 112px Helvetica, Arial, sans-serif"; ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.fillText(text, 512, 68, 1000);
+/** Tekst på skutesida, som tekstur, og en flate med høyden `heightM` som passer til den. */
+function lettering(text: string, heightM: number, style = "italic bold"): { tex: THREE.CanvasTexture; geo: THREE.PlaneGeometry } {
+  const cv = document.createElement("canvas"), ctx = cv.getContext("2d")!, font = `${style} 112px Helvetica, Arial, sans-serif`;
+  ctx.font = font;
+  cv.width = Math.ceil(ctx.measureText(text).width) + 24; cv.height = 128; // ny størrelse nullstiller tegnetilstanden
+  ctx.fillStyle = "#14306b"; ctx.font = font; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  ctx.fillText(text, cv.width / 2, 68);
   const tex = new THREE.CanvasTexture(cv);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 8;
-  return tex;
+  return { tex, geo: new THREE.PlaneGeometry((heightM * cv.width) / cv.height, heightM) };
 }
 
 /** Color Lines SuperSpeed 1 (Kristiansand-Hirtshals) og 2: lang, slank bilferje med høye, glatte sider, blått
@@ -121,14 +122,18 @@ function superSpeed(name: string): ShipModel {
   // livbåter i nisjer langs siden
   for (const s of [-1, 1]) for (const fwd of [-22, -36, -50]) add(box(3, 2.8, 10), ORANGE, s * (B / 2 - 0.9), 18.4, fwd);
 
-  // navnet på skutesida, på det hvite feltet under vinduene
-  const tex = lettering(name), text = new THREE.MeshLambertMaterial({ map: tex, transparent: true });
-  for (const s of [-1, 1]) add(new THREE.PlaneGeometry(56, 7), text, s * (B / 2 + 0.12), 10.2, 4).rotation.y = (s * Math.PI) / 2;
+  // på det hvite feltet under vinduene: rederiets navn stort midtskips, og skipets navn foran det
+  const line = lettering("Color Line", 9.5, "bold"), own = lettering(name, 6.5);
+  const lineText = new THREE.MeshLambertMaterial({ map: line.tex, transparent: true }), text = new THREE.MeshLambertMaterial({ map: own.tex, transparent: true });
+  for (const s of [-1, 1]) {
+    add(line.geo, lineText, s * (B / 2 + 0.12), 10.3, -40).rotation.y = (s * Math.PI) / 2;
+    add(own.geo, text, s * (B / 2 + 0.12), 10.3, 20).rotation.y = (s * Math.PI) / 2;
+  }
 
   return {
     obj, lengthM: L, mastM: 40,
     night: (n) => { windows.emissiveIntensity = 0.9 * n; },
-    dispose: () => { for (const g of geos) g.dispose(); for (const m of [...mats.values(), windows, text]) m.dispose(); tex.dispose(); },
+    dispose: () => { for (const g of geos) g.dispose(); for (const m of [...mats.values(), windows, text, lineText]) m.dispose(); own.tex.dispose(); line.tex.dispose(); },
   };
 }
 
