@@ -61,6 +61,8 @@ export const FIGURES: Record<string, FigureSpec[]> = {
   ENMH: [
     { kind: "santa", east: 962903, north: 7931360, where: "Mehamn (N50 stedsnavn). Bare i desember" },
     { kind: "whale", east: 963182, north: 7933826, snap: "water", where: "Mehamnfjorden (N50 stedsnavn)" },
+    // Mehamn har en ekte sjørøverskute, «Piraten» (iFinnmark 4.7.2019). Modellen er den samme oppdiktede som ved Dyreparken.
+    { kind: "pirateShip", east: 962720, north: 7931060, snap: "water", where: "havnebassenget innenfor moloen i Mehamn, valgt for hånd fra arealdekket" },
   ],
   ENAL: [
     { kind: "puffins", east: 37850, north: 6961593, snap: "water", where: "Giskesundet (N50 stedsnavn)" },
