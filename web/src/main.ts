@@ -14,7 +14,7 @@ import { type AisShip, Fleet, position, shipColor, shipKind } from "./ships";
 import { tcasLevel } from "./tcas";
 import { loadTerrain } from "./terrain";
 import { towerView } from "./tower";
-import { osloTime } from "./clock";
+import { isoDate, osloTime, withDate } from "./clock";
 import { GLIDE_S, Transit, vehiclePosition, vehicleShape, type TransitMode, type TransitReport } from "./transit";
 import { sightsInPhoto } from "./sights";
 import { canShareSnapshot, composeSnapshot, copySnapshot, downloadSnapshot, shareSnapshot, snapshotInfo, type SnapshotInfo } from "./snapshot";
@@ -539,6 +539,33 @@ const MAX_TRANSIT_LABELS = 8;
     if (e.code === "KeyH" && !e.repeat && !isTyping(e) && terrain.meta.ships) shipBtn.click();
   });
   window.addEventListener("keydown", (e) => { if (e.code === "Escape" && !photoMenu.hidden) closePhoto(); });
+
+  // Datovelgeren (Y, eller kalenderknappen): flytter spillklokka til en annen dato med samme klokkeslett, så sola
+  // og lyset kan ses til en annen årstid. Datoen legges i adressen (?date), så den overlever en ny lasting.
+  const dateMenu = el("dateMenu"), dateInput = el("dateInput") as HTMLInputElement;
+  const closeDate = () => { dateMenu.hidden = true; overlay.focus(); };
+  const setDate = (iso: string) => {
+    const today = isoDate(Date.now()), time = withDate(game.time, iso || today);
+    if (time === null) return;
+    game.time = time;
+    dateInput.value = isoDate(time);
+    const url = new URL(location.href);
+    if (dateInput.value === today) url.searchParams.delete("date"); else url.searchParams.set("date", dateInput.value);
+    history.replaceState(null, "", url);
+  };
+  const toggleDate = () => {
+    if (!dateMenu.hidden) return closeDate();
+    dateInput.value = isoDate(game.time); // klokka kan ha gått over midnatt siden sist
+    dateMenu.hidden = false;
+  };
+  dateInput.onchange = () => setDate(dateInput.value);
+  for (const b of dateMenu.querySelectorAll<HTMLButtonElement>("button[data-date]")) b.onclick = () => setDate(b.dataset.date ? `${osloTime(game.time).year}-${b.dataset.date}` : "");
+  el("dateBtn").onclick = el("tDate").onclick = toggleDate;
+  el("dateClose").onclick = closeDate;
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Escape" && !dateMenu.hidden) closeDate();
+    if (e.code === "KeyY" && !e.repeat && !isTyping(e)) toggleDate();
+  });
 
   // Kollektivtrafikk: ekte busser og tog fra Entur, hentet fra /transit/ på serveren hvert 20. sekund.
   // ?transit=adresse (kun utviklingsmodus): f.eks. /dev/transit-test.json. Uten svar er veiene tomme.

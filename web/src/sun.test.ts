@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatOslo, osloTime, osloToUtc, startTime } from "./clock";
+import { formatOslo, isoDate, osloTime, osloToUtc, startTime, withDate } from "./clock";
 import { skyState } from "./sky";
 import { sunPosition } from "./sun";
 
@@ -77,6 +77,17 @@ describe("klokke", () => {
     expect(startTime(new URLSearchParams("time=23:00"), now)).toBe(utc("2026-11-17T22:00:00"));
     expect(startTime(new URLSearchParams("date=2026-06-21&time=12:00"), now)).toBe(utc("2026-06-21T10:00:00"));
     expect(startTime(new URLSearchParams("time=tull"), now)).toBe(utc("2026-11-17T12:00:00"));
+  });
+
+  it("datovelgeren bytter dato og beholder klokkeslettet i norsk tid", () => {
+    const winter = utc("2026-11-25T12:00:00"); // 13:00 vintertid
+    expect(isoDate(winter)).toBe("2026-11-25");
+    expect(isoDate(utc("2026-06-21T22:30:00"))).toBe("2026-06-22"); // 00:30 norsk tid
+    // Til sommertid: fortsatt 13:00 på klokka, altså én time tidligere i UTC
+    expect(withDate(winter, "2026-06-21")).toBe(utc("2026-06-21T11:00:00"));
+    expect(withDate(utc("2026-06-21T11:00:00"), "2026-12-21")).toBe(utc("2026-12-21T12:00:00"));
+    expect(withDate(winter, "2026-02-30")).toBeNull();
+    expect(withDate(winter, "tull")).toBeNull();
   });
 });
 

@@ -49,7 +49,7 @@
 </div>
 <div class="touch" id="touch">
   <button data-k="ArrowLeft">◀</button><button data-k="ArrowUp">▲ down</button><button data-k="ArrowDown">▼ up</button><button data-k="ArrowRight">▶</button>
-  <button data-k="KeyW">Thrust +</button><button data-k="KeyS">Thrust −</button><button id="tAuto">Autopilot</button><button id="tGear">Gear</button><button id="tBrake">Speed brake</button><button id="tFlapOut">Flaps +</button><button id="tFlapIn">Flaps −</button><button id="tPark">Park</button><button id="tCam">Camera</button><button id="tPhoto" aria-label="Take a photo"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9Zm3 4.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z"/></svg></button><button id="tTime">Time +2 h</button>
+  <button data-k="KeyW">Thrust +</button><button data-k="KeyS">Thrust −</button><button id="tAuto">Autopilot</button><button id="tGear">Gear</button><button id="tBrake">Speed brake</button><button id="tFlapOut">Flaps +</button><button id="tFlapIn">Flaps −</button><button id="tPark">Park</button><button id="tCam">Camera</button><button id="tPhoto" aria-label="Take a photo"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9Zm3 4.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z"/></svg></button><button id="tTime">Time +2 h</button><button id="tDate">Date</button>
 </div>
 <button id="photoBtn" title="Take a photo (K)" aria-label="Take a photo"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M9 4 7.2 6H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-3.2L15 4H9Zm3 4.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Zm0 2a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5Z"/></svg></button>
 <div id="photoMenu" role="dialog" aria-label="Your photo" hidden>
@@ -62,6 +62,13 @@
   <div class="head">Ships nearby <span class="muted">· pick one to fly to it</span></div>
   <div id="shipList"></div>
   <div id="shipNone" class="muted">No ships are reporting their position here right now.</div>
+</div>
+<button id="dateBtn" title="Pick a date (Y)" aria-label="Pick a date" aria-haspopup="dialog"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path fill="currentColor" d="M7 2h2v2h6V2h2v2h3a1 1 0 0 1 1 1v15a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1h3V2ZM5 10v9h14v-9H5Zm2 2h3v3H7v-3Z"/></svg></button>
+<div id="dateMenu" role="dialog" aria-label="Pick a date" hidden>
+  <div class="head">Date <span class="muted">· see the place at another time of year</span><button id="dateClose" aria-label="Close">✕</button></div>
+  <input id="dateInput" type="date" min="2000-01-01" max="2099-12-31" aria-label="Date">
+  <div class="row"><button data-date="06-21">Midsummer</button><button data-date="12-21">Midwinter</button><button data-date="03-20">Equinox</button><button data-date="">Today</button></div>
+  <div class="muted">The sun and the light follow the date. The ground looks the same all year: there is no snow.</div>
 </div>
 <button id="aboutOpen" aria-haspopup="dialog">About</button>
 <details id="help">
@@ -95,6 +102,7 @@
         <dt>Click the map</dt><dd>the plane turns to that point</dd>
         <dt><kbd>H</kbd></dt><dd>list of the real ships nearby: pick one and the plane turns to it, and takes a close-up photo of the ship when it gets there</dd>
         <dt><kbd>Q</kbd><kbd>E</kbd></dt><dd>clock back / forward 30 minutes</dd>
+        <dt><kbd>Y</kbd></dt><dd>pick a date: midsummer in November, or the polar night in June</dd>
         <dt><kbd>N</kbd></dt><dd>place names on / off</dd>
         <dt><kbd>L</kbd></dt><dd>fun figures on / off</dd>
         <dt><kbd>M</kbd></dt><dd>sound on / off</dd>

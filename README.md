@@ -40,7 +40,7 @@ for fullskjerm.
 
 Taster: piltaster styrer, `W`/`S` gass, `G` understell, `F`/`V` klaff ut/inn,
 `C` bytter mellom utvendig kamera, cockpit og tårn, `R` ny innflyging, `T` bytt bane (03/21), `Q`/`E` stiller klokka en
-halvtime bakover/framover, `M` slår lyden av og på, `N` stedsnavnene, `D` flight director, `P` fartsvektoren,
+halvtime bakover/framover, `Y` åpner datovelgeren (samme klokkeslett på en annen dato, f.eks. midtsommer), `M` slår lyden av og på, `N` stedsnavnene, `D` flight director, `P` fartsvektoren,
 `1`/`2`/`3` autobrems LO/MED/MAX, `Z` rekkevidden på ND (10, 20, 40 NM), `X` terrenget på ND av og på. Lyden starter ved første tastetrykk.
 
 `U` ser opp på overheadpanelet og `J` ned på midtkonsollen (samme tast en gang til ser fram igjen). Der virker

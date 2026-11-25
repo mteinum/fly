@@ -41,3 +41,19 @@ export function startTime(params: URLSearchParams, nowMs: number): number {
   if (time) [t.hour, t.minute] = [Number(time[1]), Number(time[2])];
   return osloToUtc(t);
 }
+
+/** Datoen i norsk tid som YYYY-MM-DD (formatet til ?date og til datovelgeren). */
+export function isoDate(utcMs: number): string {
+  const t = osloTime(utcMs);
+  return `${t.year}-${String(t.month).padStart(2, "0")}-${String(t.day).padStart(2, "0")}`;
+}
+
+/** Samme klokkeslett (norsk tid) på en annen dato, YYYY-MM-DD. Null hvis datoen ikke finnes (30. februar, tull). */
+export function withDate(utcMs: number, iso: string): number | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!m) return null;
+  const [year, month, day] = [Number(m[1]), Number(m[2]), Number(m[3])], check = new Date(Date.UTC(year, month - 1, day));
+  if (check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day) return null;
+  const t = osloTime(utcMs);
+  return osloToUtc({ year, month, day, hour: t.hour, minute: t.minute });
+}
