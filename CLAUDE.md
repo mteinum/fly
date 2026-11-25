@@ -13,7 +13,8 @@ pipeline/   Python 3.12 + uv. Henter og prosesserer data -> web/public/data/<uts
     grid.py       GridSpec: UTM-meter <-> rutenettceller
     areas.py      definisjon av utsnitt: 10 m rundt ENCN, ENZV, ENBR, ENAL, ENGM, ENBO, ENTC, ENMH og ENKJ, og 50 m for Kjevik.
                   Kjevik-utsnittet er flyttet 3,5 km sørover (center_offset) for å få med hele Flekkerøya,
-                  og Ålesund-utsnittet 4,5 km sørover for å få med byen. Kjeller-utsnittet er større (3072 celler),
+                  og Ålesund-utsnittet 4,5 km sørover for å få med byen. Mehamn-utsnittet er flyttet 3 km østover for å få med
+                  Gamvik og Slettnes fyr. Kjeller-utsnittet er større (3072 celler),
                   flyttet 6 km vest og 3 km sør så Oslo sentrum er med, ligger i to fylker og har en sightseeingtur (tours)
     dtm.py        Kartverket DTM og DOM via WCS, cache i data/raw/
     airports.py   OurAirports: flyplass + rullebaner; tårnposisjon fra N50-bygning type 411
@@ -60,7 +61,7 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     replay.ts      opptak av de siste 5 s og reprise utenfra etter krasj
     sun.ts         solas posisjon fra tid og sted
     sky.ts         himmelfarger og lysstyrke fra solhøyden
-    clock.ts       norsk tid <-> UTC
+    clock.ts       norsk tid <-> UTC, og bytte av dato med samme klokkeslett (datovelgeren, Y)
     glRenderer.ts  WebGL: terrengnett med LOD, normalkart, bygninger, bruer, lys
     groundDetail.ts  prosedyrale bakkedetaljer per overflateklasse (shader, syntetisk)
     runwayDecal.ts   rullebanen som skarp flate med merking (merkingen er syntetisk)
@@ -155,7 +156,7 @@ cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstje
    klokka): `x += sin(hdg)`, `y -= cos(hdg)`.
 5. Rutenett-nord er ikke sann nord. `sann = rutenett + gridConvergenceDeg`.
    Konvergensen er -5,88° i Kjevik-utsnittet (regnet i utsnittets sentrum, som ligger 3,5 km sør for flyplassen), -8,03° på Sola, -8,52° på Flesland, -3,39° på
-   Gardermoen, -0,59° i Bodø, -7,89° i Ålesund, -3,52° i Kjeller-utsnittet, +3,68° i Tromsø og +12,15° på Mehamn (Tromsø og Mehamn ligger øst
+   Gardermoen, -0,59° i Bodø, -7,89° i Ålesund, -3,52° i Kjeller-utsnittet, +3,68° i Tromsø og +12,23° i Mehamn-utsnittet (Tromsø og Mehamn ligger øst
    for sentralmeridianen og har positivt fortegn). Den står i hvert utsnitts metadata.json; bruk aldri én verdi for flere utsnitt.
    Retninger fra kilder (rullebane, vind, sol) er sanne og må korrigeres;
    rullebaneretning regnes ALLTID fra baneendene, både rutenettkurs (headingGridDeg) og sann kurs
@@ -194,7 +195,8 @@ cd pipeline && uv run python tests/ais_reference.py   # lag fasiten for skipstje
 - Sann målestokk, ingen vertikal overdrivelse. three.js brukes bare til
   tegning; fysikk og terrengoppslag er ren TypeScript og testes uten nettleser.
 - Kameraene heter «utvendig», «cockpit» og «tårn» (ikke «jakt»).
-- Tid: spillet starter kl. 13:00 norsk tid samme dag (kan overstyres med ?time og ?date).
+- Tid: spillet starter kl. 13:00 norsk tid samme dag (kan overstyres med ?time og ?date, og datoen kan byttes
+  i spillet med datovelgeren, som også skriver ?date i adressen).
   Spillklokka er UTC i ms, vises i norsk tid. Solas asimut er sann og må
   korrigeres med meridiankonvergensen før den brukes i rutenettet (game.ts).
 - Skill mellom ekte og syntetisk: det som er plassert etter mønster og ikke
