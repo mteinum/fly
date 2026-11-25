@@ -272,10 +272,38 @@ export function fileUrl(baseUrl: string, entry: { file: string; hash?: string })
   return `${baseUrl}/${entry.file}${entry.hash ? `?v=${entry.hash}` : ""}`;
 }
 
-export async function loadTerrain(baseUrl: string): Promise<TerrainAssets> {
+/** Henter en fil med kjent størrelse og melder framdriften (0-1) mens den kommer. Størrelsen gjelder innholdet
+ *  etter utpakking, så den stemmer selv om fila sendes komprimert (da sier Content-Length noe annet).
+ *  Feiler hvis fila ikke har den størrelsen metadata tilsier. */
+export async function fetchSized(url: string, size: number, onProgress?: (fraction: number) => void): Promise<ArrayBuffer> {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`${url}: HTTP ${r.status}`);
+  const wrong = (got: number) => new Error(`${url}: expected ${size} bytes, got ${got}`);
+  if (!r.body) {
+    const buf = await r.arrayBuffer();
+    if (buf.byteLength !== size) throw wrong(buf.byteLength);
+    onProgress?.(1);
+    return buf;
+  }
+  const out = new Uint8Array(size), reader = r.body.getReader();
+  let n = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (n + value.length > size) throw wrong(n + value.length);
+    out.set(value, n);
+    n += value.length;
+    onProgress?.(n / size);
+  }
+  if (n !== size) throw wrong(n);
+  return out.buffer;
+}
+
+/** `onProgress` følger høydekartet, som er klart størst av filene (tre firedeler av nedlastingen). */
+export async function loadTerrain(baseUrl: string, onProgress?: (fraction: number) => void): Promise<TerrainAssets> {
   const meta: TerrainMeta = await (await fetch(`${baseUrl}/metadata.json`)).json();
   const [hgtBuf, colormap, lights, lcBuf, surfaceBuf, structures, names, footprints, aeroways, rails, busStops] = await Promise.all([
-    fetch(fileUrl(baseUrl, meta.heightmap)).then((r) => r.arrayBuffer()),
+    fetchSized(fileUrl(baseUrl, meta.heightmap), meta.width * meta.height * 4, onProgress),
     loadImage(fileUrl(baseUrl, meta.colormap)),
     meta.lights ? loadImage(fileUrl(baseUrl, meta.lights)) : null,
     fetch(fileUrl(baseUrl, meta.landcover)).then((r) => r.arrayBuffer()),

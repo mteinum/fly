@@ -32,6 +32,17 @@
 <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
+<!-- Lasteskjerm: synlig før skriptet er hentet, fylles og fjernes av src/loading.ts -->
+<div id="loader">
+  <div class="box">
+    <img id="loaderMap" alt="" width="320" height="320" hidden>
+    <h1>teinum-fly · Airbus A320</h1>
+    <div id="loaderText" role="status">Loading</div>
+    <div class="bar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="loaderBar"></div></div>
+    <div id="loaderPct" class="muted" aria-hidden="true">0 %</div>
+    <button id="loaderRetry" hidden>Try again</button>
+  </div>
+</div>
 <div id="stage">
   <canvas id="gl"></canvas>
   <canvas id="screen" tabindex="0"></canvas>

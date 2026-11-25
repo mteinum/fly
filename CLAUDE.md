@@ -40,6 +40,8 @@ web/        Vite + TypeScript + three.js (kun til tegning), ingen spillmotor
     main.ts        laster fliser, kobler sammen og kjører løkka
     game.ts        spilltilstand, klokke, inndata (taster, og stikke med mus/finger: trykk, hold og dra i bildet)
     terrain.ts     laster fliser; heightAt, isWater, utmToGrid, sann kurs
+    loading.ts     lasteskjermen (ligger i index.html): flyplassnavn, oversiktskart og framdrift som følger høydekartet;
+                   borte når første bilde er tegnet
     physics.ts     flymodell (enkel, med A320-lignende fartsgrenser), klaffer, understell, luftbremser, landing, kollisjon,
                    utrulling med autobrems, og taksing på asfalten etter landing
     autopilot.ts   regelstyrt autopilot for innflyging og landing (A), flyr med spillerens kontroller;

@@ -6,6 +6,7 @@ import { GlRenderer } from "./glRenderer";
 import { cornerMapPoint, drawCornerMap, drawHud, drawMessage, drawSightsCount } from "./hud";
 import { candidates, declutter, inSight, labelStyle, type PlaceName } from "./labels";
 import { drawOverhead, drawPedestal, overheadHit, pedestalHit, pedestalThrustAt } from "./cockpitViews";
+import { loadingAirport, loadingDone, loadingFailed, loadingProgress } from "./loading";
 import { drawPanel, panelHit, thrustAt } from "./panel";
 import { groundVelocity, verticalSpeed } from "./physics";
 import { H, OX, setScreen, TOP, W, PANEL_TOP } from "./screen";
@@ -53,7 +54,8 @@ async function main(): Promise<void> {
   }
   document.title = `Fly an Airbus A320 to ${chosen.name.split(",").pop()!.trim()} – teinum-fly`;
   document.getElementById("where")!.textContent = chosen.name;
-  const assets = await loadTerrain(`${dataUrl}/${area}`);
+  loadingAirport(chosen.name, `${dataUrl}/${area}/thumb.jpg`);
+  const assets = await loadTerrain(`${dataUrl}/${area}`, loadingProgress);
   const { terrain } = assets;
   // Skjermtekst og instrumentpanel tegnes på et eget lerret oppå 3D-bildet
   const overlay = document.getElementById("screen") as HTMLCanvasElement;
@@ -669,10 +671,12 @@ const MAX_TRANSIT_LABELS = 8;
     g.fillStyle = "rgba(255,210,122,.85)"; g.beginPath(); g.arc(stick.x0 + dx, stick.y0 + dy, 3.2, 0, Math.PI * 2); g.fill();
     g.restore();
   };
+  let firstFrame = true;
   runLoop((dt) => {
     photoFrame = photoWanted;
     photoWanted = false;
     frame(dt);
+    if (firstFrame) { firstFrame = false; loadingDone(); } // lasteskjermen blir til første bilde er tegnet
     if (game.shipReached) { const reached = game.shipReached; game.shipReached = null; if (!photoFrame) shipPhoto(reached); }
     if (!photoFrame) return;
     photoFrame = false;
@@ -694,6 +698,7 @@ main().catch((err) => {
     if (document.fullscreenElement) void document.exitFullscreen();
     else void document.documentElement.requestFullscreen();
   };
+  loadingFailed();
   document.getElementById("info")!.textContent = `Error: ${err.message}. Have you run the pipeline (uv run flypipe build ${area})?`;
   throw err;
 });
