@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { candidates, declutter, inSight, labelStyle, type PlaceName, visibleRange } from "./labels";
+import { candidates, declutter, inSight, labelStyle, nearbyName, type PlaceName, visibleRange } from "./labels";
 import { hasTiles, loadReference, loadTestTerrain } from "./testTerrain";
 
 const place = (o: Partial<PlaceName>): PlaceName => ({ name: "x", x: 0, y: 0, z: 0, size: 6, type: "gard", group: "bebyggelse", ...o });
@@ -72,5 +72,21 @@ describe.skipIf(!hasTiles("kjevik"))("stedsnavn i flisene (Kjevik)", () => {
     expect(inSight(t, top.x, top.y + 2000 / t.cell, top.z + 50, top)).toBe(true);
     const behind = { ...top, y: top.y - 1500 / t.cell, z: 60 };
     expect(inSight(t, top.x, top.y + 2000 / t.cell, 80, behind)).toBe(false);
+  });
+});
+
+describe("navn ved et punkt på kartet", () => {
+  const names = [place({ name: "Gamvik", x: 100, y: 100, size: 8.7 }), place({ name: "Lillevika", x: 130, y: 100, size: 6 })];
+  it("bruker navnet når punktet ligger på stedet, og «near» når det ligger et stykke unna", () => {
+    expect(nearbyName(names, 105, 100, 10)).toBe("Gamvik"); // 50 m
+    expect(nearbyName(names, 60, 100, 10)).toBe("the point near Gamvik"); // 400 m
+  });
+  it("lar et viktigere navn vinne over et lite som er litt nærmere, men ikke over et som ligger på punktet", () => {
+    expect(nearbyName(names, 118, 100, 10)).toBe("Gamvik"); // 180 m til Gamvik, 120 m til Lillevika
+    expect(nearbyName(names, 130, 100, 10)).toBe("Lillevika");
+  });
+  it("gir ingenting når det ikke er navn innen 1,5 km", () => {
+    expect(nearbyName(names, 300, 100, 10)).toBeNull();
+    expect(nearbyName([], 0, 0, 10)).toBeNull();
   });
 });

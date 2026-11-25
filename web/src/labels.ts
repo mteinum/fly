@@ -76,3 +76,24 @@ export function labelStyle(n: PlaceName): { color: string; italic: boolean } {
   if (n.group === "terreng") return { color: "#d9f0c4", italic: true };
   return { color: "#ffffff", italic: false };
 }
+
+/** Lenger unna enn dette er ikke et navn «i nærheten» av et punkt på kartet. */
+export const NEARBY_NAME_M = 1500;
+/** Innenfor dette er punktet stedet selv; lenger unna sies det «near». */
+const AT_NAME_M = 300;
+
+/**
+ * Navnet som best beskriver et punkt på kartet (rutenettkoordinater): det nærmeste, men et viktigere navn (større
+ * skrift i kartet) vinner over et lite som ligger litt nærmere. Null når ingen navn ligger innen NEARBY_NAME_M.
+ * Brukes i meldingen når spilleren trykker på kartet; kursen settes fortsatt mot punktet, ikke mot navnet.
+ */
+export function nearbyName(names: PlaceName[], x: number, y: number, cell: number): string | null {
+  let best: PlaceName | null = null, bestScore = Infinity, bestM = 0;
+  for (const n of names) {
+    const m = Math.hypot(n.x - x, n.y - y) * cell;
+    if (m > NEARBY_NAME_M) continue;
+    const score = (m + 100) / n.size; // +100 m: helt inntil punktet teller viktigheten, ikke meterne
+    if (score < bestScore) [best, bestScore, bestM] = [n, score, m];
+  }
+  return best && (bestM <= AT_NAME_M ? best.name : `the point near ${best.name}`);
+}

@@ -1,6 +1,7 @@
 /* Spilltilstand, klokke og inndata. */
 import { autobrakeFor, autopilot, steerTo } from "./autopilot";
 import { startTime } from "./clock";
+import { nearbyName } from "./labels";
 import { gradeLanding } from "./diploma";
 import { type FlightLog, FlightLogger } from "./flightlog";
 import { type Keys, moveFlaps, park, setAutobrake, softStick, TAXI_ENTRY, startApproach, toggleGear, toggleSpeedBrake, update, type Wind, windFrom } from "./physics";
@@ -110,7 +111,7 @@ export interface Game {
   photographed(seen: Sight[]): void;
   /** Punktet spilleren har trykket på i oversiktskartet (rutenett), eller null. Flyet svinger dit av seg selv;
    *  høyde og fart styrer piloten fortsatt. Slippes når flyet er framme, eller når piloten svinger selv. */
-  directTo: { x: number; y: number; ship?: { id: number; name: string } } | null;
+  directTo: { x: number; y: number; ship?: { id: number; name: string }; label?: string } | null;
   /** Sett kursen mot et punkt i rutenettet (trykk i oversiktskartet). */
   flyTo(x: number, y: number): void;
   /** Sett kursen mot et skip i `ships` (valgt i skipslista). Punktet følger skipet til flyet er over det, eller
@@ -221,9 +222,9 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
       else { game.directTo = null; say(`${target.name} is no longer reporting its position`, 3); }
     }
     if (game.directTo) {
-      const to = steerTo(P, game.directTo.x, game.directTo.y, terrain.cell), ship = game.directTo.ship;
-      if (K.ArrowLeft || K.ArrowRight || (ps && Math.abs(ps.right) > STICK_DEADZONE)) { game.directTo = null; say(ship ? `Heading to ${ship.name} cancelled` : "Map heading cancelled", 2); }
-      else if (to.distanceM < DIRECT_REACHED_M) { game.directTo = null; game.shipReached = ship ?? null; say(ship ? `Reached ${ship.name}: photo taken` : "Reached the point on the map", 2.5); }
+      const to = steerTo(P, game.directTo.x, game.directTo.y, terrain.cell), ship = game.directTo.ship, named = game.directTo.label, label = named ?? "the point on the map";
+      if (K.ArrowLeft || K.ArrowRight || (ps && Math.abs(ps.right) > STICK_DEADZONE)) { game.directTo = null; say(ship ? `Heading to ${ship.name} cancelled` : named ? `Heading to ${label} cancelled` : "Map heading cancelled", 2); }
+      else if (to.distanceM < DIRECT_REACHED_M) { game.directTo = null; game.shipReached = ship ?? null; say(ship ? `Reached ${ship.name}: photo taken` : `Reached ${label}`, 2.5); }
       else return { ...manual, ArrowRight: Math.max(0, to.right), ArrowLeft: Math.max(0, -to.right) };
     }
     if (!game.autopilot || P.state !== "fly") return manual;
@@ -351,7 +352,9 @@ export function createGame(terrain: Terrain, focus: HTMLElement, weather: Weathe
       if (P.state !== "fly" || game.replay) return;
       if (game.autopilot) setAutopilot(false);
       game.directTo = { x: Math.min(terrain.width, Math.max(0, x)), y: Math.min(terrain.height, Math.max(0, y)) };
-      say("Turning to the point on the map", 2.5);
+      // Stedsnavnet i nærheten (N50), om det finnes et: «Turning to Gamvik» sier mer enn «the point on the map»
+      game.directTo.label = nearbyName(terrain.names, game.directTo.x, game.directTo.y, terrain.cell) ?? undefined;
+      say(`Turning to ${game.directTo.label ?? "the point on the map"}`, 2.5);
     },
     shipReached: null,
     flyToShip(id) {
