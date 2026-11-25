@@ -78,8 +78,11 @@ AREAS = {
     "flesland10": _airport_10m("flesland10", "Bergen Airport, Flesland", "ENBR", "46_Vestland"),
     "gardermoen10": _airport_10m("gardermoen10", "Oslo Airport, Gardermoen", "ENGM", "32_Akershus"),
     "bodo10": _airport_10m("bodo10", "Bodø Airport", "ENBO", "18_Nordland"),
-    # Mehamn ligger 12,8° øst for sentralmeridianen i UTM 33: konvergensen er +12,15° (de andre er negative)
-    "mehamn10": _airport_10m("mehamn10", "Mehamn Airport", "ENMH", "56_Finnmark"),
+    # Mehamn ligger 12,8° øst for sentralmeridianen i UTM 33: konvergensen er positiv (de andre er negative).
+    # Utsnittet er flyttet 3 km østover så Gamvik (østligste hus ved øst 977 000) og Slettnes fyr er med, 1,1 km fra
+    # kartkanten. Lenger går det ikke uten å miste Kinnarodden i vest (øst 953 560), som nå ligger 1 km innenfor.
+    # Banen går nord-sør, så innflygingene er like langt fra kanten som før.
+    "mehamn10": _airport_10m("mehamn10", "Mehamn Airport", "ENMH", "56_Finnmark", center_offset=(3000.0, 0.0)),
     "tromso10": _airport_10m("tromso10", "Tromsø Airport, Langnes", "ENTC", "55_Troms"),
     # Ålesund ligger 10 km sør for flyplassen på Vigra: utsnittet er flyttet 4,5 km sørover så hele byen er med.
     # Innflygingene (8 km fra hver baneende, nordøst og sørvest for banen) har fortsatt over 3 km til kartkanten.

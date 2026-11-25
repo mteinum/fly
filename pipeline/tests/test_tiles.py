@@ -155,7 +155,7 @@ def test_place_names_are_whole_names_inside_the_map(any_tiles):
 
     meta, hgt, grid = any_tiles
     names = json.loads((TILES.parent / meta["id"] / meta["names"]["file"]).read_text(encoding="utf-8"))["items"]
-    assert len(names) == meta["names"]["count"] > 200  # færrest ved Mehamn (286)
+    assert len(names) == meta["names"]["count"] > 200  # færrest ved Mehamn (298)
     assert not [n[0] for n in names if n[0].endswith("-") or not n[0].strip()]
     # tunnelnavn er med (tunnelene tegnes stiplet), og sier selv at de er tunneler
     assert all("tunnel" in n[0].lower() for n in names if n[5] == "tunnel")

@@ -135,7 +135,7 @@ Flyplassene i spillet (2026-11-20), alle sentrert på referansepunktet fra OurAi
 | ENBR Flesland | `flesland10` | Vestland | 17/35 | -8,52° | 3 punkter, som over |
 | ENGM Gardermoen | `gardermoen10` | Akershus | 01L/19R, 01R/19L | -3,39° | 6 punkter, som over |
 | ENBO Bodø | `bodo10` | Nordland | 07/25 | -0,59° | 3 punkter, som over |
-| ENMH Mehamn | `mehamn10` | Finnmark | 17/35 | +12,15° | 3 punkter, som over. Referansepunktet transformert likt med Kartverket innen 3 mm |
+| ENMH Mehamn | `mehamn10` | Finnmark | 17/35 | +12,23° | 3 punkter, som over. Referansepunktet transformert likt med Kartverket innen 3 mm |
 | ENTC Tromsø | `tromso10` | Troms | 18/36 | +3,68° | 3 punkter, som over |
 | ENAL Ålesund | `alesund10` | Møre og Romsdal | 06/24 | -7,89° | 3 punkter, som over. Utsnittet er flyttet 4,5 km sørover så byen er med |
 | ENKJ Kjeller | `kjeller10` | Akershus og Oslo | 12/30 | -3,52° | 3 punkter, som over, på baneendene fra OpenStreetMap (se under) |
@@ -157,7 +157,7 @@ Flyplassene i spillet (2026-11-20), alle sentrert på referansepunktet fra OurAi
 
 Mehamn ligger 12,8° øst for sentralmeridianen i UTM 33, langt utenfor sonens vanlige bredde. Kartverket
 leverer likevel alt i UTM 33, og projeksjonen virker fint så langt ut: målestokkfaktoren er 1,0022 og
-konvergensen +12,15°, den eneste positive.
+konvergensen +12,23° (i utsnittets sentrum, 3 km øst for flyplassen), den eneste positive.
 
 **Banekursen i OurAirports er feil for Mehamn.** Feltet for sann kurs sier 170°, som er banens magnetiske
 kurs (bane «17»). Sann kurs, regnet fra baneendene, er 182,4°; misvisningen der er rundt 12°. For de andre
@@ -530,7 +530,7 @@ navngitte figurer fra Dyreparken er brukt.
   `data/entur/<utsnitt>.stops.json` (i git), og skrives til `busstops.json` i flisene.
 - **Utvalg:** stoppesteder med transportmåte buss eller ekspressbuss, ett per stoppested (ikke ett per plattform).
   Antall: Oslo/Kjeller 1207, Bergen 1038, Sola 832, Kristiansand 665, Tromsø 492, Gardermoen 487, Ålesund 372,
-  Bodø 130, Mehamn 4. Kontrollert at spørringen ikke kutter svaret: Oslo sentrum ga 478 både i én og i fire ruter.
+  Bodø 130, Mehamn 5. Kontrollert at spørringen ikke kutter svaret: Oslo sentrum ga 478 både i én og i fire ruter.
 - **Ekte:** hvor holdeplassene ligger og hva de heter (navnet vises ikke i spillet ennå).
 - **SYNTETISK:** skiltets størrelse. Skilt 512 («holdeplass for buss») er tegnet etter det offentlige trafikkskiltet,
   8 m bredt på en 12 m høy stolpe, og vender alltid mot kameraet.

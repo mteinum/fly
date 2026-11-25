@@ -26,11 +26,6 @@
    "lat": 67.2692,
    "separationM": 31.37
   },
-  "mehamn10": {
-   "lon": 27.82661,
-   "lat": 71.02966,
-   "separationM": 21.79
-  },
   "tromso10": {
    "lon": 18.91898,
    "lat": 69.68333,
@@ -45,6 +40,11 @@
    "lon": 10.9366,
    "lat": 59.93893,
    "separationM": 38.78
+  },
+  "mehamn10": {
+   "lon": 27.9072,
+   "lat": 71.024,
+   "separationM": 21.74
   }
  }
 }
